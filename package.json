@@ -1,0 +1,21 @@
+{
+  "name": "vrt-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-strip-types src/**/*.test.ts",
+    "demo": "tsx src/demo.ts",
+    "demo:fix": "tsx src/demo-fix-loop.ts",
+    "demo:multi": "tsx src/demo-scenarios.ts",
+    "demo:multistep": "tsx src/demo-multistep.ts",
+    "vrt": "playwright test",
+    "vrt:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "tsx": "^4.21.0",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0"
+  }
+}

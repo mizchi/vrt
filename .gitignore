@@ -1,0 +1,7 @@
+node_modules/
+test-results/
+baselines/
+snapshots/
+output/
+vrt-report.json
+playwright-report/

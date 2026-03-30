@@ -1,0 +1,54 @@
+{
+  "role": "document",
+  "name": "Sample App",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "My App", "level": 1 },
+        {
+          "role": "navigation",
+          "name": "Main navigation",
+          "children": [
+            { "role": "link", "name": "Home" },
+            { "role": "link", "name": "About" },
+            { "role": "link", "name": "Settings" }
+          ]
+        },
+        {
+          "role": "search",
+          "name": "",
+          "children": [
+            { "role": "searchbox", "name": "" },
+            { "role": "button", "name": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "Welcome", "level": 2 },
+        { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Hello world" }] },
+        {
+          "role": "form",
+          "name": "Contact",
+          "children": [
+            { "role": "textbox", "name": "Email" },
+            { "role": "textbox", "name": "Message" },
+            { "role": "button", "name": "Send" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contentinfo",
+      "name": "",
+      "children": [
+        { "role": "link", "name": "Privacy Policy" }
+      ]
+    }
+  ]
+}

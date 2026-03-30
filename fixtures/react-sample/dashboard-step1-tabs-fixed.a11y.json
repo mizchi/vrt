@@ -1,0 +1,36 @@
+{
+  "role": "document",
+  "name": "Sample App",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "My App", "level": 1 }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "Dashboard", "level": 2 },
+        {
+          "role": "tablist",
+          "name": "Dashboard sections",
+          "children": [
+            { "role": "tab", "name": "Overview", "selected": true },
+            { "role": "tab", "name": "Analytics", "selected": false },
+            { "role": "tab", "name": "Settings", "selected": false }
+          ]
+        },
+        {
+          "role": "tabpanel",
+          "name": "Overview",
+          "children": [
+            { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Welcome to dashboard" }] }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "role": "document",
+  "name": "Sample App",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "My App", "level": 1 }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "Dashboard", "level": 2 },
+        {
+          "role": "generic",
+          "name": "",
+          "children": [
+            { "role": "generic", "name": "", "children": [{ "role": "StaticText", "name": "Overview" }] },
+            { "role": "generic", "name": "", "children": [{ "role": "StaticText", "name": "Analytics" }] },
+            { "role": "generic", "name": "", "children": [{ "role": "StaticText", "name": "Settings" }] }
+          ]
+        },
+        { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Welcome to dashboard" }] }
+      ]
+    }
+  ]
+}

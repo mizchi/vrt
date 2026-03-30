@@ -1,0 +1,50 @@
+{
+  "role": "document",
+  "name": "Sample App",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "My App", "level": 1 }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "Dashboard", "level": 2 },
+        {
+          "role": "tablist",
+          "name": "Dashboard sections",
+          "children": [
+            { "role": "tab", "name": "Overview", "selected": false },
+            { "role": "tab", "name": "Analytics", "selected": true },
+            { "role": "tab", "name": "Settings", "selected": false }
+          ]
+        },
+        {
+          "role": "tabpanel",
+          "name": "Analytics",
+          "children": [
+            { "role": "heading", "name": "Analytics", "level": 3 },
+            {
+              "role": "table",
+              "name": "",
+              "children": [
+                { "role": "row", "name": "", "children": [
+                  { "role": "cell", "name": "", "children": [{ "role": "StaticText", "name": "Page Views" }] },
+                  { "role": "cell", "name": "", "children": [{ "role": "StaticText", "name": "1,234" }] }
+                ]},
+                { "role": "row", "name": "", "children": [
+                  { "role": "cell", "name": "", "children": [{ "role": "StaticText", "name": "Users" }] },
+                  { "role": "cell", "name": "", "children": [{ "role": "StaticText", "name": "567" }] }
+                ]}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

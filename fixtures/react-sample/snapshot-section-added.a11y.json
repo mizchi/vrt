@@ -1,0 +1,58 @@
+{
+  "role": "document",
+  "name": "Sample App",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "My App", "level": 1 },
+        {
+          "role": "navigation",
+          "name": "Main navigation",
+          "children": [
+            { "role": "link", "name": "Home" },
+            { "role": "link", "name": "About" },
+            { "role": "link", "name": "Settings" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "Welcome", "level": 2 },
+        { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Hello world" }] },
+        {
+          "role": "form",
+          "name": "Contact",
+          "children": [
+            { "role": "textbox", "name": "Email" },
+            { "role": "textbox", "name": "Message" },
+            { "role": "button", "name": "Send" }
+          ]
+        },
+        {
+          "role": "region",
+          "name": "Recent activity",
+          "children": [
+            { "role": "heading", "name": "Recent Activity", "level": 3 },
+            { "role": "list", "name": "", "children": [
+              { "role": "listitem", "name": "", "children": [{ "role": "link", "name": "Updated README" }] },
+              { "role": "listitem", "name": "", "children": [{ "role": "link", "name": "Fixed login bug" }] },
+              { "role": "listitem", "name": "", "children": [{ "role": "link", "name": "Added dark mode" }] }
+            ]}
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contentinfo",
+      "name": "",
+      "children": [
+        { "role": "link", "name": "Privacy Policy" }
+      ]
+    }
+  ]
+}

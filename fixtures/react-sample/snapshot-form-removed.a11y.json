@@ -1,0 +1,37 @@
+{
+  "role": "document",
+  "name": "Sample App",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "My App", "level": 1 },
+        {
+          "role": "navigation",
+          "name": "Main navigation",
+          "children": [
+            { "role": "link", "name": "Home" },
+            { "role": "link", "name": "About" },
+            { "role": "link", "name": "Settings" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        { "role": "heading", "name": "Welcome", "level": 2 },
+        { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Hello world" }] }
+      ]
+    },
+    {
+      "role": "contentinfo",
+      "name": "",
+      "children": [
+        { "role": "link", "name": "Privacy Policy" }
+      ]
+    }
+  ]
+}
