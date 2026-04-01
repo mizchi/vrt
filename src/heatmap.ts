@@ -10,6 +10,17 @@ interface PngData {
   data: Uint8Array;
 }
 
+function cropImage(img: PngData, w: number, h: number): PngData {
+  if (img.width === w && img.height === h) return img;
+  const data = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    const srcOffset = y * img.width * 4;
+    const dstOffset = y * w * 4;
+    data.set(img.data.subarray(srcOffset, srcOffset + w * 4), dstOffset);
+  }
+  return { width: w, height: h, data };
+}
+
 /**
  * PNG ファイルを読み込み、RGBA ピクセルデータを返す
  * pngjs がない環境では raw バイトを返す (テスト用)
@@ -55,33 +66,32 @@ export async function compareScreenshots(
   const baseline = await decodePng(snapshot.baselinePath);
   const current = await decodePng(snapshot.screenshotPath);
 
-  // サイズが異なる場合は全体を diff として扱う
+  // サイズが異なる場合: 共通領域で比較 + 余剰領域を追加 diff として計上
+  let resizedBaseline = baseline;
+  let resizedCurrent = current;
+  let overflowPixels = 0;
+
   if (baseline.width !== current.width || baseline.height !== current.height) {
-    return {
-      snapshot,
-      diffPixels: baseline.width * baseline.height,
-      totalPixels: baseline.width * baseline.height,
-      diffRatio: 1.0,
-      regions: [
-        {
-          x: 0,
-          y: 0,
-          width: Math.max(baseline.width, current.width),
-          height: Math.max(baseline.height, current.height),
-          diffPixelCount: baseline.width * baseline.height,
-        },
-      ],
-    };
+    const commonW = Math.min(baseline.width, current.width);
+    const commonH = Math.min(baseline.height, current.height);
+    const maxW = Math.max(baseline.width, current.width);
+    const maxH = Math.max(baseline.height, current.height);
+    overflowPixels = maxW * maxH - commonW * commonH;
+
+    // Crop both images to common region
+    resizedBaseline = cropImage(baseline, commonW, commonH);
+    resizedCurrent = cropImage(current, commonW, commonH);
   }
 
-  const { width, height } = baseline;
-  const totalPixels = width * height;
+  const width = resizedBaseline.width;
+  const height = resizedBaseline.height;
+  const totalPixels = width * height + overflowPixels;
   const diffOutput = new Uint8Array(width * height * 4);
   const threshold = opts.threshold ?? 0.1;
 
-  const diffPixels = pixelmatch(
-    baseline.data,
-    current.data,
+  const diffPixels = overflowPixels + pixelmatch(
+    resizedBaseline.data,
+    resizedCurrent.data,
     diffOutput,
     width,
     height,

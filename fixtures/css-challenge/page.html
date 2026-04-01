@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repo Dashboard</title>
+<style id="target-css">
+/* reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #1f2328; background: #f6f8fa; line-height: 1.5; }
+
+/* header */
+.header { background: #24292f; color: #fff; padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+.header-logo { width: 32px; height: 32px; background: #fff; border-radius: 50%; }
+.header-search { flex: 1; max-width: 320px; }
+.header-search input { width: 100%; padding: 5px 12px; border: 1px solid #57606a; border-radius: 6px; background: #24292f; color: #fff; font-size: 14px; }
+.header-search input::placeholder { color: #8b949e; }
+.header-nav { display: flex; gap: 12px; margin-left: auto; }
+.header-nav a { color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; }
+.header-nav a:hover { color: #58a6ff; }
+
+/* repo header */
+.repo-header { background: #fff; border-bottom: 1px solid #d0d7de; padding: 16px 24px; }
+.repo-name { font-size: 20px; font-weight: 600; }
+.repo-name a { color: #0969da; text-decoration: none; }
+.repo-name span { color: #656d76; font-weight: 400; }
+.repo-badges { display: flex; gap: 8px; margin-top: 8px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 12px; color: #656d76; cursor: pointer; background: #f6f8fa; }
+.badge:hover { background: #eaeef2; }
+.badge-count { font-weight: 600; color: #1f2328; }
+
+/* tabs */
+.tabs { background: #fff; border-bottom: 1px solid #d0d7de; padding: 0 24px; display: flex; gap: 0; overflow-x: auto; }
+.tab { padding: 8px 16px; font-size: 14px; color: #656d76; text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab:hover { color: #1f2328; }
+.tab.active { color: #1f2328; font-weight: 600; border-bottom-color: #fd8c73; }
+.tab-count { background: #e8e8e8; border-radius: 10px; padding: 0 6px; font-size: 12px; margin-left: 4px; }
+
+/* main layout */
+.main { display: flex; gap: 24px; padding: 24px; max-width: 1280px; margin: 0 auto; }
+.content { flex: 1; min-width: 0; }
+.sidebar { width: 296px; flex-shrink: 0; }
+
+/* file browser */
+.branch-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.branch-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; font-size: 14px; cursor: pointer; }
+.branch-btn:hover { background: #eaeef2; }
+.action-btn { padding: 5px 16px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; font-size: 14px; cursor: pointer; font-weight: 600; }
+.action-btn.primary { background: #2da44e; color: #fff; border-color: #2da44e; }
+.action-btn.primary:hover { background: #2c974b; }
+
+/* file table */
+.file-table { width: 100%; border: 1px solid #d0d7de; border-radius: 6px; border-spacing: 0; overflow: hidden; }
+.file-table th { background: #f6f8fa; text-align: left; padding: 8px 16px; font-size: 12px; color: #656d76; border-bottom: 1px solid #d0d7de; }
+.file-table td { padding: 8px 16px; border-bottom: 1px solid #d0d7de; font-size: 14px; }
+.file-table tr:last-child td { border-bottom: none; }
+.file-table .file-icon { width: 16px; height: 16px; display: inline-block; margin-right: 8px; vertical-align: middle; }
+.file-table .file-icon.dir { background: #54aeff; border-radius: 2px; }
+.file-table .file-icon.file { background: #656d76; border-radius: 2px; }
+.file-table .file-name a { color: #0969da; text-decoration: none; }
+.file-table .file-name a:hover { text-decoration: underline; }
+.file-table .commit-msg { color: #656d76; }
+.file-table .commit-msg a { color: #656d76; text-decoration: none; }
+.file-table .commit-msg a:hover { color: #0969da; text-decoration: underline; }
+.file-table .date { color: #656d76; white-space: nowrap; text-align: right; }
+
+/* readme */
+.readme { border: 1px solid #d0d7de; border-radius: 6px; margin-top: 16px; }
+.readme-header { background: #f6f8fa; padding: 8px 16px; border-bottom: 1px solid #d0d7de; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.readme-body { padding: 24px 32px; font-size: 16px; }
+.readme-body h1 { font-size: 32px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #d0d7de; }
+.readme-body h2 { font-size: 24px; margin-top: 24px; margin-bottom: 12px; padding-bottom: 4px; border-bottom: 1px solid #d0d7de; }
+.readme-body ul { margin: 8px 0; padding-left: 24px; }
+.readme-body li { margin: 4px 0; }
+.readme-body code { background: #eff1f3; padding: 2px 6px; border-radius: 4px; font-size: 85%; }
+.readme-body pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+.readme-body pre code { background: none; padding: 0; }
+
+/* sidebar */
+.sidebar-section { margin-bottom: 24px; }
+.sidebar-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.sidebar-desc { font-size: 14px; color: #656d76; margin-bottom: 8px; }
+.topic-tag { display: inline-block; padding: 2px 10px; margin: 2px 4px 2px 0; background: #ddf4ff; color: #0969da; border-radius: 12px; font-size: 12px; text-decoration: none; }
+.topic-tag:hover { background: #b6e3ff; }
+.lang-bar { height: 8px; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 8px; }
+.lang-segment { height: 100%; }
+.lang-list { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.lang-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+/* responsive */
+@media (max-width: 768px) {
+  .main { flex-direction: column; padding: 16px; }
+  .sidebar { width: 100%; }
+  .header-nav { display: none; }
+  .header-search { max-width: none; }
+  .file-table .commit-msg { display: none; }
+  .tabs { padding: 0 16px; }
+}
+
+/* footer */
+.footer { border-top: 1px solid #d0d7de; padding: 24px; margin-top: 40px; text-align: center; color: #656d76; font-size: 12px; }
+.footer a { color: #0969da; text-decoration: none; margin: 0 8px; }
+.footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="header" role="banner">
+  <div class="header-logo" role="img" aria-label="Logo"></div>
+  <div class="header-search" role="search">
+    <input type="search" placeholder="Search or jump to..." aria-label="Search">
+  </div>
+  <nav class="header-nav" aria-label="Global">
+    <a href="#">Pull requests</a>
+    <a href="#">Issues</a>
+    <a href="#">Marketplace</a>
+    <a href="#">Explore</a>
+  </nav>
+</header>
+
+<div class="repo-header">
+  <div class="repo-name">
+    <a href="#">mizchi</a> <span>/</span> <a href="#"><strong>vrt-harness</strong></a>
+    <span class="badge" style="margin-left: 8px; vertical-align: middle;">Public</span>
+  </div>
+  <div class="repo-badges">
+    <button class="badge">⭐ Star <span class="badge-count">42</span></button>
+    <button class="badge">🍴 Fork <span class="badge-count">3</span></button>
+    <button class="badge">👁 Watch <span class="badge-count">5</span></button>
+  </div>
+</div>
+
+<nav class="tabs" role="navigation" aria-label="Repository">
+  <a class="tab active" href="#">📄 Code</a>
+  <a class="tab" href="#">Issues <span class="tab-count">5</span></a>
+  <a class="tab" href="#">Pull requests <span class="tab-count">2</span></a>
+  <a class="tab" href="#">Actions</a>
+  <a class="tab" href="#">Projects</a>
+  <a class="tab" href="#">Security</a>
+  <a class="tab" href="#">Insights</a>
+</nav>
+
+<div class="main" role="main">
+  <div class="content">
+    <div class="branch-bar">
+      <button class="branch-btn">🔀 main ▾</button>
+      <span style="color:#656d76; font-size:14px">3 branches · 1 tag</span>
+      <div style="margin-left:auto; display:flex; gap:8px;">
+        <button class="action-btn">Go to file</button>
+        <button class="action-btn">Add file ▾</button>
+        <button class="action-btn primary">⬇ Code ▾</button>
+      </div>
+    </div>
+
+    <table class="file-table" aria-label="Files">
+      <thead>
+        <tr>
+          <th style="width:30%">Name</th>
+          <th>Last commit message</th>
+          <th style="width:120px">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="file-name"><span class="file-icon dir"></span><a href="#">docs</a></td>
+          <td class="commit-msg"><a href="#">docs: add research notes</a></td>
+          <td class="date">2 days ago</td>
+        </tr>
+        <tr>
+          <td class="file-name"><span class="file-icon dir"></span><a href="#">e2e</a></td>
+          <td class="commit-msg"><a href="#">feat: add VRT capture spec</a></td>
+          <td class="date">3 days ago</td>
+        </tr>
+        <tr>
+          <td class="file-name"><span class="file-icon dir"></span><a href="#">fixtures</a></td>
+          <td class="commit-msg"><a href="#">feat: add complex fixtures</a></td>
+          <td class="date">yesterday</td>
+        </tr>
+        <tr>
+          <td class="file-name"><span class="file-icon dir"></span><a href="#">src</a></td>
+          <td class="commit-msg"><a href="#">refactor: extract reasoning module</a></td>
+          <td class="date">2 days ago</td>
+        </tr>
+        <tr>
+          <td class="file-name"><span class="file-icon file"></span><a href="#">.gitignore</a></td>
+          <td class="commit-msg"><a href="#">Initial commit</a></td>
+          <td class="date">5 days ago</td>
+        </tr>
+        <tr>
+          <td class="file-name"><span class="file-icon file"></span><a href="#">package.json</a></td>
+          <td class="commit-msg"><a href="#">feat: add pixelmatch dep</a></td>
+          <td class="date">3 days ago</td>
+        </tr>
+        <tr>
+          <td class="file-name"><span class="file-icon file"></span><a href="#">README.md</a></td>
+          <td class="commit-msg"><a href="#">docs: add README</a></td>
+          <td class="date">2 days ago</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="readme">
+      <div class="readme-header">📖 README.md</div>
+      <div class="readme-body">
+        <h1>vrt-harness</h1>
+        <p>VRT + Semantic Verification Harness for coding agents.</p>
+        <h2>Features</h2>
+        <ul>
+          <li>Visual regression testing with pixel comparison</li>
+          <li>Accessibility tree semantic diffing</li>
+          <li>Cross-validation of visual and semantic changes</li>
+          <li>Intent-aware change verification</li>
+        </ul>
+        <h2>Quick Start</h2>
+        <pre><code>pnpm install
+just vrt-test</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <aside class="sidebar" role="complementary">
+    <div class="sidebar-section">
+      <div class="sidebar-title">About</div>
+      <p class="sidebar-desc">VRT + Semantic Verification Harness for coding agents</p>
+      <div>
+        <a class="topic-tag" href="#">vrt</a>
+        <a class="topic-tag" href="#">accessibility</a>
+        <a class="topic-tag" href="#">testing</a>
+        <a class="topic-tag" href="#">playwright</a>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Releases</div>
+      <a href="#" style="font-size:14px; color:#0969da; text-decoration:none;">v0.1.0</a>
+      <span class="badge" style="margin-left:4px;">Latest</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Languages</div>
+      <div class="lang-bar">
+        <div class="lang-segment" style="width:95.2%; background:#3178c6;"></div>
+        <div class="lang-segment" style="width:4.8%; background:#f1e05a;"></div>
+      </div>
+      <ul class="lang-list">
+        <li><span class="lang-dot" style="background:#3178c6;"></span>TypeScript 95.2%</li>
+        <li><span class="lang-dot" style="background:#f1e05a;"></span>JavaScript 4.8%</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<footer class="footer" role="contentinfo">
+  <a href="#">Terms</a> <a href="#">Privacy</a> <a href="#">Security</a> <a href="#">Status</a> <a href="#">Docs</a>
+</footer>
+
+</body>
+</html>

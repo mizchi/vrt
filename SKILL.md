@@ -10,29 +10,43 @@ Visual Regression Testing (VRT) とアクセシビリティセマンティクス
 
 ## CLI コマンド
 
-すべて **プロジェクトルート** から実行する。サーバーが起動している前提。
+すべて **プロジェクトルート** から実行する。API 設計の詳細は `docs/api-design.md` を参照。
+
+### 基本
 
 ```bash
-# サーバー起動（別ターミナル）
-just serve
+just vrt-test                  # ユニットテスト
+just vrt                       # Playwright VRT
+just vrt-update                # スナップショット更新
+```
 
-# 初回: ベースライン作成
-just vrt-init
+### CSS Challenge (検出率ベンチマーク)
 
-# 変更後: スナップショット取得 → 検証
-just vrt-capture
-just vrt-verify
-# または一括
-just vrt
+```bash
+just css-challenge             # 1 回の CSS 削除チャレンジ (LLM で復元)
+just css-bench --trials 30     # ベンチマーク (検出率計測)
+just css-bench --fixture dashboard --backend crater  # fixture/backend 指定
+just css-bench-all             # 全 fixture 一括
+just css-report                # 蓄積データの分析レポート
+```
 
-# 変更を承認: スナップショットを新ベースラインに昇格
-just vrt-approve
+### Migration VRT (CSS 移行の検証)
 
-# レポート確認
-just vrt-report
+```bash
+just migration-compare before.html after.html   # 2 ファイル比較
+just migration-reset           # Reset CSS 比較 (normalize vs others)
+just migration-tailwind        # Tailwind → vanilla CSS
+```
 
-# 影響範囲確認
-just vrt-affected
+breakpoint は CSS から自動発見され、境界 ±1px + ランダムサンプルの viewport が生成される。
+
+### デモ
+
+```bash
+just vrt-demo                  # 基本 VRT デモ (kitty graphics)
+just vrt-demo-fix              # Fix ループデモ
+just vrt-demo-multi            # マルチシナリオ
+just vrt-demo-multistep        # マルチステップ
 ```
 
 ## エージェントのワークフロー
@@ -41,7 +55,8 @@ just vrt-affected
 
 ```
 ┌─────────────────────────────────────────────┐
-│ 1. just vrt-init (初回のみ)                  │
+│ 1. ベースライン作成                           │
+│    just vrt-update                           │
 └─────────┬───────────────────────────────────┘
           │
           ▼
@@ -55,7 +70,6 @@ just vrt-affected
           ▼
 ┌─────────────────────────────────────────────┐
 │ 3. just vrt                                  │
-│    (= capture + verify)                      │
 └─────────┬───────────────────────────────────┘
           │
      ┌────┴────────────────┐
@@ -64,11 +78,10 @@ just vrt-affected
      │                     │
      ▼                     ▼
 ┌──────────┐    ┌─────────────────────┐
-│ 4a.      │    │ 4b. just vrt-report │
-│ approve  │    │     → 問題を特定     │
-│ (任意)   │    │     → コード修正     │
-└──────────┘    │     → 3 に戻る       │
-                └─────────────────────┘
+│ 4a.      │    │ 4b. 問題を特定       │
+│ 完了     │    │     → コード修正     │
+│          │    │     → 3 に戻る       │
+└──────────┘    └─────────────────────┘
 ```
 
 ### 検証パイプライン（自動で実行される）
@@ -98,7 +111,6 @@ Track 3: A11y Diff      — a11y ツリー差分 → セマンティック変化
   - エラー状態検出 (赤い警告表示)
   - 空コンテンツ検出
   - A11y リグレッション (ラベル消失、ランドマーク削除)
-  - VRT カバレッジ
 ```
 
 ## exit code
@@ -124,25 +136,6 @@ a11y: フォームにラベルを追加       → a11y 変化あり、visual 変
 deps: React 19 にアップデート      → visual/a11y ともに変化なしが期待される
 ```
 
-## レポートの読み方
-
-`just vrt-report` で出力される情報:
-
-```
-[APPROVE] home
-  Diff matches expected change: "color change" (confidence: 80%)
-
-[REJECT] settings
-  A11y regression detected: Removed button "Delete"
-
-[ESCALATE] profile
-  Visual change during refactor — appearance changed unexpectedly
-```
-
-- **APPROVE**: 期待通りの変更。問題なし。
-- **REJECT**: リグレッション検出。必ず修正が必要。
-- **ESCALATE**: 判断が分かれる変更。人間レビューまたは追加調査が必要。
-
 ## A11y チェックの活用
 
 VRT verify は A11y ツリーも同時に検査する。以下が検出される:
@@ -159,16 +152,19 @@ VRT verify は A11y ツリーも同時に検査する。以下が検出される
 ## ファイル構成
 
 ```
-vrt/
 ├── SKILL.md                   ← このファイル
-├── package.json               # 独立パッケージ
+├── justfile                   # タスクランナー
+├── package.json
 ├── playwright.config.ts       # VRT 用 Playwright 設定
 ├── e2e/
 │   └── vrt-capture.spec.ts    # スクリーンショット + a11y 収集
+├── fixtures/                  # テスト用フィクスチャ
 ├── src/
 │   ├── vrt-cli.ts             # CLI エントリポイント
+│   ├── cli.ts                 # CLI ヘルパー
 │   ├── types.ts               # 全型定義
 │   ├── playwright-analyzer.ts # Playwright 出力解析
+│   ├── playwright-helper.ts   # Playwright ヘルパー
 │   ├── dep-graph.ts           # 依存ツリー (TS/MoonBit/Rust)
 │   ├── heatmap.ts             # ピクセル比較 + ヒートマップ
 │   ├── visual-semantic.ts     # Visual Semantic Diff 分類
@@ -176,20 +172,23 @@ vrt/
 │   ├── cross-validation.ts    # Visual x A11y x Intent 突き合わせ
 │   ├── intent.ts              # Diff → 変更意図の推測
 │   ├── quality.ts             # 品質ゲート
-│   └── agent.ts               # 5段階検証ループ
-└── test-results/              # 実行結果 (gitignore 推奨)
-    ├── baselines/             # ベースライン PNG + a11y JSON
-    ├── snapshots/             # 最新スナップショット
-    ├── output/                # ヒートマップ等の出力
-    └── vrt-report.json        # 検証レポート
+│   ├── reasoning.ts           # 変更理由の推論
+│   ├── expectation.ts         # 期待値マッチング
+│   ├── introspect.ts          # スペック生成・検証
+│   ├── goal-runner.ts         # ゴール駆動実行
+│   ├── llm-client.ts          # LLM プロバイダー
+│   ├── agent.ts               # 5段階検証ループ
+│   ├── demo.ts                # VRT デモ
+│   ├── demo-fix-loop.ts       # Fix ループデモ
+│   ├── demo-scenarios.ts      # マルチシナリオデモ
+│   └── demo-multistep.ts      # マルチステップデモ
+└── test-results/              # 実行結果 (gitignore)
 ```
 
 ## トラブルシューティング
 
 | 問題 | 対処 |
 |------|------|
-| "Is the server running?" | `just serve` でサーバーを起動 |
-| "No baselines found" | `just vrt-init` を実行 |
 | フォントレンダリングの差分 | pixelmatch の threshold を調整 (heatmap.ts) |
 | a11y ツリーが null | ページのレンダリング完了を待つ (waitFor 調整) |
 | 全部 ESCALATE になる | commit message に prefix をつける (feat:/fix:/style: 等) |

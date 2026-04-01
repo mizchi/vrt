@@ -1,0 +1,113 @@
+{
+  "role": "document",
+  "name": "vrt testing - Google Search",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        {
+          "role": "navigation",
+          "name": "Header",
+          "children": [
+            { "role": "link", "name": "About" },
+            { "role": "link", "name": "Store" },
+            { "role": "link", "name": "Gmail" },
+            { "role": "link", "name": "Images" },
+            { "role": "button", "name": "Google apps" },
+            { "role": "link", "name": "Sign in" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        {
+          "role": "search",
+          "name": "Search",
+          "children": [
+            { "role": "link", "name": "Google" },
+            { "role": "combobox", "name": "" },
+            { "role": "button", "name": "" },
+            { "role": "button", "name": "" },
+            { "role": "button", "name": "" }
+          ]
+        },
+        {
+          "role": "navigation",
+          "name": "Search modes",
+          "children": [
+            { "role": "link", "name": "All" },
+            { "role": "link", "name": "Images" },
+            { "role": "link", "name": "Videos" },
+            { "role": "link", "name": "News" },
+            { "role": "link", "name": "Shopping" },
+            { "role": "link", "name": "More" },
+            { "role": "button", "name": "Tools" }
+          ]
+        },
+        {
+          "role": "region",
+          "name": "Search results",
+          "children": [
+            {
+              "role": "article",
+              "name": "",
+              "children": [
+                { "role": "link", "name": "" },
+                { "role": "heading", "name": "", "level": 3 },
+                { "role": "paragraph", "name": "" }
+              ]
+            },
+            {
+              "role": "article",
+              "name": "",
+              "children": [
+                { "role": "link", "name": "" },
+                { "role": "heading", "name": "", "level": 3 },
+                { "role": "paragraph", "name": "" }
+              ]
+            },
+            {
+              "role": "article",
+              "name": "",
+              "children": [
+                { "role": "link", "name": "" },
+                { "role": "heading", "name": "", "level": 3 },
+                { "role": "paragraph", "name": "" }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "navigation",
+          "name": "",
+          "children": [
+            { "role": "link", "name": "" },
+            { "role": "link", "name": "" },
+            { "role": "link", "name": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contentinfo",
+      "name": "",
+      "children": [
+        { "role": "StaticText", "name": "Japan" },
+        {
+          "role": "navigation",
+          "name": "Footer links",
+          "children": [
+            { "role": "link", "name": "Help" },
+            { "role": "link", "name": "Send feedback" },
+            { "role": "link", "name": "Privacy" },
+            { "role": "link", "name": "Terms" }
+          ]
+        }
+      ]
+    }
+  ]
+}

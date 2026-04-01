@@ -1,0 +1,111 @@
+<!-- 共通コンテンツ。各 reset-*.html がこれを include する -->
+<header>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Migration VRT Test</h1>
+  <p>This page tests whether switching reset CSS produces visual differences.</p>
+
+  <article>
+    <h2>Typography</h2>
+    <p>Normal paragraph with <strong>bold</strong>, <em>italic</em>, and <a href="#">link</a> text.</p>
+    <p>Second paragraph with <code>inline code</code> and <small>small text</small>.</p>
+    <blockquote>Blockquote text that should have consistent styling across reset CSS variants.</blockquote>
+    <pre><code>code block {
+  display: block;
+  padding: 16px;
+}</code></pre>
+  </article>
+
+  <article>
+    <h2>Lists</h2>
+    <ul>
+      <li>Unordered item 1</li>
+      <li>Unordered item 2</li>
+      <li>Nested list
+        <ul>
+          <li>Nested item A</li>
+          <li>Nested item B</li>
+        </ul>
+      </li>
+    </ul>
+    <ol>
+      <li>Ordered item 1</li>
+      <li>Ordered item 2</li>
+      <li>Ordered item 3</li>
+    </ol>
+  </article>
+
+  <article>
+    <h2>Form Elements</h2>
+    <form>
+      <div>
+        <label for="name">Name</label>
+        <input type="text" id="name" placeholder="Enter name" value="Alice">
+      </div>
+      <div>
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com">
+      </div>
+      <div>
+        <label for="message">Message</label>
+        <textarea id="message" rows="3">Hello world</textarea>
+      </div>
+      <div>
+        <label><input type="checkbox" checked> Agree to terms</label>
+      </div>
+      <div>
+        <label><input type="radio" name="plan" checked> Free</label>
+        <label><input type="radio" name="plan"> Pro</label>
+      </div>
+      <div>
+        <select>
+          <option>Option A</option>
+          <option selected>Option B</option>
+          <option>Option C</option>
+        </select>
+      </div>
+      <div>
+        <button type="submit">Submit</button>
+        <button type="button">Cancel</button>
+        <button type="reset">Reset</button>
+      </div>
+    </form>
+  </article>
+
+  <article>
+    <h2>Table</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Role</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Alice</td><td>Developer</td><td>Active</td></tr>
+        <tr><td>Bob</td><td>Designer</td><td>Inactive</td></tr>
+        <tr><td>Carol</td><td>Manager</td><td>Active</td></tr>
+      </tbody>
+    </table>
+  </article>
+
+  <article>
+    <h2>Media & Misc</h2>
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 200 100'%3E%3Crect fill='%23e2e8f0' width='200' height='100'/%3E%3Ctext x='100' y='55' text-anchor='middle' fill='%2364748b'%3EPlaceholder%3C/text%3E%3C/svg%3E" alt="Placeholder image">
+    <hr>
+    <details>
+      <summary>Expandable section</summary>
+      <p>Hidden content revealed on click.</p>
+    </details>
+  </article>
+</main>
+
+<footer>
+  <p>&copy; 2026 VRT Harness. All rights reserved.</p>
+  <nav>
+    <a href="#">Terms</a> · <a href="#">Privacy</a> · <a href="#">Contact</a>
+  </nav>
+</footer>

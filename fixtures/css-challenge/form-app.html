@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings App</title>
+<style id="target-css">
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #0f172a; line-height: 1.5; }
+
+/* layout */
+.container { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
+.card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
+.card-title { font-size: 18px; font-weight: 600; }
+
+/* tabs */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; }
+.tab-item { padding: 12px 20px; font-size: 14px; font-weight: 500; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.2s, border-color 0.2s; text-decoration: none; }
+.tab-item:hover { color: #334155; }
+.tab-item.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+/* form elements */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+.form-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+.form-error { font-size: 12px; color: #dc2626; margin-top: 4px; display: none; }
+.form-group.has-error .form-error { display: block; }
+.form-group.has-error .form-input { border-color: #dc2626; }
+.form-group.has-error .form-input:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.15); }
+
+.form-input { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #111827; background: #fff; transition: border-color 0.15s, box-shadow 0.15s; outline: none; }
+.form-input::placeholder { color: #9ca3af; }
+.form-input:hover { border-color: #9ca3af; }
+.form-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+.form-input:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
+
+textarea.form-input { min-height: 100px; resize: vertical; }
+
+.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%236B7280' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+
+/* checkbox & radio */
+.check-group { display: flex; flex-direction: column; gap: 12px; }
+.check-item { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.check-input { width: 18px; height: 18px; margin-top: 2px; accent-color: #2563eb; cursor: pointer; flex-shrink: 0; }
+.check-label { font-size: 14px; color: #374151; }
+.check-desc { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+/* toggle switch */
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.toggle-row:last-child { border-bottom: none; }
+.toggle-info { flex: 1; }
+.toggle-title { font-size: 14px; font-weight: 500; color: #111827; }
+.toggle-desc { font-size: 13px; color: #6b7280; margin-top: 2px; }
+.toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: #d1d5db; border-radius: 12px; transition: background 0.2s; cursor: pointer; }
+.toggle-switch input:checked + .toggle-track { background: #2563eb; }
+.toggle-track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+
+/* buttons */
+.btn-group { display: flex; gap: 12px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: background 0.15s, box-shadow 0.15s, transform 0.1s; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-secondary { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+.btn-secondary:hover { background: #f9fafb; border-color: #9ca3af; }
+.btn-danger { background: #fff; color: #dc2626; border: 1px solid #fecaca; }
+.btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
+
+/* avatar upload */
+.avatar-section { display: flex; align-items: center; gap: 20px; }
+.avatar-preview { width: 80px; height: 80px; border-radius: 50%; background: #e2e8f0; object-fit: cover; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.avatar-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* notification badge */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-green { background: #dcfce7; color: #15803d; }
+.badge-yellow { background: #fef9c3; color: #a16207; }
+.badge-red { background: #fee2e2; color: #dc2626; }
+
+/* progress bar */
+.progress { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; background: #2563eb; border-radius: 4px; transition: width 0.3s; }
+.progress-fill.success { background: #22c55e; }
+.progress-fill.warning { background: #f59e0b; }
+
+/* alert */
+.alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* responsive */
+@media (max-width: 640px) {
+  .container { padding: 16px; }
+  .card { padding: 16px; }
+  .avatar-section { flex-direction: column; text-align: center; }
+  .btn-group { flex-direction: column; }
+  .btn-group .btn { width: 100%; }
+  .tab-item { padding: 10px 12px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <nav class="tab-bar" role="tablist" aria-label="Settings tabs">
+    <a class="tab-item active" href="#" role="tab" aria-selected="true">Profile</a>
+    <a class="tab-item" href="#" role="tab">Security</a>
+    <a class="tab-item" href="#" role="tab">Notifications</a>
+    <a class="tab-item" href="#" role="tab">Billing <span class="badge badge-blue">Pro</span></a>
+  </nav>
+
+  <div class="alert alert-info" role="alert">
+    Complete your profile to unlock all features. <strong>3 steps remaining.</strong>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Profile Information</h2>
+      <span class="badge badge-green">Verified</span>
+    </div>
+
+    <div class="avatar-section">
+      <img class="avatar-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 80 80'%3E%3Crect fill='%23e2e8f0' width='80' height='80' rx='40'/%3E%3Ctext x='40' y='48' text-anchor='middle' fill='%2394a3b8' font-size='28'%3E👤%3C/text%3E%3C/svg%3E" alt="Profile photo">
+      <div class="avatar-actions">
+        <button class="btn btn-secondary" type="button">Upload Photo</button>
+        <button class="btn btn-danger" type="button">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <form class="card" aria-label="Profile form">
+    <div class="card-header">
+      <h2 class="card-title">Personal Details</h2>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="name">Full Name</label>
+      <input class="form-input" id="name" type="text" value="Alice Johnson" placeholder="Enter your name">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="email">Email Address</label>
+      <input class="form-input" id="email" type="email" value="alice@example.com" placeholder="you@example.com">
+      <p class="form-hint">We'll never share your email with anyone.</p>
+    </div>
+
+    <div class="form-group has-error">
+      <label class="form-label" for="username">Username</label>
+      <input class="form-input" id="username" type="text" value="al" placeholder="Choose a username">
+      <p class="form-error">Username must be at least 3 characters.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="bio">Bio</label>
+      <textarea class="form-input" id="bio" placeholder="Tell us about yourself...">Software engineer who loves building things.</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="role">Role</label>
+      <select class="form-input form-select" id="role">
+        <option>Developer</option>
+        <option selected>Team Lead</option>
+        <option>Manager</option>
+        <option>Designer</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Experience Level</label>
+      <div class="check-group">
+        <label class="check-item">
+          <input class="check-input" type="radio" name="level" value="junior">
+          <div><div class="check-label">Junior</div><div class="check-desc">0-2 years of experience</div></div>
+        </label>
+        <label class="check-item">
+          <input class="check-input" type="radio" name="level" value="mid" checked>
+          <div><div class="check-label">Mid-level</div><div class="check-desc">3-5 years of experience</div></div>
+        </label>
+        <label class="check-item">
+          <input class="check-input" type="radio" name="level" value="senior">
+          <div><div class="check-label">Senior</div><div class="check-desc">6+ years of experience</div></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="api-key">API Key</label>
+      <input class="form-input" id="api-key" type="text" disabled value="sk-****-hidden">
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-secondary" type="button">Cancel</button>
+      <button class="btn btn-primary" type="submit">Save Changes</button>
+      <button class="btn btn-primary" type="button" disabled>Processing...</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Notification Preferences</h2>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-title">Email notifications</div>
+        <div class="toggle-desc">Receive updates about your account via email</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" checked aria-label="Email notifications">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-title">Push notifications</div>
+        <div class="toggle-desc">Get notified on your device</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" aria-label="Push notifications">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-title">Marketing emails</div>
+        <div class="toggle-desc">Receive tips, product updates and offers</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" aria-label="Marketing emails">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Storage Usage</h2>
+      <span class="badge badge-yellow">75% used</span>
+    </div>
+    <p style="font-size:14px; color:#6b7280; margin-bottom:8px;">7.5 GB of 10 GB used</p>
+    <div class="progress">
+      <div class="progress-fill warning" style="width: 75%"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Security Status</h2>
+    </div>
+    <p style="font-size:14px; color:#6b7280; margin-bottom:8px;">Password strength</p>
+    <div class="progress">
+      <div class="progress-fill" style="width: 40%"></div>
+    </div>
+    <p style="font-size:14px; color:#6b7280; margin-bottom:8px; margin-top:12px;">2FA setup</p>
+    <div class="progress">
+      <div class="progress-fill success" style="width: 100%"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Danger Zone</h2>
+      <span class="badge badge-red">Irreversible</span>
+    </div>
+    <div class="alert alert-error" role="alert">
+      Your account will be permanently deleted. This action cannot be undone.
+    </div>
+    <div class="alert alert-warning" role="alert">
+      All data, projects, and history will be lost.
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-danger" type="button">Delete Account</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

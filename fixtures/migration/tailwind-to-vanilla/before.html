@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard (Tailwind)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style id="target-css">
+/* Tailwind CDN handles all utility classes */
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+<header class="bg-white border-b border-gray-200">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center gap-4">
+        <span class="text-xl font-bold text-blue-600">AppName</span>
+        <nav class="hidden md:flex gap-6">
+          <a href="#" class="text-sm font-medium text-gray-900 hover:text-blue-600">Dashboard</a>
+          <a href="#" class="text-sm font-medium text-gray-500 hover:text-blue-600">Projects</a>
+          <a href="#" class="text-sm font-medium text-gray-500 hover:text-blue-600">Settings</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="text-gray-400 hover:text-gray-500">
+          <span class="sr-only">Notifications</span>🔔
+        </button>
+        <div class="w-8 h-8 bg-blue-500 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <p class="mt-1 text-sm text-gray-500">Welcome back, Alice.</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Total Users</p>
+      <p class="mt-1 text-2xl font-bold">12,345</p>
+      <p class="mt-1 text-sm text-green-600">↑ 12%</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Revenue</p>
+      <p class="mt-1 text-2xl font-bold">$48,290</p>
+      <p class="mt-1 text-sm text-green-600">↑ 8%</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Active Now</p>
+      <p class="mt-1 text-2xl font-bold">1,429</p>
+      <p class="mt-1 text-sm text-red-600">↓ 3%</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+      <p class="text-sm font-medium text-gray-500">Error Rate</p>
+      <p class="mt-1 text-2xl font-bold">0.12%</p>
+      <p class="mt-1 text-sm text-gray-500">No change</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <h2 class="text-lg font-semibold">Recent Orders</h2>
+      <button class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">Export</button>
+    </div>
+    <table class="w-full">
+      <thead>
+        <tr class="bg-gray-50">
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Amount</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <tr>
+          <td class="px-6 py-4 text-sm">#12345</td>
+          <td class="px-6 py-4 text-sm">Alice Johnson</td>
+          <td class="px-6 py-4 text-sm hidden sm:table-cell">$299.00</td>
+          <td class="px-6 py-4"><span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Completed</span></td>
+        </tr>
+        <tr>
+          <td class="px-6 py-4 text-sm">#12344</td>
+          <td class="px-6 py-4 text-sm">Bob Smith</td>
+          <td class="px-6 py-4 text-sm hidden sm:table-cell">$149.50</td>
+          <td class="px-6 py-4"><span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Pending</span></td>
+        </tr>
+        <tr>
+          <td class="px-6 py-4 text-sm">#12343</td>
+          <td class="px-6 py-4 text-sm">Carol White</td>
+          <td class="px-6 py-4 text-sm hidden sm:table-cell">$89.99</td>
+          <td class="px-6 py-4"><span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Completed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer class="border-t border-gray-200 mt-12">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <p class="text-sm text-gray-400 text-center">&copy; 2026 AppName. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>

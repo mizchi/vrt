@@ -1,0 +1,123 @@
+{
+  "role": "document",
+  "name": "vrt testing - Google Search",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        {
+          "role": "navigation",
+          "name": "Header",
+          "children": [
+            { "role": "button", "name": "Menu" },
+            { "role": "link", "name": "Google" },
+            { "role": "button", "name": "Sign in" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        {
+          "role": "search",
+          "name": "Search",
+          "children": [
+            { "role": "combobox", "name": "Search" },
+            { "role": "button", "name": "Search by voice" },
+            { "role": "button", "name": "Clear" }
+          ]
+        },
+        {
+          "role": "navigation",
+          "name": "Search modes",
+          "children": [
+            { "role": "link", "name": "All" },
+            { "role": "link", "name": "Images" },
+            { "role": "link", "name": "Videos" },
+            { "role": "link", "name": "News" },
+            { "role": "link", "name": "More" }
+          ]
+        },
+        {
+          "role": "region",
+          "name": "Search results",
+          "children": [
+            {
+              "role": "article",
+              "name": "Result 1",
+              "children": [
+                { "role": "link", "name": "Visual Regression Testing Guide - playwright.dev" },
+                { "role": "heading", "name": "Visual Regression Testing | Playwright", "level": 3 },
+                { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Playwright provides methods for comparing page and element screenshots with expected values..." }] }
+              ]
+            },
+            {
+              "role": "article",
+              "name": "Result 2",
+              "children": [
+                { "role": "link", "name": "What is Visual Regression Testing? - browserstack.com" },
+                { "role": "heading", "name": "Visual Regression Testing: A Complete Guide (2025)", "level": 3 },
+                { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "Visual regression testing is a quality assurance activity that verifies the visual appearance..." }] }
+              ]
+            },
+            {
+              "role": "article",
+              "name": "Result 3",
+              "children": [
+                { "role": "link", "name": "VRT Tools Comparison - dev.to" },
+                { "role": "heading", "name": "Comparing Visual Regression Testing Tools in 2025", "level": 3 },
+                { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "A comprehensive comparison of popular VRT tools including Playwright, Cypress, Percy..." }] }
+              ]
+            },
+            {
+              "role": "region",
+              "name": "People also ask",
+              "children": [
+                { "role": "button", "name": "What is the difference between VRT and E2E testing?" },
+                { "role": "button", "name": "How to set up visual regression testing?" },
+                { "role": "button", "name": "Is visual regression testing worth it?" }
+              ]
+            },
+            {
+              "role": "article",
+              "name": "Result 4",
+              "children": [
+                { "role": "link", "name": "Accessibility Testing with VRT - a11yproject.com" },
+                { "role": "heading", "name": "Combining VRT with Accessibility Testing", "level": 3 },
+                { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "How to combine visual regression testing with accessibility audits..." }] }
+              ]
+            }
+          ]
+        },
+        {
+          "role": "navigation",
+          "name": "Pagination",
+          "children": [
+            { "role": "StaticText", "name": "1" },
+            { "role": "link", "name": "2" },
+            { "role": "link", "name": "3" },
+            { "role": "link", "name": "Next" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contentinfo",
+      "name": "",
+      "children": [
+        {
+          "role": "navigation",
+          "name": "Footer links",
+          "children": [
+            { "role": "link", "name": "Help" },
+            { "role": "link", "name": "Privacy" },
+            { "role": "link", "name": "Terms" }
+          ]
+        }
+      ]
+    }
+  ]
+}

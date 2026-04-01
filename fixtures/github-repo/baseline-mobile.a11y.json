@@ -1,0 +1,180 @@
+{
+  "role": "document",
+  "name": "mizchi/vrt-harness: VRT + Semantic Verification Harness",
+  "children": [
+    {
+      "role": "banner",
+      "name": "",
+      "children": [
+        {
+          "role": "navigation",
+          "name": "Global",
+          "children": [
+            { "role": "button", "name": "Menu" },
+            { "role": "link", "name": "Homepage" },
+            { "role": "button", "name": "Search" },
+            { "role": "button", "name": "Create new..." },
+            { "role": "button", "name": "Notifications" },
+            { "role": "button", "name": "User menu" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "name": "",
+      "children": [
+        {
+          "role": "region",
+          "name": "Repository header",
+          "children": [
+            { "role": "img", "name": "Owner avatar" },
+            { "role": "link", "name": "mizchi" },
+            { "role": "StaticText", "name": "/" },
+            { "role": "link", "name": "vrt-harness" },
+            { "role": "StaticText", "name": "Public" }
+          ]
+        },
+        {
+          "role": "navigation",
+          "name": "Repository",
+          "children": [
+            { "role": "link", "name": "Code" },
+            { "role": "link", "name": "Issues 5" },
+            { "role": "link", "name": "Pull requests 2" },
+            { "role": "button", "name": "More" }
+          ]
+        },
+        {
+          "role": "region",
+          "name": "Repository content",
+          "children": [
+            {
+              "role": "region",
+              "name": "File explorer",
+              "children": [
+                {
+                  "role": "region",
+                  "name": "Branch selector",
+                  "children": [
+                    { "role": "button", "name": "main" }
+                  ]
+                },
+                { "role": "button", "name": "Code" },
+                {
+                  "role": "region",
+                  "name": "Latest commit",
+                  "children": [
+                    { "role": "link", "name": "mizchi" },
+                    { "role": "link", "name": "docs: add README.md, TODO.md, and research notes" },
+                    { "role": "StaticText", "name": "2 days ago" }
+                  ]
+                },
+                {
+                  "role": "table",
+                  "name": "Files",
+                  "children": [
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": "docs" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "2 days ago" }] }
+                      ]
+                    },
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": "e2e" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "3 days ago" }] }
+                      ]
+                    },
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": "fixtures" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "1 day ago" }] }
+                      ]
+                    },
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": "src" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "2 days ago" }] }
+                      ]
+                    },
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": ".gitignore" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "5 days ago" }] }
+                      ]
+                    },
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": "README.md" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "2 days ago" }] }
+                      ]
+                    },
+                    {
+                      "role": "row",
+                      "name": "",
+                      "children": [
+                        { "role": "cell", "children": [{ "role": "link", "name": "package.json" }] },
+                        { "role": "cell", "children": [{ "role": "StaticText", "name": "3 days ago" }] }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "role": "region",
+              "name": "README",
+              "children": [
+                { "role": "heading", "name": "vrt-harness", "level": 1 },
+                { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "VRT + Semantic Verification Harness for coding agents." }] },
+                { "role": "heading", "name": "Features", "level": 2 },
+                {
+                  "role": "list",
+                  "name": "",
+                  "children": [
+                    { "role": "listitem", "children": [{ "role": "StaticText", "name": "Visual regression testing with pixel comparison" }] },
+                    { "role": "listitem", "children": [{ "role": "StaticText", "name": "Accessibility tree semantic diffing" }] },
+                    { "role": "listitem", "children": [{ "role": "StaticText", "name": "Cross-validation of visual and semantic changes" }] },
+                    { "role": "listitem", "children": [{ "role": "StaticText", "name": "Intent-aware change verification" }] }
+                  ]
+                },
+                { "role": "heading", "name": "Quick Start", "level": 2 },
+                { "role": "code", "name": "pnpm install\njust vrt-test" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contentinfo",
+      "name": "",
+      "children": [
+        {
+          "role": "navigation",
+          "name": "Footer",
+          "children": [
+            { "role": "link", "name": "Terms" },
+            { "role": "link", "name": "Privacy" },
+            { "role": "link", "name": "Security" },
+            { "role": "link", "name": "Status" },
+            { "role": "link", "name": "Docs" }
+          ]
+        }
+      ]
+    }
+  ]
+}

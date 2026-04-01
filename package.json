@@ -14,8 +14,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
-    "tsx": "^4.21.0",
-    "pixelmatch": "^6.0.0",
-    "pngjs": "^7.0.0"
+    "@types/ws": "^8.18.1",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.21.0"
+  },
+  "dependencies": {
+    "ws": "^8.20.0"
   }
 }

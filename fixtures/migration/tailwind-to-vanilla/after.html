@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard (Vanilla CSS)</title>
+<style id="target-css">
+/* Vanilla CSS equivalent of Tailwind utilities */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; background: #f9fafb; color: #111827; min-height: 100vh; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+button, input, select, textarea { font-family: inherit; font-size: 100%; line-height: inherit; }
+table { border-collapse: collapse; text-indent: 0; border-color: inherit; }
+
+/* header */
+.header { background: #fff; border-bottom: 1px solid #e5e7eb; }
+.header-inner { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+.header-row { display: flex; align-items: center; justify-content: space-between; height: 4rem; }
+.logo { font-size: 1.25rem; font-weight: 700; color: #2563eb; line-height: 1.75rem; }
+.nav { display: none; gap: 1.5rem; }
+.nav a { font-size: 0.875rem; font-weight: 500; color: #111827; text-decoration: none; line-height: 1.25rem; }
+.nav a.secondary { color: #6b7280; }
+.nav a:hover { color: #2563eb; }
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
+.icon-btn { color: #9ca3af; background: none; border: none; cursor: pointer; }
+.icon-btn:hover { color: #6b7280; }
+.avatar { width: 2rem; height: 2rem; background: #3b82f6; border-radius: 9999px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+/* main */
+.main { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; }
+.page-title { font-size: 1.5rem; font-weight: 700; color: #111827; line-height: 2rem; }
+.page-subtitle { margin-top: 0.25rem; font-size: 0.875rem; color: #6b7280; line-height: 1.25rem; }
+.title-section { margin-bottom: 2rem; }
+
+/* stats grid */
+.stats-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }
+.stat-card { background: #fff; border-radius: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; padding: 1.25rem; }
+.stat-label { font-size: 0.875rem; font-weight: 500; color: #6b7280; line-height: 1.25rem; }
+.stat-value { margin-top: 0.25rem; font-size: 1.5rem; font-weight: 700; line-height: 2rem; }
+.stat-change { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.25rem; }
+.stat-change.up { color: #16a34a; }
+.stat-change.down { color: #dc2626; }
+.stat-change.neutral { color: #6b7280; }
+
+/* table card */
+.table-card { background: #fff; border-radius: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; overflow: hidden; }
+.table-header { padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+.table-title { font-size: 1.125rem; font-weight: 600; line-height: 1.75rem; }
+.btn-primary { padding: 0.5rem 1rem; background: #2563eb; color: #fff; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 0.5rem; cursor: pointer; line-height: 1.25rem; font-family: inherit; }
+.btn-primary:hover { background: #1d4ed8; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: #f9fafb; }
+th { padding: 0.75rem 1.5rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: #6b7280; text-transform: uppercase; line-height: 1rem; }
+td { padding: 1rem 1.5rem; font-size: 0.875rem; line-height: 1.25rem; }
+tbody tr { border-bottom: 1px solid #e5e7eb; }
+tbody tr:last-child { border-bottom: none; }
+.badge { display: inline-flex; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 500; border-radius: 9999px; line-height: 1rem; }
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-yellow { background: #fef9c3; color: #854d0e; }
+
+/* footer */
+.footer { border-top: 1px solid #e5e7eb; margin-top: 3rem; }
+.footer-inner { max-width: 72rem; margin: 0 auto; padding: 1.5rem 1rem; }
+.footer-text { font-size: 0.875rem; color: #9ca3af; text-align: center; line-height: 1.25rem; }
+
+.col-hidden-mobile { display: none; }
+
+/* responsive */
+@media (min-width: 640px) {
+  .header-inner, .main, .footer-inner { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .col-hidden-mobile { display: table-cell; }
+}
+@media (min-width: 768px) {
+  .nav { display: flex; }
+}
+@media (min-width: 1024px) {
+  .header-inner, .main, .footer-inner { padding-left: 2rem; padding-right: 2rem; }
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-row">
+      <div style="display:flex; align-items:center; gap:1rem;">
+        <span class="logo">AppName</span>
+        <nav class="nav">
+          <a href="#">Dashboard</a>
+          <a href="#" class="secondary">Projects</a>
+          <a href="#" class="secondary">Settings</a>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn"><span class="sr-only">Notifications</span>🔔</button>
+        <div class="avatar"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="title-section">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Welcome back, Alice.</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <p class="stat-label">Total Users</p>
+      <p class="stat-value">12,345</p>
+      <p class="stat-change up">↑ 12%</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Revenue</p>
+      <p class="stat-value">$48,290</p>
+      <p class="stat-change up">↑ 8%</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Active Now</p>
+      <p class="stat-value">1,429</p>
+      <p class="stat-change down">↓ 3%</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Error Rate</p>
+      <p class="stat-value">0.12%</p>
+      <p class="stat-change neutral">No change</p>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <h2 class="table-title">Recent Orders</h2>
+      <button class="btn-primary">Export</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Customer</th>
+          <th class="col-hidden-mobile">Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>#12345</td>
+          <td>Alice Johnson</td>
+          <td class="col-hidden-mobile">$299.00</td>
+          <td><span class="badge badge-green">Completed</span></td>
+        </tr>
+        <tr>
+          <td>#12344</td>
+          <td>Bob Smith</td>
+          <td class="col-hidden-mobile">$149.50</td>
+          <td><span class="badge badge-yellow">Pending</span></td>
+        </tr>
+        <tr>
+          <td>#12343</td>
+          <td>Carol White</td>
+          <td class="col-hidden-mobile">$89.99</td>
+          <td><span class="badge badge-green">Completed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p class="footer-text">&copy; 2026 AppName. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+# vrt-harness task runner
+
+default:
+  just --list
+
+# ---- VRT (Visual Regression + Semantic Testing) ----
+
+# Run VRT unit tests
+vrt-test:
+  node --test --experimental-strip-types src/**/*.test.ts
+
+# Run VRT demo (kitty graphics)
+vrt-demo:
+  npx tsx src/demo.ts
+
+# Run fix loop demo (detect → reason → fix → verify)
+vrt-demo-fix:
+  npx tsx src/demo-fix-loop.ts
+
+# Run multi-scenario demo (3 complex scenarios)
+vrt-demo-multi:
+  npx tsx src/demo-scenarios.ts
+
+# Run 6-step dashboard rebuild demo
+vrt-demo-multistep:
+  npx tsx src/demo-multistep.ts
+
+# CSS recovery challenge (AI fixes random CSS deletion using VRT)
+css-challenge *args:
+  npx tsx src/css-challenge.ts {{args}}
+
+# CSS challenge benchmark (detection/recovery rates)
+css-bench *args:
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts {{args}}
+
+# CSS benchmark on all fixtures
+css-bench-all trials="30":
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture page
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture dashboard
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture form-app
+
+# CSS benchmark with crater backend (requires crater BiDi server on :9222)
+css-bench-crater *args:
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --backend crater {{args}}
+
+# CSS detection pattern report (accumulated data analysis)
+css-report:
+  npx tsx src/detection-report.ts
+
+# Migration VRT compare (before vs after)
+migration-compare *args:
+  npx tsx src/migration-compare.ts {{args}}
+
+# Migration: Reset CSS comparison
+migration-reset:
+  npx tsx src/migration-compare.ts --dir fixtures/migration/reset-css --baseline normalize.html --variants modern-normalize.html destyle.html no-reset.html
+
+# Migration: Tailwind to vanilla CSS
+migration-tailwind:
+  npx tsx src/migration-compare.ts fixtures/migration/tailwind-to-vanilla/before.html fixtures/migration/tailwind-to-vanilla/after.html
+
+# Performance benchmark (deterministic APIs only)
+bench:
+  npx tsx src/benchmark.ts
+
+# Run Playwright VRT
+vrt:
+  playwright test
+
+# Update VRT snapshots
+vrt-update:
+  playwright test --update-snapshots

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analytics Dashboard</title>
+<style id="target-css">
+:root { --bg-primary: #0f172a; --bg-card: #1e293b; --bg-hover: #334155; --text-primary: #f8fafc; --text-secondary: #94a3b8; --accent: #3b82f6; --accent-hover: #60a5fa; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; --radius: 8px; --shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
+
+/* layout */
+.app { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
+.sidebar { grid-row: 1 / -1; background: var(--bg-card); border-right: 1px solid rgba(255,255,255,0.1); padding: 16px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.topbar { grid-column: 2; background: var(--bg-card); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+.main-content { grid-column: 2; padding: 24px; overflow-y: auto; }
+
+/* sidebar */
+.logo { font-size: 18px; font-weight: 700; padding: 8px 12px; margin-bottom: 16px; letter-spacing: -0.5px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: background 0.15s, color 0.15s; cursor: pointer; }
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-item.active { background: var(--accent); color: white; }
+.nav-icon { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 12px 0; }
+.nav-section { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); padding: 8px 12px; opacity: 0.6; }
+
+/* topbar */
+.search-box { flex: 1; max-width: 400px; position: relative; }
+.search-box input { width: 100%; padding: 8px 12px 8px 36px; background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.15s; }
+.search-box input:focus { border-color: var(--accent); }
+.search-box input::placeholder { color: var(--text-secondary); }
+.topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+.icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); object-fit: cover; }
+
+/* stats cards */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.stat-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+.stat-card.success::before { background: var(--success); }
+.stat-card.warning::before { background: var(--warning); }
+.stat-card.danger::before { background: var(--danger); }
+.stat-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+.stat-change { font-size: 13px; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+.stat-change.up { color: var(--success); }
+.stat-change.down { color: var(--danger); }
+
+/* charts area */
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.chart-title { font-size: 16px; font-weight: 600; }
+.chart-placeholder { height: 200px; background: repeating-linear-gradient(90deg, var(--bg-hover) 0px, var(--bg-hover) 2px, transparent 2px, transparent 24px); border-radius: 4px; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 8px; }
+.bar { width: 16px; background: var(--accent); border-radius: 2px 2px 0 0; transition: height 0.3s; }
+.bar:hover { background: var(--accent-hover); }
+.donut-placeholder { width: 160px; height: 160px; border-radius: 50%; border: 20px solid var(--accent); border-top-color: var(--success); border-right-color: var(--warning); margin: 20px auto; transform: rotate(-45deg); }
+
+/* table */
+.table-card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.table-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+.table-title { font-size: 16px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 12px 20px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); }
+td { padding: 12px 20px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+tr:hover td { background: var(--bg-hover); }
+tr:last-child td { border-bottom: none; }
+.status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+.status-badge.active { background: rgba(34,197,94,0.15); color: var(--success); }
+.status-badge.pending { background: rgba(245,158,11,0.15); color: var(--warning); }
+.status-badge.error { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
+.btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.2); }
+.btn-outline:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* tooltip */
+.tooltip { position: relative; }
+.tooltip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); padding: 4px 8px; background: var(--text-primary); color: var(--bg-primary); border-radius: 4px; font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 10; }
+.tooltip:hover::after { opacity: 1; }
+
+/* responsive */
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .topbar { grid-column: 1; }
+  .main-content { grid-column: 1; padding: 16px; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .table-card { overflow-x: auto; }
+  th:nth-child(n+3), td:nth-child(n+3) { display: none; }
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+
+/* animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.stat-card { animation: fadeIn 0.3s ease-out; }
+.stat-card:nth-child(2) { animation-delay: 0.05s; }
+.stat-card:nth-child(3) { animation-delay: 0.1s; }
+.stat-card:nth-child(4) { animation-delay: 0.15s; }
+
+/* filter effects */
+.avatar-glow { filter: drop-shadow(0 0 6px var(--accent)); }
+.backdrop-blur { backdrop-filter: blur(8px); background: rgba(15,23,42,0.8); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="logo">📊 Analytics</div>
+    <a class="nav-item active" href="#"><span class="nav-icon">📈</span> Dashboard</a>
+    <a class="nav-item" href="#"><span class="nav-icon">👥</span> Users</a>
+    <a class="nav-item" href="#"><span class="nav-icon">📦</span> Products</a>
+    <a class="nav-item" href="#"><span class="nav-icon">💳</span> Revenue</a>
+    <div class="nav-divider"></div>
+    <div class="nav-section">Settings</div>
+    <a class="nav-item" href="#"><span class="nav-icon">⚙️</span> General</a>
+    <a class="nav-item" href="#"><span class="nav-icon">🔔</span> Notifications</a>
+  </nav>
+
+  <header class="topbar" role="banner">
+    <div class="search-box" role="search">
+      <input type="search" placeholder="Search..." aria-label="Search dashboard">
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn tooltip" data-tip="Notifications" aria-label="Notifications">🔔</button>
+      <button class="icon-btn tooltip" data-tip="Settings" aria-label="Settings">⚙️</button>
+      <img class="avatar avatar-glow" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 32 32'%3E%3Crect fill='%233b82f6' width='32' height='32' rx='16'/%3E%3C/svg%3E" alt="User avatar">
+    </div>
+  </header>
+
+  <main class="main-content" role="main">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">24,521</div>
+        <div class="stat-change up">↑ 12.5% from last month</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-label">Revenue</div>
+        <div class="stat-value">$48,290</div>
+        <div class="stat-change up">↑ 8.2% from last month</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-label">Active Sessions</div>
+        <div class="stat-value">1,429</div>
+        <div class="stat-change down">↓ 3.1% from last month</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-label">Error Rate</div>
+        <div class="stat-value">0.12%</div>
+        <div class="stat-change up">↑ 0.03% from last month</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Revenue Over Time</h2>
+          <button class="btn btn-outline">Last 30 days</button>
+        </div>
+        <div class="chart-placeholder">
+          <div class="bar" style="height: 60%"></div>
+          <div class="bar" style="height: 80%"></div>
+          <div class="bar" style="height: 45%"></div>
+          <div class="bar" style="height: 90%"></div>
+          <div class="bar" style="height: 70%"></div>
+          <div class="bar" style="height: 55%"></div>
+          <div class="bar" style="height: 85%"></div>
+          <div class="bar" style="height: 65%"></div>
+          <div class="bar" style="height: 75%"></div>
+          <div class="bar" style="height: 95%"></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Traffic Sources</h2>
+        </div>
+        <div class="donut-placeholder"></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h2 class="table-title">Recent Orders</h2>
+        <button class="btn btn-primary">Export</button>
+      </div>
+      <table aria-label="Recent orders">
+        <thead>
+          <tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>#12345</td><td>Alice Johnson</td><td>$299.00</td><td><span class="status-badge active">Completed</span></td><td>Mar 28</td></tr>
+          <tr><td>#12344</td><td>Bob Smith</td><td>$149.50</td><td><span class="status-badge pending">Pending</span></td><td>Mar 28</td></tr>
+          <tr><td>#12343</td><td>Carol White</td><td>$89.99</td><td><span class="status-badge active">Completed</span></td><td>Mar 27</td></tr>
+          <tr><td>#12342</td><td>Dave Brown</td><td>$199.00</td><td><span class="status-badge error">Failed</span></td><td>Mar 27</td></tr>
+          <tr><td>#12341</td><td>Eve Davis</td><td>$549.00</td><td><span class="status-badge active">Completed</span></td><td>Mar 26</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
