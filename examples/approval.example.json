@@ -1,0 +1,30 @@
+{
+  "rules": [
+    {
+      "selector": ".card",
+      "property": "margin-left",
+      "category": "spacing",
+      "changeType": "geometry",
+      "tolerance": {
+        "pixels": 80,
+        "ratio": 0.02,
+        "geometryDelta": 4
+      },
+      "reason": "Known small spacing drift between renderers",
+      "issue": "mizchi/crater#21",
+      "expires": "2026-06-01"
+    },
+    {
+      "selector": ".button:hover",
+      "property": "background-color",
+      "category": "visual",
+      "changeType": "paint",
+      "tolerance": {
+        "pixels": 120,
+        "ratio": 0.01,
+        "colorDelta": 8
+      },
+      "reason": "Hover palette differs slightly on Crater"
+    }
+  ]
+}

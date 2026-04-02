@@ -7,10 +7,39 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
+import {
+  applyApprovalToVrtDiff,
+  filterApprovedPaintTreeChanges,
+  inferApprovalChangeType,
+  type ApprovalContext,
+  type ApprovalManifest,
+  type ApprovalRule,
+  type ApprovalWarning,
+  type PaintTreeApprovalMatch,
+} from "./approval.ts";
 import { compareScreenshots } from "./heatmap.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
 import { diffA11yTrees, checkA11yTree, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
 import { CraterClient, diffPaintTrees, type PaintNode, type PaintTreeChange } from "./crater-client.ts";
+import {
+  filterComputedStyleDiffsByTargets,
+  type ComputedStyleTarget,
+} from "./css-custom-properties.ts";
+import {
+  buildInteractionTargetPlans,
+  captureEmulatedInteractionStyleSnapshotInDom,
+  captureComputedStyleSnapshotForTargetSelectorsInDom,
+  captureComputedStyleSnapshotInDom,
+  collectInteractionTargetPlansInDom,
+  computedStyleSnapshotToMap,
+  hasMeaningfulComputedStyleSnapshot,
+  mergeComputedStyleSnapshots,
+  selectInteractionFallbackPlans,
+  TRACKED_PROPERTIES,
+  type ComputedStyleSnapshot,
+  type InteractionTargetPlan,
+  waitForInteractionStylesInDom,
+} from "./computed-style-capture.ts";
 import type { A11yNode, VrtSnapshot, VrtDiff, VisualSemanticDiff, A11yDiff } from "./types.ts";
 
 // ---- Types ----
@@ -58,6 +87,54 @@ export function diffComputedStyles(
   return diffs;
 }
 
+export function applyApprovalsToAnalysisSignals(
+  vrtDiff: VrtDiff | null,
+  paintTreeChanges: PaintTreeChange[],
+  options: AnalysisApprovalOptions = {},
+): AppliedAnalysisApprovals {
+  if (!options.manifest) {
+    return {
+      vrtDiff,
+      paintTreeChanges,
+      approvalWarnings: [],
+      approvedVisualRules: [],
+      approvedPaintTreeMatches: [],
+    };
+  }
+
+  const context = options.context ?? {};
+  const resolvedChangeType = context.changeType ?? (
+    context.property ? inferApprovalChangeType(context.property, context.category) : undefined
+  );
+
+  const visualApproval = vrtDiff
+    ? applyApprovalToVrtDiff(
+      vrtDiff,
+      options.manifest,
+      { ...context, changeType: resolvedChangeType },
+      { strict: options.strict },
+    )
+    : null;
+
+  const paintApproval = filterApprovedPaintTreeChanges(
+    paintTreeChanges,
+    options.manifest,
+    context,
+    { strict: options.strict },
+  );
+
+  return {
+    vrtDiff: visualApproval?.diff ?? vrtDiff,
+    paintTreeChanges: paintApproval.remainingChanges,
+    approvalWarnings: dedupeApprovalWarnings([
+      ...(visualApproval?.warnings ?? []),
+      ...paintApproval.warnings,
+    ]),
+    approvedVisualRules: visualApproval?.matchedRules ?? [],
+    approvedPaintTreeMatches: paintApproval.matches,
+  };
+}
+
 export interface VrtAnalysis {
   vrtDiff: VrtDiff | null;
   visualSemantic: VisualSemanticDiff | null;
@@ -65,11 +142,32 @@ export interface VrtAnalysis {
   baselineIssueCount: number;
   brokenIssueCount: number;
   computedStyleDiffs: ComputedStyleDiff[];
+  referencedComputedStyleDiffs: ComputedStyleDiff[];
+  referencedHoverStyleDiffs: ComputedStyleDiff[];
+  trackedComputedStyleTargets: ComputedStyleTarget[];
   hoverDiffDetected: boolean;
   paintTreeChanges: PaintTreeChange[];
+  approvalWarnings: ApprovalWarning[];
+  approvedVisualRules: ApprovalRule[];
+  approvedPaintTreeMatches: PaintTreeApprovalMatch[];
   visualReport: string;
   a11yReport: string;
   fullReport: string;
+}
+
+export interface AnalysisApprovalOptions {
+  manifest?: ApprovalManifest | null;
+  context?: ApprovalContext;
+  strict?: boolean;
+  expectedComputedStyleTargets?: ComputedStyleTarget[];
+}
+
+export interface AppliedAnalysisApprovals {
+  vrtDiff: VrtDiff | null;
+  paintTreeChanges: PaintTreeChange[];
+  approvalWarnings: ApprovalWarning[];
+  approvedVisualRules: ApprovalRule[];
+  approvedPaintTreeMatches: PaintTreeApprovalMatch[];
 }
 
 export interface TrialResult {
@@ -94,6 +192,8 @@ export interface TrialResult {
   fixedDiffRatio: number;
   attempts: number;
   llmMs: number;
+  fallbackUsed?: boolean;
+  resolvedBy?: "chromium" | "crater" | "none";
 }
 
 // ---- CSS Parsing ----
@@ -206,89 +306,24 @@ export async function createCraterClient(): Promise<CraterClient> {
   return client;
 }
 
-// CSS properties worth tracking for computed style diff
-const TRACKED_PROPERTIES = [
-  "display", "visibility", "opacity",
-  "width", "height", "max-width", "max-height", "min-width", "min-height",
-  "margin-top", "margin-right", "margin-bottom", "margin-left",
-  "padding-top", "padding-right", "padding-bottom", "padding-left",
-  "border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
-  "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
-  "border-top-style", "border-right-style", "border-bottom-style", "border-left-style",
-  "border-radius",
-  "background-color", "background-image",
-  "color", "font-size", "font-weight", "font-family", "font-style",
-  "text-decoration", "text-align", "text-transform",
-  "line-height", "letter-spacing", "word-spacing", "white-space",
-  "flex-direction", "flex-wrap", "flex-grow", "flex-shrink",
-  "align-items", "justify-content", "gap",
-  "position", "top", "right", "bottom", "left",
-  "overflow", "box-shadow", "cursor",
-];
-
 export async function capturePageState(
   browser: Browser,
   viewport: { width: number; height: number },
   html: string,
   screenshotPath: string,
-  options?: { captureHover?: boolean },
+  options?: { captureHover?: boolean; trackedProperties?: string[]; interactionSelectors?: string[] },
 ): Promise<CapturedState> {
   const page = await browser.newPage({ viewport });
   await page.setContent(html, { waitUntil: "networkidle" });
   await page.screenshot({ path: screenshotPath, fullPage: true });
+  const trackedProperties = options?.trackedProperties ?? TRACKED_PROPERTIES;
 
   // Capture computed styles for styled elements + semantic tags
   const computedStyles = new Map<string, Record<string, string>>();
   try {
-    const styles = await page.evaluate((props: string[]) => {
-      const results: Record<string, Record<string, string>> = {};
-      // Include class/id elements AND semantic/content tags without classes
-      const selector = "*[class], *[id], main, nav, header, footer, aside, article, section, " +
-        "table, thead, tbody, tr, th, td, ul, ol, li, " +
-        "h1, h2, h3, h4, h5, h6, p, a, button, input, select, textarea, " +
-        "pre, code, blockquote, img, span, div, form, label";
-      const elements = document.querySelectorAll(selector);
-      let tagCounters: Record<string, number> = {};
-      for (const el of elements) {
-        const he = el as HTMLElement;
-        let key: string;
-        if (he.id) {
-          key = `#${he.id}`;
-        } else if (he.classList.length > 0) {
-          key = `.${[...he.classList].join(".")}`;
-        } else {
-          // Tag-based key with parent context for uniqueness
-          const tag = he.tagName.toLowerCase();
-          const parentClass = he.parentElement?.classList?.[0];
-          const ctx = parentClass ? `.${parentClass}` : "";
-          const count = tagCounters[`${ctx}>${tag}`] = (tagCounters[`${ctx}>${tag}`] ?? 0) + 1;
-          key = `${ctx}>${tag}[${count}]`;
-        }
-        if (!key || results[key]) continue;
-        const computed = window.getComputedStyle(he);
-        const s: Record<string, string> = {};
-        for (const prop of props) {
-          s[prop] = computed.getPropertyValue(prop);
-        }
-        results[key] = s;
-
-        // Also capture ::before and ::after pseudo-elements
-        for (const pseudo of ["::before", "::after"] as const) {
-          const pseudoComputed = window.getComputedStyle(he, pseudo);
-          const content = pseudoComputed.getPropertyValue("content");
-          if (content && content !== "none" && content !== "normal") {
-            const ps: Record<string, string> = {};
-            for (const prop of props) {
-              ps[prop] = pseudoComputed.getPropertyValue(prop);
-            }
-            results[`${key}${pseudo}`] = ps;
-          }
-        }
-      }
-      return results;
-    }, TRACKED_PROPERTIES);
-    for (const [sel, props] of Object.entries(styles)) {
-      computedStyles.set(sel, props);
+    const styles = await page.evaluate(captureComputedStyleSnapshotInDom, trackedProperties);
+    for (const [selector, props] of computedStyleSnapshotToMap(styles)) {
+      computedStyles.set(selector, props);
     }
   } catch { /* ignore */ }
 
@@ -298,76 +333,21 @@ export async function capturePageState(
   const hoverComputedStyles = new Map<string, Record<string, string>>();
   if (options?.captureHover) {
     try {
-      // Extract :hover rules from the page CSS, convert to always-active
-      const hoverStyles = await page.evaluate((props: string[]) => {
-        // Collect all :hover rules from stylesheets
-        const hoverRules: string[] = [];
-        for (const sheet of document.styleSheets) {
-          try {
-            for (const rule of sheet.cssRules) {
-              if (rule instanceof CSSStyleRule && (rule.selectorText.includes(":hover") || rule.selectorText.includes(":focus"))) {
-                // Replace :hover/:focus with nothing to make it always active
-                const newSelector = rule.selectorText.replace(/:hover/g, "").replace(/:focus/g, "").replace(/:focus-visible/g, "").replace(/:focus-within/g, "");
-                hoverRules.push(`${newSelector} { ${rule.style.cssText} }`);
-              }
-            }
-          } catch { /* cross-origin */ }
-        }
-
-        if (hoverRules.length === 0) return {};
-
-        // Inject always-active hover rules
-        const style = document.createElement("style");
-        style.id = "__hover_emulation__";
-        style.textContent = hoverRules.join("\n");
-        document.head.appendChild(style);
-
-        // Capture computed styles of elements targeted by hover rules
-        const results: Record<string, Record<string, string>> = {};
-        // Build selector list from hover rules (non-hover version)
-        const hoverSelectors = new Set<string>();
-        for (const sheet of document.styleSheets) {
-          try {
-            for (const rule of sheet.cssRules) {
-              if (rule instanceof CSSStyleRule && rule.selectorText.includes(":hover")) {
-                const sel = rule.selectorText.replace(/:hover/g, "").replace(/:focus/g, "").trim();
-                if (sel) hoverSelectors.add(sel);
-              }
-            }
-          } catch { /* cross-origin */ }
-        }
-        const targetSelector = [...hoverSelectors].join(", ") || "a, button";
-        let targets: NodeListOf<Element>;
-        try { targets = document.querySelectorAll(targetSelector); }
-        catch { targets = document.querySelectorAll("a, button, [role='button']"); }
-        const tagCounters: Record<string, number> = {};
-        for (const el of targets) {
-          const he = el as HTMLElement;
-          let key: string;
-          if (he.id) {
-            key = `#${he.id}`;
-          } else if (he.classList.length > 0) {
-            key = `.${[...he.classList].join(".")}`;
-          } else {
-            // Match the key format used by computed style collection
-            const tag = he.tagName.toLowerCase();
-            const parentClass = he.parentElement?.classList?.[0];
-            const ctx = parentClass ? `.${parentClass}` : "";
-            const count = tagCounters[`${ctx}>${tag}`] = (tagCounters[`${ctx}>${tag}`] ?? 0) + 1;
-            key = `${ctx}>${tag}[${count}]`;
-          }
-          if (!key || results[key]) continue;
-          const computed = window.getComputedStyle(he);
-          const styles: Record<string, string> = {};
-          for (const p of props) styles[p] = computed.getPropertyValue(p);
-          results[key] = styles;
-        }
-
-        // Cleanup
-        style.remove();
-        return results;
-      }, TRACKED_PROPERTIES);
-      for (const [sel, props] of Object.entries(hoverStyles)) {
+      const interactionPlans = await page.evaluate(collectInteractionTargetPlansInDom);
+      const expectedInteractionPlans = buildInteractionTargetPlans(options.interactionSelectors ?? []);
+      const emulatedHoverStyles = await page.evaluate(captureEmulatedInteractionStyleSnapshotInDom, trackedProperties);
+      const fallbackPlans = dedupeInteractionPlans([
+        ...expectedInteractionPlans,
+        ...selectInteractionFallbackPlans(
+        interactionPlans,
+        hasMeaningfulComputedStyleSnapshot(emulatedHoverStyles),
+        ),
+      ]).slice(0, 8);
+      const fallbackHoverStyles = fallbackPlans.length > 0
+        ? await capturePlaywrightInteractionFallbackSnapshot(page, fallbackPlans, trackedProperties)
+        : {};
+      const mergedHoverStyles = mergeComputedStyleSnapshots(emulatedHoverStyles, fallbackHoverStyles);
+      for (const [sel, props] of Object.entries(mergedHoverStyles)) {
         hoverComputedStyles.set(sel, props);
       }
     } catch { /* ignore */ }
@@ -388,15 +368,87 @@ export async function capturePageState(
   return { a11yTree, screenshotPath, computedStyles, hoverComputedStyles };
 }
 
+function dedupeInteractionPlans(
+  plans: InteractionTargetPlan[],
+): InteractionTargetPlan[] {
+  const deduped: InteractionTargetPlan[] = [];
+  const seen = new Set<string>();
+  for (const plan of plans) {
+    const key = `${plan.interaction}\u0000${plan.normalizedSelector}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(plan);
+  }
+  return deduped;
+}
+
+async function capturePlaywrightInteractionFallbackSnapshot(
+  page: Page,
+  plans: InteractionTargetPlan[],
+  trackedProperties: string[],
+): Promise<ComputedStyleSnapshot> {
+  const snapshots: ComputedStyleSnapshot[] = [];
+
+  for (const plan of plans) {
+    let interactionApplied = false;
+    try {
+      const locator = page.locator(plan.normalizedSelector).first();
+      if (await locator.count() === 0) continue;
+
+      if (plan.interaction === "focus") {
+        const descendant = locator.locator("input, button, select, textarea, a[href], [tabindex]").first();
+        if (await descendant.count() > 0) {
+          await descendant.focus();
+        } else {
+          await locator.evaluate((element) => {
+            if (element instanceof HTMLElement && typeof element.focus === "function") {
+              element.focus();
+            }
+          });
+        }
+      } else {
+        await locator.hover({ force: true, timeout: 1000 });
+      }
+      interactionApplied = true;
+
+      await page.evaluate(waitForInteractionStylesInDom);
+      snapshots.push(await page.evaluate(captureComputedStyleSnapshotForTargetSelectorsInDom, {
+        props: trackedProperties,
+        selectors: [plan.normalizedSelector],
+      }));
+    } catch { /* ignore individual fallback failures */ }
+    finally {
+      if (!interactionApplied) continue;
+      try {
+        if (plan.interaction === "focus") {
+          await page.evaluate(() => {
+            const active = document.activeElement;
+            if (active instanceof HTMLElement && typeof active.blur === "function") {
+              active.blur();
+            }
+          });
+        } else {
+          await page.mouse.move(0, 0);
+        }
+        await page.evaluate(waitForInteractionStylesInDom);
+      } catch { /* ignore cleanup failures */ }
+    }
+  }
+
+  return mergeComputedStyleSnapshots(...snapshots);
+}
+
 /** Crater BiDi バックエンドでキャプチャ */
 export async function capturePageStateCrater(
   client: CraterClient,
   viewport: { width: number; height: number },
   html: string,
   screenshotPath: string,
+  options?: { trackedProperties?: string[] },
 ): Promise<CapturedState> {
   await client.setViewport(viewport.width, viewport.height);
   await client.setContent(html);
+  const trackedProperties = options?.trackedProperties ?? TRACKED_PROPERTIES;
 
   // PNG スクリーンショット (capturePaintData → PNG 変換)
   const { png } = await client.capturePng();
@@ -411,7 +463,10 @@ export async function capturePageStateCrater(
   // a11y tree — crater は空で返す (将来的に対応)
   const a11yTree: A11yNode = { role: "document", name: "", children: [] };
 
-  const computedStyles = new Map<string, Record<string, string>>();
+  let computedStyles = new Map<string, Record<string, string>>();
+  try {
+    computedStyles = await client.captureComputedStyles(trackedProperties);
+  } catch { /* ignore */ }
   const hoverComputedStyles = new Map<string, Record<string, string>>();
 
   return { a11yTree, screenshotPath, computedStyles, hoverComputedStyles, paintTree };
@@ -464,6 +519,7 @@ export async function analyzeVrtDiff(
   baselineState: CapturedState,
   brokenState: CapturedState,
   outputDir: string,
+  approvalOptions: AnalysisApprovalOptions = {},
 ): Promise<VrtAnalysis> {
   const vrtSnap: VrtSnapshot = {
     testId: "page", testTitle: "page", projectName: "css-challenge",
@@ -471,16 +527,45 @@ export async function analyzeVrtDiff(
     baselinePath: baselineState.screenshotPath,
     status: "changed",
   };
-  const vrtDiff = await compareScreenshots(vrtSnap, { outputDir });
+  const rawVrtDiff = await compareScreenshots(vrtSnap, { outputDir });
 
   let visualSemantic: VisualSemanticDiff | null = null;
   let visualReport = "";
+  const computedStyleDiffs = diffComputedStyles(baselineState.computedStyles, brokenState.computedStyles);
+  const trackedComputedStyleTargets = approvalOptions.expectedComputedStyleTargets ?? [];
+  const referencedComputedStyleDiffs = filterComputedStyleDiffsByTargets(
+    computedStyleDiffs,
+    trackedComputedStyleTargets,
+  );
+
+  // Hover diff (computed style based)
+  const hoverStyleDiffs = diffComputedStyles(baselineState.hoverComputedStyles, brokenState.hoverComputedStyles);
+  const referencedHoverStyleDiffs = filterComputedStyleDiffsByTargets(
+    hoverStyleDiffs,
+    trackedComputedStyleTargets,
+  );
+  const hoverDiffDetected = trackedComputedStyleTargets.length > 0
+    ? referencedHoverStyleDiffs.length > 0
+    : hoverStyleDiffs.length > 0;
+
+  // Paint tree diff (crater only)
+  let rawPaintTreeChanges: PaintTreeChange[] = [];
+  if (baselineState.paintTree && brokenState.paintTree) {
+    rawPaintTreeChanges = diffPaintTrees(baselineState.paintTree, brokenState.paintTree);
+  }
+
+  const approvals = applyApprovalsToAnalysisSignals(rawVrtDiff, rawPaintTreeChanges, approvalOptions);
+  const vrtDiff = approvals.vrtDiff;
+  const paintTreeChanges = approvals.paintTreeChanges;
+
   if (vrtDiff && vrtDiff.diffPixels > 0) {
     visualSemantic = classifyVisualDiff(vrtDiff);
     visualReport = `Visual diff: ${(vrtDiff.diffRatio * 100).toFixed(1)}% pixels changed\n` +
       `Regions: ${vrtDiff.regions.map((r) => `(${r.x},${r.y} ${r.width}x${r.height})`).join(", ")}\n` +
       `Semantic: ${visualSemantic.summary}\n` +
       visualSemantic.changes.map((c) => `  - [${c.type}] ${c.description}`).join("\n");
+  } else if (approvals.approvedVisualRules.length > 0) {
+    visualReport = `Visual diff approved by manifest: ${approvals.approvedVisualRules.map((rule) => rule.reason).join("; ")}`;
   } else {
     visualReport = "No visual diff detected — the removed CSS line had no visible effect at this viewport size.";
   }
@@ -504,32 +589,57 @@ export async function analyzeVrtDiff(
     a11yReport += `\nNew a11y quality issues: ${brokenIssueCount - baselineIssueCount}`;
   }
 
-  // Computed style diff
-  const computedStyleDiffs = diffComputedStyles(baselineState.computedStyles, brokenState.computedStyles);
-
   let computedReport = "";
-  if (computedStyleDiffs.length > 0) {
+  if (trackedComputedStyleTargets.length > 0) {
+    const trackedLines = trackedComputedStyleTargets
+      .slice(0, 10)
+      .map((target) => `  - ${target.selector} { ${target.property} } via ${target.viaCustomProperties.join(" → ")}`)
+      .join("\n");
+    computedReport = `\nTracked var() targets: ${trackedComputedStyleTargets.length}\n${trackedLines}`;
+
+    if (referencedComputedStyleDiffs.length > 0) {
+      computedReport += `\nReferenced computed style changes: ${referencedComputedStyleDiffs.length}\n` +
+        referencedComputedStyleDiffs
+          .slice(0, 10)
+          .map((d) => `  - ${d.selector} { ${d.property}: ${d.before} → ${d.after} }`)
+          .join("\n");
+    } else {
+      computedReport += "\nReferenced computed style changes: 0";
+    }
+
+    if (referencedHoverStyleDiffs.length > 0) {
+      computedReport += `\nReferenced hover style changes: ${referencedHoverStyleDiffs.length}\n` +
+        referencedHoverStyleDiffs
+          .slice(0, 10)
+          .map((d) => `  - ${d.selector} { ${d.property}: ${d.before} → ${d.after} }`)
+          .join("\n");
+    }
+
+    if (computedStyleDiffs.length > referencedComputedStyleDiffs.length) {
+      computedReport += `\nTotal computed style changes: ${computedStyleDiffs.length}`;
+    }
+  } else if (computedStyleDiffs.length > 0) {
     computedReport = `\nComputed style changes: ${computedStyleDiffs.length}\n` +
       computedStyleDiffs.slice(0, 10).map((d) => `  - ${d.selector} { ${d.property}: ${d.before} → ${d.after} }`).join("\n");
-  }
-
-  // Hover diff (computed style based)
-  const hoverStyleDiffs = diffComputedStyles(baselineState.hoverComputedStyles, brokenState.hoverComputedStyles);
-  const hoverDiffDetected = hoverStyleDiffs.length > 0;
-
-  // Paint tree diff (crater only)
-  let paintTreeChanges: PaintTreeChange[] = [];
-  if (baselineState.paintTree && brokenState.paintTree) {
-    paintTreeChanges = diffPaintTrees(baselineState.paintTree, brokenState.paintTree);
   }
 
   let paintTreeReport = "";
   if (paintTreeChanges.length > 0) {
     paintTreeReport = `\nPaint tree changes: ${paintTreeChanges.length}\n` +
       paintTreeChanges.slice(0, 10).map((c) => `  - [${c.type}] ${c.path} ${c.property ?? ""}: ${c.before ?? ""} → ${c.after ?? ""}`).join("\n");
+  } else if (approvals.approvedPaintTreeMatches.length > 0) {
+    const reasons = [...new Set(approvals.approvedPaintTreeMatches.map((match) => match.rule.reason))];
+    paintTreeReport = `\nPaint tree changes approved: ${approvals.approvedPaintTreeMatches.length}\n` +
+      reasons.map((reason) => `  - ${reason}`).join("\n");
   }
 
-  const fullReport = `${visualReport}\n\n${a11yReport}${computedReport}${paintTreeReport}`;
+  let approvalReport = "";
+  if (approvals.approvalWarnings.length > 0) {
+    approvalReport = `\nApproval warnings:\n` +
+      approvals.approvalWarnings.map((warning) => `  - ${warning.message}`).join("\n");
+  }
+
+  const fullReport = `${visualReport}\n\n${a11yReport}${computedReport}${paintTreeReport}${approvalReport}`;
 
   return {
     vrtDiff,
@@ -538,8 +648,14 @@ export async function analyzeVrtDiff(
     baselineIssueCount,
     brokenIssueCount,
     computedStyleDiffs,
+    referencedComputedStyleDiffs,
+    referencedHoverStyleDiffs,
+    trackedComputedStyleTargets,
     hoverDiffDetected,
     paintTreeChanges,
+    approvalWarnings: approvals.approvalWarnings,
+    approvedVisualRules: approvals.approvedVisualRules,
+    approvedPaintTreeMatches: approvals.approvedPaintTreeMatches,
     visualReport,
     a11yReport,
     fullReport,
@@ -651,4 +767,14 @@ export function categorizeProperty(property: string): PropertyCategory {
   if (ANIMATION_PROPS.has(property)) return "animation";
   if (TRANSFORM_PROPS.has(property)) return "transform";
   return "other";
+}
+
+function dedupeApprovalWarnings(warnings: ApprovalWarning[]): ApprovalWarning[] {
+  const seen = new Set<string>();
+  return warnings.filter((warning) => {
+    const key = `${warning.message}:${warning.rule.reason}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

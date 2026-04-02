@@ -8,6 +8,7 @@
  */
 import { readAllRecords, getDbStats, type DetectionRecord } from "./detection-db.ts";
 import { isOutOfScope } from "./detection-classify.ts";
+import { getBenchHistoryStats, readBenchHistory } from "./bench-history.ts";
 
 // ---- Terminal helpers ----
 
@@ -38,13 +39,14 @@ function bar(n: number, total: number, width = 20): string {
 
 async function main() {
   const records = await readAllRecords();
+  const benchHistory = await readBenchHistory();
 
-  if (records.length === 0) {
+  if (records.length === 0 && benchHistory.length === 0) {
     console.log(`\n  ${YELLOW}No data found.${RESET} Run ${BOLD}just css-bench${RESET} first.\n`);
     return;
   }
-
   const stats = getDbStats(records);
+  const benchStats = getBenchHistoryStats(benchHistory);
 
   console.log();
   console.log(`${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════════╗${RESET}`);
@@ -56,22 +58,52 @@ async function main() {
   console.log(`  ${BOLD}Overview${RESET}`);
   console.log(`    Total records:    ${stats.totalRecords}`);
   console.log(`    Unique runs:      ${stats.uniqueRuns}`);
+  console.log(`    Bench runs:       ${benchStats.totalRuns}`);
   if (stats.dateRange) {
     console.log(`    Date range:       ${stats.dateRange.first.slice(0, 10)} → ${stats.dateRange.last.slice(0, 10)}`);
   }
-  const allDetected = records.filter((r) => r.detected).length;
-  console.log(`    Detection rate:   ${fmtRate(allDetected, stats.totalRecords)}`);
-  const scoped = records.filter((r) => !isOutOfScope(r.property));
-  const scopedDetected = scoped.filter((r) => r.detected).length;
-  if (scoped.length < records.length) {
-    const outCount = records.length - scoped.length;
-    console.log(`    Scoped rate:      ${fmtRate(scopedDetected, scoped.length)} ${DIM}(excl. ${outCount} animation)${RESET}`);
+  if (records.length > 0) {
+    const allDetected = records.filter((r) => r.detected).length;
+    console.log(`    Detection rate:   ${fmtRate(allDetected, stats.totalRecords)}`);
+    const scoped = records.filter((r) => !isOutOfScope(r.property));
+    const scopedDetected = scoped.filter((r) => r.detected).length;
+    if (scoped.length < records.length) {
+      const outCount = records.length - scoped.length;
+      console.log(`    Scoped rate:      ${fmtRate(scopedDetected, scoped.length)} ${DIM}(excl. ${outCount} animation)${RESET}`);
+    }
   }
   const fixtures = new Set(records.map((r) => (r as any).fixture ?? "page"));
+  if (benchHistory.length > 0) {
+    for (const record of benchHistory) fixtures.add(record.fixture);
+  }
   if (fixtures.size > 1) {
     console.log(`    Fixtures:         ${[...fixtures].join(", ")}`);
   }
   console.log();
+
+  if (benchHistory.length > 0) {
+    console.log(`  ${BOLD}Benchmark History${RESET}`);
+    for (const [backend, summary] of [...benchStats.byBackend.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      console.log(
+        `    ${backend.padEnd(20)} latest ${summary.latest.avgMsPerTrial.toFixed(1).padStart(7)} ms/trial` +
+        `  detect ${fmtRate(summary.latest.eitherDetected, summary.latest.trials)}` +
+        `  ${DIM}(runs=${summary.count}, best=${summary.bestAvgMsPerTrial.toFixed(1)} ms)${RESET}`,
+      );
+    }
+    if (benchStats.comparableSpeedups.length > 0) {
+      console.log();
+      console.log(`  ${BOLD}Latest Prescanner Speedups${RESET}`);
+      for (const speedup of benchStats.comparableSpeedups.slice(0, 5)) {
+        console.log(
+          `    ${speedup.fixture.padEnd(20)} ${speedup.speedup.toFixed(2)}x` +
+          `  ${DIM}(prescanner ${speedup.prescannerAvgMsPerTrial.toFixed(1)} ms / chromium ${speedup.chromiumAvgMsPerTrial.toFixed(1)} ms, trials=${speedup.trials})${RESET}`,
+        );
+      }
+      console.log();
+    } else {
+      console.log();
+    }
+  }
 
   // ---- By Backend ----
   const backends = new Set(records.map((r) => (r as any).backend ?? "chromium"));
@@ -86,10 +118,11 @@ async function main() {
   }
 
   // ---- By Fixture ----
-  if (fixtures.size > 1) {
+  if (records.length > 0 && fixtures.size > 1) {
     console.log(`  ${BOLD}Detection by Fixture${RESET}`);
     for (const fix of fixtures) {
       const fixRecords = records.filter((r) => ((r as any).fixture ?? "page") === fix);
+      if (fixRecords.length === 0) continue;
       const det = fixRecords.filter((r) => r.detected).length;
       console.log(`    ${fix.padEnd(20)} ${fmtRate(det, fixRecords.length)}  ${bar(det, fixRecords.length)}`);
     }
@@ -97,6 +130,12 @@ async function main() {
   }
 
   // ---- By Category ----
+  if (records.length === 0) {
+    hr();
+    console.log();
+    return;
+  }
+
   console.log(`  ${BOLD}Detection by Property Category${RESET}`);
   console.log(`    ${"Category".padEnd(14)} ${"Total".padStart(5)}  ${"Rate".padStart(8)}  ${"Bar".padStart(22)}`);
   for (const [cat, data] of [...stats.byCategory.entries()].sort((a, b) => (b[1].detected / b[1].total) - (a[1].detected / a[1].total))) {

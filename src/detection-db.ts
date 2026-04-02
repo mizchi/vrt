@@ -14,6 +14,8 @@ export interface DetectionRecord {
   runId: string;                // ISO timestamp of the bench run
   fixture: string;              // fixture name (e.g. "page", "dashboard")
   backend: string;              // "chromium" | "crater"
+  fallbackUsed?: boolean;       // prescanner: Chromium fallback was required
+  backendResolvedBy?: string;   // prescanner: "crater" | "chromium" | "none"
   selector: string;
   property: string;
   value: string;

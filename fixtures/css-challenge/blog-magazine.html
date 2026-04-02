@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blog Magazine</title>
+<style id="target-css">
+:root { --bg: #fcfaf6; --paper: #ffffff; --paper-tint: #f4efe6; --ink: #1f2937; --ink-muted: #6b7280; --accent: #b45309; --accent-soft: #fef3c7; --line: #eadfce; --shadow: 0 18px 36px rgba(31,41,55,0.08); --radius: 20px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Georgia, "Times New Roman", serif; background: radial-gradient(circle at top, #fff7ed 0%, var(--bg) 48%, #f8fafc 100%); color: var(--ink); line-height: 1.65; }
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+
+.site-shell { max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; }
+.site-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid rgba(234,223,206,0.9); }
+.masthead { display: flex; flex-direction: column; gap: 8px; }
+.publication { font-size: 40px; letter-spacing: -0.05em; font-weight: 700; }
+.tagline { color: var(--ink-muted); font-size: 15px; }
+.header-nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.header-link { padding: 10px 14px; border-radius: 999px; color: var(--ink-muted); transition: background 0.18s, color 0.18s; }
+.header-link:hover { background: var(--paper-tint); color: var(--ink); }
+.subscribe-btn { display: inline-flex; align-items: center; justify-content: center; padding: 11px 18px; border-radius: 999px; background: var(--accent); color: #fff7ed; border: none; cursor: pointer; transition: background 0.18s, transform 0.12s; }
+.subscribe-btn:hover { background: #92400e; }
+.subscribe-btn:active { transform: scale(0.98); }
+
+.content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) 320px; gap: 28px; margin-top: 28px; }
+.stack { display: flex; flex-direction: column; gap: 24px; }
+.panel { background: var(--paper); border: 1px solid rgba(234,223,206,0.95); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.hero-card { display: grid; grid-template-columns: 1.2fr 1fr; min-height: 360px; }
+.hero-copy { padding: 32px; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.eyebrow { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.hero-copy h1 { font-size: 54px; line-height: 0.98; letter-spacing: -0.06em; max-width: 11ch; }
+.hero-copy p { font-size: 18px; color: var(--ink-muted); max-width: 44ch; }
+.hero-meta { display: flex; align-items: center; gap: 14px; color: var(--ink-muted); font-size: 14px; }
+.hero-media { background: linear-gradient(145deg, #fde68a 0%, #f59e0b 48%, #7c2d12 100%); position: relative; }
+.hero-media::after { content: ""; position: absolute; inset: 22px; border-radius: 28px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.88) 0%, rgba(255,247,237,0.25) 52%, rgba(124,45,18,0.58) 100%); }
+
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.section-head h2 { font-size: 28px; letter-spacing: -0.04em; }
+.section-link { color: var(--accent); font-size: 14px; font-weight: 700; }
+.section-link:hover { text-decoration: underline; }
+.story-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.story-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s; }
+.story-card:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(31,41,55,0.12); border-color: rgba(180,83,9,0.18); }
+.story-art { aspect-ratio: 1.3; border-radius: 16px; background: linear-gradient(135deg, #fde68a 0%, #fef3c7 45%, #f8fafc 100%); }
+.story-card h3 { font-size: 26px; line-height: 1.08; letter-spacing: -0.04em; }
+.story-card p { color: var(--ink-muted); font-size: 15px; }
+.story-meta { display: flex; gap: 12px; color: var(--ink-muted); font-size: 13px; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-chip { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; background: var(--paper-tint); color: var(--ink-muted); font-size: 13px; transition: background 0.18s, color 0.18s; }
+.tag-chip:hover { background: var(--accent-soft); color: var(--accent); }
+
+.sidebar { display: flex; flex-direction: column; gap: 20px; }
+.sidebar-panel { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.sidebar-panel h3 { font-size: 18px; letter-spacing: -0.03em; }
+.sidebar-panel p { color: var(--ink-muted); font-size: 14px; }
+.author-card { display: flex; align-items: center; gap: 14px; }
+.author-avatar { width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
+.author-copy strong { display: block; font-size: 15px; }
+.author-copy span { color: var(--ink-muted); font-size: 13px; }
+.newsletter { display: flex; flex-direction: column; gap: 12px; }
+.newsletter input { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: #fffdf9; color: var(--ink); transition: border-color 0.18s, box-shadow 0.18s; }
+.newsletter input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(180,83,9,0.12); }
+.newsletter button { display: inline-flex; align-items: center; justify-content: center; padding: 12px 14px; border-radius: 14px; border: none; background: var(--ink); color: #f9fafb; cursor: pointer; transition: background 0.18s; }
+.newsletter button:hover { background: #111827; }
+.quote-card { padding: 22px; background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%); border: 1px solid rgba(234,223,206,0.95); border-radius: var(--radius); }
+.quote-card blockquote { font-size: 23px; line-height: 1.25; letter-spacing: -0.03em; }
+.quote-card cite { display: block; margin-top: 12px; color: var(--ink-muted); font-size: 14px; font-style: normal; }
+.list-stack { display: flex; flex-direction: column; gap: 14px; }
+.list-item { padding-bottom: 14px; border-bottom: 1px solid rgba(234,223,206,0.8); }
+.list-item:last-child { padding-bottom: 0; border-bottom: none; }
+.list-item strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.list-item span { color: var(--ink-muted); font-size: 13px; }
+
+@media (max-width: 1024px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .sidebar { order: -1; }
+}
+@media (max-width: 720px) {
+  .site-shell { padding: 20px 16px 40px; }
+  .site-header { flex-direction: column; align-items: flex-start; }
+  .hero-card { grid-template-columns: 1fr; }
+  .hero-copy h1 { font-size: 42px; }
+  .story-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="site-shell">
+  <header class="site-header" role="banner">
+    <div class="masthead">
+      <a class="publication" href="#">North Journal</a>
+      <p class="tagline">Field notes on design systems, software teams, and city life.</p>
+    </div>
+    <nav class="header-nav" aria-label="Sections">
+      <a class="header-link" href="#">Essays</a>
+      <a class="header-link" href="#">Cities</a>
+      <a class="header-link" href="#">Interviews</a>
+      <button class="subscribe-btn" type="button">Subscribe</button>
+    </nav>
+  </header>
+
+  <div class="content-grid">
+    <main class="stack" role="main">
+      <article class="panel hero-card">
+        <div class="hero-copy">
+          <span class="eyebrow">Feature essay</span>
+          <h1>The quiet systems behind durable teams.</h1>
+          <p>Small rituals, shared vocabulary, and a humane release cadence matter more than most process theater.</p>
+          <div class="hero-meta"><span>April issue</span><span>12 min read</span><span>By Mina Reyes</span></div>
+        </div>
+        <div class="hero-media" aria-hidden="true"></div>
+      </article>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Latest from the desk</h2>
+          <a class="section-link" href="#">View archive</a>
+        </div>
+        <div class="story-grid">
+          <article class="panel story-card">
+            <div class="story-art" aria-hidden="true"></div>
+            <div class="tag-row"><a class="tag-chip" href="#">Architecture</a><a class="tag-chip" href="#">Tooling</a></div>
+            <h3>Why interface debt feels heavier than code debt.</h3>
+            <p>Teams feel inconsistency immediately, even when the component catalog still compiles cleanly.</p>
+            <div class="story-meta"><span>8 min read</span><span>Updated today</span></div>
+          </article>
+          <article class="panel story-card">
+            <div class="story-art" aria-hidden="true"></div>
+            <div class="tag-row"><a class="tag-chip" href="#">Culture</a><a class="tag-chip" href="#">Leadership</a></div>
+            <h3>Design reviews that produce decisions, not drift.</h3>
+            <p>Review rituals work better when artifacts are narrow, constraints are named, and ownership is explicit.</p>
+            <div class="story-meta"><span>6 min read</span><span>Staff pick</span></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="sidebar">
+      <section class="panel sidebar-panel">
+        <h3>Editors</h3>
+        <div class="author-card">
+          <div class="author-avatar" aria-hidden="true"></div>
+          <div class="author-copy"><strong>Mina Reyes</strong><span>Founding editor</span></div>
+        </div>
+        <div class="author-card">
+          <div class="author-avatar" aria-hidden="true"></div>
+          <div class="author-copy"><strong>Leo Park</strong><span>Culture desk</span></div>
+        </div>
+      </section>
+
+      <section class="panel sidebar-panel">
+        <h3>Newsletter</h3>
+        <p>One thoughtful dispatch every Thursday morning.</p>
+        <form class="newsletter">
+          <input type="email" placeholder="you@example.com" aria-label="Email address">
+          <button type="submit">Join 18,000 readers</button>
+        </form>
+      </section>
+
+      <section class="quote-card">
+        <blockquote>Good publications make the world feel both sharper and more hospitable.</blockquote>
+        <cite>Letter from the editor</cite>
+      </section>
+
+      <section class="panel sidebar-panel">
+        <h3>Popular this week</h3>
+        <div class="list-stack">
+          <div class="list-item"><strong>When a component library needs less surface area.</strong><span>4 min read</span></div>
+          <div class="list-item"><strong>What smaller teams see before larger orgs do.</strong><span>7 min read</span></div>
+          <div class="list-item"><strong>The calm aesthetic of reliable dashboards.</strong><span>5 min read</span></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

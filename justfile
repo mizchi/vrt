@@ -35,21 +35,31 @@ css-bench *args:
 
 # CSS benchmark on all fixtures
 css-bench-all trials="30":
-  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture page
-  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture dashboard
-  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture form-app
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture all
 
 # CSS benchmark with crater backend (requires crater BiDi server on :9222)
 css-bench-crater *args:
   NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --backend crater {{args}}
 
+# CSS benchmark with crater prescanner + Chromium fallback
+css-bench-prescanner *args:
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --backend prescanner {{args}}
+
 # CSS detection pattern report (accumulated data analysis)
 css-report:
   npx tsx src/detection-report.ts
 
+# Review generated approval suggestions and merge them into approval.json
+vrt-approve *args:
+  node --experimental-strip-types src/vrt-approve.ts {{args}}
+
 # Migration VRT compare (before vs after)
 migration-compare *args:
   npx tsx src/migration-compare.ts {{args}}
+
+# Migration fix loop (report -> fix -> rerun)
+migration-fix-loop *args:
+  node --experimental-strip-types src/migration-fix-loop.ts {{args}}
 
 # Migration: Reset CSS comparison
 migration-reset:
@@ -58,6 +68,10 @@ migration-reset:
 # Migration: Tailwind to vanilla CSS
 migration-tailwind:
   npx tsx src/migration-compare.ts fixtures/migration/tailwind-to-vanilla/before.html fixtures/migration/tailwind-to-vanilla/after.html
+
+# Migration: shadcn/ui to luna
+migration-shadcn:
+  npx tsx src/migration-compare.ts --dir fixtures/migration/shadcn-to-luna --baseline before.html --variants after.html
 
 # Performance benchmark (deterministic APIs only)
 bench:

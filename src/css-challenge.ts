@@ -8,11 +8,14 @@
  * 4. 差分情報から LLM に元の CSS を復元させる
  * 5. 復元結果を再度 VRT で検証
  *
- * Usage: npx tsx src/css-challenge.ts [--seed <number>] [--max-attempts <number>]
+ * Usage: npx tsx src/css-challenge.ts [--fixture <name>] [--seed <number>] [--max-attempts <number>] [--approval <path>] [--strict]
  */
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
+import { applyApprovalToVrtDiff, collectApprovalWarnings, inferApprovalChangeType, loadApprovalManifest } from "./approval.ts";
+import { getCssChallengeFixturePath } from "./css-challenge-fixtures.ts";
+import { categorizeProperty } from "./css-challenge-core.ts";
 import { compareScreenshots, encodePng } from "./heatmap.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
 import { diffA11yTrees, checkA11yTree, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
@@ -21,7 +24,6 @@ import type { A11yNode, VrtSnapshot } from "./types.ts";
 
 // ---- Config ----
 
-const HTML_PATH = join(import.meta.dirname!, "..", "fixtures", "css-challenge", "page.html");
 const TMP = join(import.meta.dirname!, "..", "test-results", "css-challenge");
 
 const args = process.argv.slice(2);
@@ -31,6 +33,10 @@ function getArg(name: string, fallback: string): string {
 }
 const SEED = parseInt(getArg("seed", String(Date.now())), 10);
 const MAX_ATTEMPTS = parseInt(getArg("max-attempts", "3"), 10);
+const FIXTURE = getArg("fixture", "page");
+const HTML_PATH = getCssChallengeFixturePath(FIXTURE);
+const APPROVAL_PATH = getArg("approval", "");
+const STRICT = args.includes("--strict");
 const VIEWPORT = { width: 1280, height: 900 };
 
 // ---- Terminal helpers ----
@@ -289,12 +295,20 @@ async function main() {
   const declarations = parseCssDeclarations(originalCss);
   const candidateIndex = Math.floor(rand() * declarations.length);
   const removed = declarations[candidateIndex];
+  const approvalManifest = APPROVAL_PATH ? await loadApprovalManifest(APPROVAL_PATH) : null;
+  const approvalWarnings = approvalManifest ? collectApprovalWarnings(approvalManifest) : [];
 
   console.log();
   console.log(`${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════╗${RESET}`);
   console.log(`${BOLD}${CYAN}║  CSS Recovery Challenge — Can AI fix a CSS regression using VRT?     ║${RESET}`);
   console.log(`${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════════════╝${RESET}`);
-  console.log(`  ${DIM}Seed: ${SEED} | Max attempts: ${MAX_ATTEMPTS}${RESET}`);
+  console.log(`  ${DIM}Fixture: ${FIXTURE} | Seed: ${SEED} | Max attempts: ${MAX_ATTEMPTS}${RESET}`);
+  if (approvalManifest) {
+    console.log(`  ${DIM}Approval: ${APPROVAL_PATH}${STRICT ? " (strict mode: ignored)" : ""}${RESET}`);
+    for (const warning of approvalWarnings) {
+      console.log(`  ${YELLOW}! ${warning.message}${RESET}`);
+    }
+  }
 
   // ============================================================
   // Phase 1: Capture baseline
@@ -339,7 +353,21 @@ async function main() {
     testId: "page", testTitle: "page", projectName: "css-challenge",
     screenshotPath: brokenPath, baselinePath: baselinePath, status: "changed",
   };
-  const vrtDiff = await compareScreenshots(vrtSnap, { outputDir: TMP });
+  const rawVrtDiff = await compareScreenshots(vrtSnap, { outputDir: TMP });
+  const vrtApproval = rawVrtDiff && approvalManifest
+    ? applyApprovalToVrtDiff(
+      rawVrtDiff,
+      approvalManifest,
+      {
+        selector: removed.selector,
+        property: removed.property,
+        category: categorizeProperty(removed.property),
+        changeType: inferApprovalChangeType(removed.property, categorizeProperty(removed.property)),
+      },
+      { strict: STRICT },
+    )
+    : null;
+  const vrtDiff = vrtApproval?.diff ?? rawVrtDiff;
 
   let visualReport = "";
   if (vrtDiff && vrtDiff.diffPixels > 0) {
@@ -355,6 +383,12 @@ async function main() {
       `Regions: ${vrtDiff.regions.map((r) => `(${r.x},${r.y} ${r.width}x${r.height})`).join(", ")}\n` +
       `Semantic: ${sem.summary}\n` +
       sem.changes.map((c) => `  - [${c.type}] ${c.description}`).join("\n");
+  } else if (vrtApproval?.approved) {
+    console.log(`  ${CYAN}Visual diff approved by manifest${RESET}`);
+    for (const rule of vrtApproval.matchedRules) {
+      console.log(`    ${CYAN}=${RESET} ${rule.reason}`);
+    }
+    visualReport = `Visual diff approved by manifest: ${vrtApproval.matchedRules.map((rule) => rule.reason).join("; ")}`;
   } else {
     console.log(`  ${DIM}No visual diff detected (CSS line had no visible effect)${RESET}`);
     visualReport = "No visual diff detected — the removed CSS line had no visible effect at this viewport size.";
@@ -497,6 +531,7 @@ async function main() {
   console.log();
   console.log(`  ${BOLD}CSS Recovery Challenge Results:${RESET}`);
   console.log();
+  console.log(`  ${DIM}Fixture:${RESET}  ${FIXTURE}`);
   console.log(`  ${DIM}Seed:${RESET}     ${SEED}`);
   console.log(`  ${DIM}Removed:${RESET}  ${removed.selector} { ${removed.property}: ${removed.value} }`);
   console.log(`  ${DIM}Visual:${RESET}   ${vrtDiff ? (vrtDiff.diffRatio * 100).toFixed(1) + "% diff" : "no diff"}`);

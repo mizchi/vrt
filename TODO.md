@@ -62,17 +62,17 @@ interface ApprovalRule {
 }
 ```
 
-- [ ] ApprovalManifest 型定義とパーサー
-- [ ] paint tree diff / pixel diff に tolerance を適用するフィルタ
-- [ ] `approval.json` をプロジェクトに配置して diff 判定に使用
-- [ ] `--strict` フラグで approval 無視 (全差分を報告)
-- [ ] 期限切れ approval の警告
+- [x] ApprovalManifest 型定義とパーサー
+- [x] paint tree diff / pixel diff に tolerance を適用するフィルタ
+- [x] `approval.json` をプロジェクトに配置して diff 判定に使用
+- [x] `--strict` フラグで approval 無視 (全差分を報告)
+- [x] 期限切れ approval の警告
 
 #### 1.2 Auto-approve ワークフロー
 
-- [ ] 差分レポートから `approval.json` エントリを生成するヘルパー
-- [ ] `just vrt-approve` で未承認の差分を対話的に approve/reject
-- [ ] approve 履歴の追跡 (誰が、いつ、なぜ)
+- [x] 差分レポートから `approval.json` エントリを生成するヘルパー
+- [x] `just vrt-approve` で未承認の差分を対話的に approve/reject
+- [x] approve 履歴の追跡 (誰が、いつ、なぜ)
 
 ### 2. API インターフェース — Cloudflare Workers 対応
 
@@ -190,24 +190,24 @@ fixtures/migration/
 
 **Phase 1: Fixture 作成と動作確認**
 
-- [ ] Tailwind fixture (before/after) — ダッシュボード UI を Tailwind → vanilla CSS
-- [ ] Reset CSS fixture — 同一 HTML に 4 種の reset CSS を適用
-- [ ] shadcn/luna fixture — Button, Card, Form, Dialog コンポーネント
-- [ ] Breakpoint 境界テスト (768px ±1, 1024px ±1)
-- [ ] `just css-bench --fixture tailwind-before --fixture tailwind-after` で差分比較
+- [x] Tailwind fixture (before/after) — ダッシュボード UI を Tailwind → vanilla CSS
+- [x] Reset CSS fixture — 同一 HTML に 4 種の reset CSS を適用
+- [x] shadcn/luna fixture — Button, Card, Form, Dialog コンポーネント
+- [x] Breakpoint 境界テスト (768px ±1, 1024px ±1)
+- [x] `just migration-tailwind` / `just migration-shadcn` で差分比較
 
 **Phase 2: Migration diff の評価**
 
-- [ ] Before/After の pixel diff + paint tree diff を取得
-- [ ] 差分を分類: layout shift / color change / spacing / typography
-- [ ] Approval manifest で「許容する差分」をフィルタ
+- [x] Before/After の pixel diff + paint tree diff を取得
+- [x] 差分を分類: layout shift / color change / spacing / typography
+- [x] Approval manifest で「許容する差分」をフィルタ
 - [ ] 残差分ゼロを目標に after.html を修正
 
 **Phase 3: vrt-harness 自体の評価**
 
-- [ ] 差分レポートから「修正すべき CSS」を特定できるか？
-- [ ] LLM に diff を渡して修正コードを生成できるか？
-- [ ] 修正 → VRT → 差分チェック → 修正のループが回るか？
+- [x] 差分レポートから「修正すべき CSS」を特定できるか？
+- [x] LLM に diff を渡して修正コードを生成できるか？
+- [x] 修正 → VRT → 差分チェック → 修正のループが回るか？
 - [ ] 最終的に差分ゼロ (または approval 済み) に到達するか？
 
 ### CSS 検出精度の改善
@@ -220,16 +220,16 @@ fixtures/migration/
 
 #### hover emulation 安定化
 
-- [ ] rAF 待ち + reflow 強制
-- [ ] Playwright hover フォールバック
+- [x] rAF 待ち + reflow 強制
+- [x] Playwright hover/focus フォールバック
 
 #### CSS Custom Properties
 
-- [ ] `var()` 使用箇所追跡 → 参照先 computed style 比較
+- [x] `var()` 使用箇所追跡 → 参照先 computed style / hover style 比較
 
 #### fixture 追加
 
-- [ ] e-commerce / blog / LP / admin
+- [x] e-commerce / blog / LP / admin
 
 ### Crater 統合
 
@@ -245,7 +245,9 @@ fixtures/migration/
 #### VRT harness 側
 
 - [x] Paint tree diff signal (検出率 +10%, 偽陽性 0%)
-- [ ] Prescanner モード (crater → Chromium fallback)
+- [x] Prescanner モード (crater → Chromium fallback)
+- [x] Bench summary persistence / speedup report (`data/bench-history.jsonl`, `just css-report`)
+- [x] Best-effort computed style capture via BiDi (`script.evaluate` ベース, empty snapshot は自動無効化)
 - [ ] Computed style via BiDi (#26 対応後)
 - [ ] Batch rendering (#28 対応後)
 

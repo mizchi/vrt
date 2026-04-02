@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel</title>
+<style id="target-css">
+:root { --bg: #edf2f7; --surface: #ffffff; --surface-alt: #f8fafc; --text: #162033; --text-muted: #64748b; --line: #d7dfec; --accent: #7c3aed; --accent-hover: #6d28d9; --success: #0f9f6e; --warning: #d97706; --danger: #dc2626; --radius: 18px; --shadow: 0 18px 36px rgba(15,23,42,0.08); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, Arial, sans-serif; background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%); color: var(--text); line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
+.sidebar { background: #111827; color: #e5e7eb; padding: 22px 18px; display: flex; flex-direction: column; gap: 18px; }
+.brand { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; }
+.brand-mark { color: #c4b5fd; }
+.workspace-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.workspace-card strong { font-size: 15px; }
+.workspace-card span { color: rgba(229,231,235,0.68); font-size: 13px; }
+.nav-stack { display: flex; flex-direction: column; gap: 6px; }
+.nav-link { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px; color: rgba(229,231,235,0.72); transition: background 0.18s, color 0.18s; }
+.nav-link:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+.nav-link.active { background: rgba(124,58,237,0.28); color: #ffffff; font-weight: 700; }
+.nav-badge { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; border-radius: 999px; background: rgba(255,255,255,0.12); font-size: 12px; }
+.sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.helper-card { background: rgba(255,255,255,0.06); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.helper-card p { color: rgba(229,231,235,0.68); font-size: 13px; }
+.helper-card button { border: none; border-radius: 12px; padding: 10px 12px; background: #ffffff; color: #111827; cursor: pointer; font-weight: 700; }
+.helper-card button:hover { background: #ede9fe; color: var(--accent); }
+
+.main-shell { padding: 24px; display: flex; flex-direction: column; gap: 22px; }
+.topbar { display: flex; align-items: center; gap: 16px; justify-content: space-between; }
+.topbar-copy { display: flex; flex-direction: column; gap: 6px; }
+.topbar-copy h1 { font-size: 34px; letter-spacing: -0.05em; }
+.topbar-copy p { color: var(--text-muted); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search-box { position: relative; width: min(360px, 100%); }
+.search-box input { width: 100%; padding: 12px 14px 12px 42px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); transition: border-color 0.18s, box-shadow 0.18s; }
+.search-box input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); }
+.search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 14px; border: none; cursor: pointer; transition: background 0.18s, transform 0.12s, box-shadow 0.18s; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #ffffff; font-weight: 700; }
+.btn-primary:hover { background: var(--accent-hover); box-shadow: 0 12px 24px rgba(124,58,237,0.22); }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+.btn-secondary:hover { background: #f5f3ff; color: var(--accent); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.stat-card { background: var(--surface); border: 1px solid rgba(215,223,236,0.95); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+.stat-card strong { font-size: 30px; letter-spacing: -0.05em; }
+.stat-card span { color: var(--text-muted); font-size: 13px; }
+.trend { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.trend.up { color: var(--success); }
+.trend.warn { color: var(--warning); }
+.trend.down { color: var(--danger); }
+
+.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) 360px; gap: 18px; }
+.panel { background: var(--surface); border: 1px solid rgba(215,223,236,0.95); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.panel-head h2 { font-size: 18px; letter-spacing: -0.03em; }
+.panel-head p { color: var(--text-muted); font-size: 13px; }
+.queue-table { width: 100%; border-collapse: collapse; }
+.queue-table th { text-align: left; padding: 12px 20px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--line); }
+.queue-table td { padding: 16px 20px; border-bottom: 1px solid rgba(215,223,236,0.8); font-size: 14px; vertical-align: top; }
+.queue-table tr:hover td { background: #faf5ff; }
+.queue-table tr:last-child td { border-bottom: none; }
+.queue-title { display: flex; flex-direction: column; gap: 4px; }
+.queue-title strong { font-size: 15px; }
+.queue-title span { color: var(--text-muted); font-size: 13px; }
+.status-pill { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.status-pill.pending { background: #fff7ed; color: var(--warning); }
+.status-pill.active { background: #ecfdf5; color: var(--success); }
+.status-pill.blocked { background: #fef2f2; color: var(--danger); }
+.assignee { display: inline-flex; align-items: center; gap: 10px; }
+.assignee-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%); }
+
+.side-stack { display: flex; flex-direction: column; gap: 18px; }
+.form-panel { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.form-row { display: flex; flex-direction: column; gap: 6px; }
+.form-row label { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+.form-row input, .form-row select, .form-row textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-alt); color: var(--text); transition: border-color 0.18s, box-shadow 0.18s; }
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); }
+.form-row textarea { min-height: 110px; resize: vertical; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(215,223,236,0.8); }
+.toggle-row:last-child { border-bottom: none; }
+.toggle-copy { display: flex; flex-direction: column; gap: 4px; }
+.toggle-copy strong { font-size: 14px; }
+.toggle-copy span { color: var(--text-muted); font-size: 13px; }
+.toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px; transition: background 0.18s; cursor: pointer; }
+.toggle-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #ffffff; border-radius: 50%; transition: transform 0.18s; }
+.toggle input:checked + .toggle-track { background: var(--accent); }
+.toggle input:checked + .toggle-track::after { transform: translateX(20px); }
+
+@media (max-width: 1080px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .main-shell { padding: 16px; }
+  .topbar { flex-direction: column; align-items: stretch; }
+  .topbar-actions { flex-direction: column; align-items: stretch; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .queue-table th:nth-child(3), .queue-table td:nth-child(3) { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">Orbit</span> Ops</div>
+    <div class="workspace-card"><strong>North Europe cluster</strong><span>9 active operators across 3 shifts</span></div>
+    <nav class="nav-stack" aria-label="Primary">
+      <a class="nav-link active" href="#">Queue overview <span class="nav-badge">12</span></a>
+      <a class="nav-link" href="#">Approvals <span class="nav-badge">4</span></a>
+      <a class="nav-link" href="#">Workflows <span class="nav-badge">7</span></a>
+      <a class="nav-link" href="#">Audit log</a>
+      <a class="nav-link" href="#">Billing</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="helper-card">
+        <p>Need a handoff packet for the next shift?</p>
+        <button type="button">Generate summary</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-shell" role="main">
+    <section class="topbar">
+      <div class="topbar-copy">
+        <h1>Queue command</h1>
+        <p>Keep requests moving, flag blocked work, and tighten handoffs before peak traffic.</p>
+      </div>
+      <div class="topbar-actions">
+        <label class="search-box">
+          <span class="search-icon" aria-hidden="true">Q</span>
+          <input type="search" placeholder="Search requests, assignees, accounts" aria-label="Search queue">
+        </label>
+        <button class="btn btn-secondary" type="button">Export CSV</button>
+        <button class="btn btn-primary" type="button">New escalation</button>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card"><span>Open requests</span><strong>128</strong><div class="trend up">Up 6% from yesterday</div></article>
+      <article class="stat-card"><span>Median response</span><strong>14m</strong><div class="trend up">Below SLA target</div></article>
+      <article class="stat-card"><span>Blocked items</span><strong>9</strong><div class="trend down">Needs action today</div></article>
+      <article class="stat-card"><span>Automation coverage</span><strong>73%</strong><div class="trend warn">Two workflows drifted</div></article>
+    </section>
+
+    <section class="workspace-grid">
+      <div class="panel">
+        <div class="panel-head"><div><h2>Active queue</h2><p>Requests sorted by urgency and customer impact.</p></div><button class="btn btn-secondary" type="button">View all</button></div>
+        <table class="queue-table" aria-label="Active requests">
+          <thead>
+            <tr><th>Request</th><th>Status</th><th>Assignee</th><th>SLA</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="queue-title"><strong>Billing export stalls for enterprise accounts</strong><span>Priority account escalated 18 minutes ago</span></div></td>
+              <td><span class="status-pill blocked">Blocked</span></td>
+              <td><div class="assignee"><span class="assignee-avatar" aria-hidden="true"></span><span>Aki Tan</span></div></td>
+              <td>42m</td>
+            </tr>
+            <tr>
+              <td><div class="queue-title"><strong>Webhook retries spike after regional failover</strong><span>Automation created a draft mitigation</span></div></td>
+              <td><span class="status-pill active">In progress</span></td>
+              <td><div class="assignee"><span class="assignee-avatar" aria-hidden="true"></span><span>Chris Park</span></div></td>
+              <td>18m</td>
+            </tr>
+            <tr>
+              <td><div class="queue-title"><strong>Manual refund request missing audit annotation</strong><span>Compliance follow-up required before close</span></div></td>
+              <td><span class="status-pill pending">Pending</span></td>
+              <td><div class="assignee"><span class="assignee-avatar" aria-hidden="true"></span><span>Nina Hale</span></div></td>
+              <td>1h 12m</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="side-stack">
+        <section class="panel form-panel">
+          <div class="panel-head" style="padding:0 0 14px;border-bottom:1px solid var(--line)"><div><h2>Create handoff note</h2><p>Capture context for the next operator.</p></div></div>
+          <div class="form-row"><label for="handoff-owner">Owner</label><select id="handoff-owner"><option>Night shift</option><option selected>EU daytime</option><option>US evening</option></select></div>
+          <div class="form-row"><label for="handoff-title">Title</label><input id="handoff-title" type="text" value="Blocked requests needing platform help"></div>
+          <div class="form-row"><label for="handoff-note">Summary</label><textarea id="handoff-note">Three requests need infra confirmation before customers can be updated. Billing export issue is the most time-sensitive.</textarea></div>
+          <button class="btn btn-primary" type="button">Save handoff</button>
+        </section>
+
+        <section class="panel form-panel">
+          <div class="panel-head" style="padding:0 0 14px;border-bottom:1px solid var(--line)"><div><h2>Automation guards</h2><p>Pause or widen automation scope.</p></div></div>
+          <div class="toggle-row">
+            <div class="toggle-copy"><strong>Auto assign retries</strong><span>Route new retries to the payments squad.</span></div>
+            <label class="toggle"><input type="checkbox" checked aria-label="Auto assign retries"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-copy"><strong>Escalate VIP accounts</strong><span>Page the operator on call after 10 minutes.</span></div>
+            <label class="toggle"><input type="checkbox" checked aria-label="Escalate VIP accounts"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-copy"><strong>Pause archive jobs</strong><span>Hold non critical jobs during incident review.</span></div>
+            <label class="toggle"><input type="checkbox" aria-label="Pause archive jobs"><span class="toggle-track"></span></label>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

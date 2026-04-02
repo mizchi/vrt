@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command Center (Luna)</title>
+<style id="target-css">
+:root { --bg: #f8fafc; --surface: #ffffff; --surface-muted: #f1f5f9; --text: #0f172a; --text-muted: #64748b; --line: #e2e8f0; --accent: #2563eb; --accent-foreground: #eff6ff; --shadow: 0 18px 40px rgba(15,23,42,0.08); --radius: 18px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, system-ui, sans-serif; background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%); color: var(--text); line-height: 1.5; min-height: 100vh; }
+button, input, textarea { font: inherit; }
+
+.luna-page { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; }
+.luna-hero { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.luna-pill { display: inline-flex; width: fit-content; padding: 7px 11px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.luna-hero h1 { font-size: 40px; letter-spacing: -0.05em; line-height: 1; }
+.luna-hero p { max-width: 62ch; color: var(--text-muted); font-size: 16px; }
+
+.luna-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.luna-stack { display: flex; flex-direction: column; gap: 20px; }
+.luna-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.luna-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+.luna-panel-title { font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
+.luna-panel-note { color: var(--text-muted); font-size: 14px; }
+.luna-panel-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+
+.luna-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.luna-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 16px; border-radius: 12px; border: 1px solid transparent; cursor: pointer; transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s; }
+.luna-action:active { transform: scale(0.98); }
+.luna-action-primary { background: var(--text); color: #f8fafc; }
+.luna-action-primary:hover { background: #1e293b; }
+.luna-action-soft { background: var(--surface-muted); color: var(--text); border-color: var(--line); }
+.luna-action-soft:hover { background: #e2e8f0; }
+.luna-action-ghost { background: transparent; color: var(--text); border-color: var(--line); }
+.luna-action-ghost:hover { background: var(--surface-muted); }
+
+.luna-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.luna-metric { background: var(--surface-muted); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.luna-metric span { color: var(--text-muted); font-size: 13px; }
+.luna-metric strong { font-size: 30px; letter-spacing: -0.05em; }
+
+.luna-field { display: flex; flex-direction: column; gap: 6px; }
+.luna-field label { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+.luna-input, .luna-textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: #ffffff; color: var(--text); padding: 11px 13px; transition: border-color 0.18s, box-shadow 0.18s; }
+.luna-input:focus, .luna-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
+.luna-textarea { min-height: 118px; resize: vertical; }
+
+.luna-overlay { background: rgba(15,23,42,0.48); border-radius: 22px; padding: 16px; }
+.luna-modal { background: #ffffff; border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; }
+.luna-modal-copy { color: var(--text-muted); font-size: 14px; }
+.luna-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+@media (min-width: 768px) {
+  .luna-page { padding-left: 28px; padding-right: 28px; }
+  .luna-layout { grid-template-columns: 1.25fr 0.95fr; }
+}
+@media (min-width: 1024px) {
+  .luna-page { padding-left: 36px; padding-right: 36px; }
+  .luna-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+</style>
+</head>
+<body>
+<main class="luna-page">
+  <section class="luna-hero">
+    <span class="luna-pill">Operations</span>
+    <h1>Command Center</h1>
+    <p>Review live queue health, adjust response templates, and prepare a release note before the next support wave begins.</p>
+  </section>
+
+  <section class="luna-layout">
+    <div class="luna-stack">
+      <article class="luna-panel">
+        <div class="luna-panel-head">
+          <div>
+            <h2 class="luna-panel-title">Response controls</h2>
+            <p class="luna-panel-note">Primary, secondary, and outline actions.</p>
+          </div>
+        </div>
+        <div class="luna-panel-body">
+          <div class="luna-actions">
+            <button class="luna-action luna-action-primary" type="button">Ship update</button>
+            <button class="luna-action luna-action-soft" type="button">Preview draft</button>
+            <button class="luna-action luna-action-ghost" type="button">Archive notes</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="luna-panel">
+        <div class="luna-panel-head">
+          <div>
+            <h2 class="luna-panel-title">Daily snapshot</h2>
+            <p class="luna-panel-note">Card primitives and headline metrics.</p>
+          </div>
+        </div>
+        <div class="luna-panel-body">
+          <div class="luna-metrics">
+            <div class="luna-metric"><span>Open issues</span><strong>42</strong></div>
+            <div class="luna-metric"><span>Median reply</span><strong>11m</strong></div>
+            <div class="luna-metric"><span>Escalations</span><strong>7</strong></div>
+            <div class="luna-metric"><span>CSAT</span><strong>96%</strong></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="luna-panel">
+        <div class="luna-panel-head">
+          <div>
+            <h2 class="luna-panel-title">Review dialog</h2>
+            <p class="luna-panel-note">Static dialog preview for approval flows.</p>
+          </div>
+        </div>
+        <div class="luna-panel-body">
+          <div class="luna-overlay">
+            <div class="luna-modal" role="dialog" aria-label="Review dialog">
+              <h3 class="luna-panel-title" style="font-size:18px">Confirm release note</h3>
+              <p class="luna-modal-copy">This update will be published to support, success, and status page subscribers immediately.</p>
+              <div class="luna-modal-actions">
+                <button class="luna-action luna-action-ghost" type="button">Cancel</button>
+                <button class="luna-action luna-action-primary" type="button">Publish now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <aside class="luna-stack">
+      <article class="luna-panel">
+        <div class="luna-panel-head">
+          <div>
+            <h2 class="luna-panel-title">Escalation draft</h2>
+            <p class="luna-panel-note">Form fields used in the operator handoff.</p>
+          </div>
+        </div>
+        <div class="luna-panel-body">
+          <div class="luna-field">
+            <label for="title">Title</label>
+            <input class="luna-input" id="title" type="text" value="Billing export stalls for enterprise accounts">
+          </div>
+          <div class="luna-field">
+            <label for="owner">Owner</label>
+            <input class="luna-input" id="owner" type="text" value="EU daytime shift">
+          </div>
+          <div class="luna-field">
+            <label for="notes">Notes</label>
+            <textarea class="luna-textarea" id="notes">Finance approved customer messaging. Waiting for infra confirmation before the next send.</textarea>
+          </div>
+          <div class="luna-actions">
+            <button class="luna-action luna-action-primary" type="button">Save draft</button>
+            <button class="luna-action luna-action-ghost" type="button">Share preview</button>
+          </div>
+        </div>
+      </article>
+    </aside>
+  </section>
+</main>
+</body>
+</html>

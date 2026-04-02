@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Landing Product</title>
+<style id="target-css">
+:root { --bg: #f2f6ff; --hero-a: #0f172a; --hero-b: #2563eb; --surface: #ffffff; --surface-muted: #e8f0ff; --text: #122033; --text-muted: #5b6b83; --line: #d7e3fb; --accent: #2563eb; --accent-hover: #1d4ed8; --success: #0f9f6e; --radius: 22px; --shadow: 0 24px 48px rgba(15,23,42,0.1); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, Arial, sans-serif; background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%); color: var(--text); line-height: 1.55; }
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+
+.shell { max-width: 1220px; margin: 0 auto; padding: 24px 24px 64px; }
+.hero { background: linear-gradient(135deg, var(--hero-a) 0%, var(--hero-b) 100%); color: #eff6ff; border-radius: 32px; padding: 24px; box-shadow: var(--shadow); overflow: hidden; }
+.hero-nav { display: flex; align-items: center; gap: 14px; justify-content: space-between; }
+.brand { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; }
+.hero-links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hero-link { padding: 10px 14px; border-radius: 999px; color: rgba(239,246,255,0.76); transition: background 0.18s, color 0.18s; }
+.hero-link:hover { background: rgba(255,255,255,0.12); color: #ffffff; }
+.login-btn { padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.18); }
+.login-btn:hover { background: rgba(255,255,255,0.18); }
+
+.hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; margin-top: 30px; align-items: center; }
+.hero-copy { display: flex; flex-direction: column; gap: 18px; padding: 18px 4px 18px 8px; }
+.eyebrow { display: inline-flex; align-items: center; width: fit-content; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.14); color: rgba(239,246,255,0.88); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+.hero-copy h1 { font-size: 62px; line-height: 0.95; letter-spacing: -0.07em; max-width: 10ch; }
+.hero-copy p { font-size: 18px; color: rgba(239,246,255,0.78); max-width: 50ch; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 18px; border-radius: 999px; border: none; cursor: pointer; transition: background 0.18s, transform 0.12s, color 0.18s, box-shadow 0.18s; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: #ffffff; color: #0f172a; font-weight: 700; }
+.btn-primary:hover { background: #dbeafe; box-shadow: 0 12px 24px rgba(15,23,42,0.2); }
+.btn-secondary { background: rgba(255,255,255,0.12); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); }
+.btn-secondary:hover { background: rgba(255,255,255,0.2); }
+.proof-row { display: flex; flex-wrap: wrap; gap: 16px; color: rgba(239,246,255,0.72); font-size: 14px; }
+
+.hero-visual { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14); border-radius: 28px; padding: 20px; display: grid; gap: 14px; backdrop-filter: blur(12px); }
+.window-bar { display: flex; align-items: center; gap: 8px; }
+.window-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.72); }
+.visual-panel { background: rgba(15,23,42,0.38); border-radius: 20px; padding: 18px; display: grid; gap: 14px; }
+.visual-chart { height: 180px; border-radius: 18px; background: linear-gradient(180deg, rgba(59,130,246,0.28) 0%, rgba(15,23,42,0.18) 100%), repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 2px, transparent 2px, transparent 38px); display: flex; align-items: flex-end; gap: 10px; padding: 16px; }
+.visual-bar { flex: 1; border-radius: 14px 14px 0 0; background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%); }
+.visual-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.stat-card { background: rgba(255,255,255,0.08); border-radius: 16px; padding: 14px; }
+.stat-card strong { display: block; font-size: 24px; letter-spacing: -0.05em; }
+.stat-card span { color: rgba(239,246,255,0.72); font-size: 13px; }
+
+.section { margin-top: 32px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.section-head h2 { font-size: 32px; letter-spacing: -0.05em; }
+.section-head p { color: var(--text-muted); }
+.feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.feature-card { background: var(--surface); border: 1px solid rgba(215,227,251,0.95); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; transition: transform 0.18s, box-shadow 0.18s; }
+.feature-card:hover { transform: translateY(-3px); box-shadow: 0 24px 48px rgba(15,23,42,0.12); }
+.feature-icon { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+.feature-card h3 { font-size: 20px; letter-spacing: -0.04em; }
+.feature-card p { color: var(--text-muted); font-size: 15px; }
+
+.testimonial-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.testimonial { background: var(--surface); border: 1px solid rgba(215,227,251,0.95); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+.testimonial blockquote { font-size: 24px; line-height: 1.2; letter-spacing: -0.04em; }
+.testimonial .person { display: flex; align-items: center; gap: 12px; }
+.person-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); }
+.person-copy strong { display: block; font-size: 15px; }
+.person-copy span { color: var(--text-muted); font-size: 13px; }
+
+.pricing-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.pricing-card { background: var(--surface); border: 1px solid rgba(215,227,251,0.95); border-radius: 26px; padding: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 16px; }
+.pricing-card.featured { border-color: rgba(37,99,235,0.3); background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%); }
+.plan-chip { display: inline-flex; align-items: center; width: fit-content; padding: 7px 11px; border-radius: 999px; background: var(--surface-muted); color: var(--accent); font-size: 12px; font-weight: 700; }
+.price { font-size: 44px; letter-spacing: -0.06em; font-weight: 800; }
+.price small { font-size: 16px; color: var(--text-muted); font-weight: 500; }
+.pricing-list { display: flex; flex-direction: column; gap: 10px; color: var(--text-muted); font-size: 14px; }
+.pricing-list span { display: flex; gap: 10px; align-items: center; }
+.pricing-card .btn { width: 100%; }
+.pricing-card .btn-primary { background: var(--accent); color: #ffffff; }
+.pricing-card .btn-primary:hover { background: var(--accent-hover); }
+.pricing-card .btn-secondary { background: #f8fafc; color: var(--text); border: 1px solid var(--line); }
+.pricing-card .btn-secondary:hover { background: #eff6ff; color: var(--accent); }
+
+.cta-banner { margin-top: 32px; background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%); border: 1px solid rgba(215,227,251,0.95); border-radius: 30px; padding: 24px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.cta-copy { display: flex; flex-direction: column; gap: 8px; }
+.cta-copy h3 { font-size: 30px; letter-spacing: -0.05em; }
+.cta-copy p { color: var(--text-muted); }
+
+@media (max-width: 980px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .feature-grid { grid-template-columns: 1fr 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .shell { padding: 16px 16px 40px; }
+  .hero { padding: 18px; border-radius: 24px; }
+  .hero-nav { flex-direction: column; align-items: flex-start; }
+  .hero-copy h1 { font-size: 48px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .testimonial-grid { grid-template-columns: 1fr; }
+  .cta-banner { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="hero">
+    <div class="hero-nav">
+      <a class="brand" href="#">Pulseboard</a>
+      <nav class="hero-links" aria-label="Marketing">
+        <a class="hero-link" href="#">Platform</a>
+        <a class="hero-link" href="#">Pricing</a>
+        <a class="hero-link" href="#">Customers</a>
+        <a class="login-btn" href="#">Sign in</a>
+      </nav>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">Launch week</span>
+        <h1>See product health before the incident review.</h1>
+        <p>Pulseboard pulls deploys, support trends, and funnel drift into one operating view for product and platform teams.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" type="button">Start free trial</button>
+          <button class="btn btn-secondary" type="button">Watch demo</button>
+        </div>
+        <div class="proof-row"><span>Trusted by 130 teams</span><span>14 day free trial</span><span>No credit card required</span></div>
+      </div>
+
+      <div class="hero-visual" aria-label="Product preview">
+        <div class="window-bar"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span></div>
+        <div class="visual-panel">
+          <div class="visual-chart">
+            <span class="visual-bar" style="height:45%"></span>
+            <span class="visual-bar" style="height:62%"></span>
+            <span class="visual-bar" style="height:70%"></span>
+            <span class="visual-bar" style="height:88%"></span>
+            <span class="visual-bar" style="height:76%"></span>
+          </div>
+          <div class="visual-stats">
+            <div class="stat-card"><strong>99.96%</strong><span>uptime</span></div>
+            <div class="stat-card"><strong>7 min</strong><span>issue triage</span></div>
+            <div class="stat-card"><strong>18%</strong><span>faster ship</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Built for sharp operating loops</h2><p>Focused tooling for product managers, support leads, and platform engineers.</p></div>
+    <div class="feature-grid">
+      <article class="feature-card"><div class="feature-icon" aria-hidden="true"></div><h3>Signal layering</h3><p>Overlay deployments, incidents, and conversion drift without stitching dashboards by hand.</p></article>
+      <article class="feature-card"><div class="feature-icon" aria-hidden="true"></div><h3>Contextual alerts</h3><p>Route alerts with business context so the right team can act before volume spikes.</p></article>
+      <article class="feature-card"><div class="feature-icon" aria-hidden="true"></div><h3>Release narratives</h3><p>Share weekly change summaries that explain not just what moved, but why it mattered.</p></article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Teams keep the thread</h2><p>Operators and product squads work from the same facts, in the same place.</p></div>
+    <div class="testimonial-grid">
+      <article class="testimonial">
+        <blockquote>We replaced five disconnected rituals with one dashboard that finally tells a coherent story.</blockquote>
+        <div class="person"><div class="person-avatar" aria-hidden="true"></div><div class="person-copy"><strong>Amara Singh</strong><span>VP Product, Lattice Loop</span></div></div>
+      </article>
+      <article class="testimonial">
+        <blockquote>Support trends show up next to deploys, so we know whether a release helped users or just moved the graph.</blockquote>
+        <div class="person"><div class="person-avatar" aria-hidden="true"></div><div class="person-copy"><strong>Julian Park</strong><span>Platform Lead, Quiet Grid</span></div></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Pricing that stays legible</h2><p>Start with a small team and expand when the operating surface gets wider.</p></div>
+    <div class="pricing-grid">
+      <article class="pricing-card">
+        <span class="plan-chip">Starter</span>
+        <div class="price">$39 <small>/month</small></div>
+        <div class="pricing-list"><span>5 seats included</span><span>Daily syncs</span><span>Email support</span></div>
+        <button class="btn btn-secondary" type="button">Choose starter</button>
+      </article>
+      <article class="pricing-card featured">
+        <span class="plan-chip">Growth</span>
+        <div class="price">$149 <small>/month</small></div>
+        <div class="pricing-list"><span>20 seats included</span><span>Slack alerts</span><span>Incident annotations</span></div>
+        <button class="btn btn-primary" type="button">Start growth plan</button>
+      </article>
+      <article class="pricing-card">
+        <span class="plan-chip">Scale</span>
+        <div class="price">$399 <small>/month</small></div>
+        <div class="pricing-list"><span>Unlimited viewers</span><span>Custom retention</span><span>Priority onboarding</span></div>
+        <button class="btn btn-secondary" type="button">Talk to sales</button>
+      </article>
+    </div>
+  </section>
+
+  <section class="cta-banner">
+    <div class="cta-copy">
+      <h3>Make release confidence visible.</h3>
+      <p>Spin up a workspace in minutes and bring your metrics, deploys, and support timelines together.</p>
+    </div>
+    <button class="btn btn-primary" type="button">Create workspace</button>
+  </section>
+</div>
+</body>
+</html>

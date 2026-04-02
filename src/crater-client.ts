@@ -10,8 +10,14 @@
  */
 import WebSocket from "ws";
 import { PNG } from "pngjs";
+import {
+  buildComputedStyleCaptureJsonExpression,
+  computedStyleSnapshotToMap,
+  hasMeaningfulComputedStyleSnapshot,
+  parseComputedStyleSnapshot,
+} from "./computed-style-capture.ts";
 
-const DEFAULT_BIDI_URL = "ws://127.0.0.1:9222";
+export const DEFAULT_BIDI_URL = "ws://127.0.0.1:9222";
 
 interface BidiResponse {
   id: number;
@@ -135,6 +141,19 @@ export class CraterClient {
     png.data = Buffer.from(data);
     const pngBuffer = PNG.sync.write(png);
     return { png: pngBuffer, width, height };
+  }
+
+  async captureComputedStyles(
+    properties: string[],
+  ): Promise<Map<string, Record<string, string>>> {
+    const rawSnapshot = await this.evaluate<unknown>(
+      buildComputedStyleCaptureJsonExpression(properties),
+    );
+    const snapshot = parseComputedStyleSnapshot(rawSnapshot);
+    if (!hasMeaningfulComputedStyleSnapshot(snapshot)) {
+      return new Map();
+    }
+    return computedStyleSnapshotToMap(snapshot);
   }
 
   // ---- Private ----

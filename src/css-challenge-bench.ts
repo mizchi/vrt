@@ -6,24 +6,64 @@
  * multi-viewport (desktop + mobile) 対応。結果を JSONL に蓄積。
  *
  * Usage:
- *   npx tsx src/css-challenge-bench.ts [--trials 20] [--start-seed 1]
+ *   npx tsx src/css-challenge-bench.ts [--fixture page] [--trials 20] [--start-seed 1]
+ *   npx tsx src/css-challenge-bench.ts --fixture all
+ *   npx tsx src/css-challenge-bench.ts --approval approval.json --suggest-approval
+ *   npx tsx src/css-challenge-bench.ts --backend prescanner
  *   npx tsx src/css-challenge-bench.ts --trials 30 --no-db
  *   ANTHROPIC_API_KEY=... npx tsx src/css-challenge-bench.ts --trials 10
  */
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Browser } from "playwright";
+import {
+  collectApprovalWarnings,
+  loadApprovalManifest,
+  suggestApprovalRule,
+  type ApprovalManifest,
+  type ApprovalRule,
+} from "./approval.ts";
 import {
   parseCssDeclarations, removeCssProperty, applyCssFix, normalizeValue,
   seededRandom, createBrowser, createCraterClient, capturePageState, capturePageStateCrater, analyzeVrtDiff,
   buildFixPrompt, parseLLMFix, categorizeProperty,
   extractCss, replaceCss,
-  type CssDeclaration, type CapturedState, type TrialResult, type RenderBackend,
+  type CssDeclaration, type CapturedState, type TrialResult, type RenderBackend, type VrtAnalysis,
 } from "./css-challenge-core.ts";
 import { isCraterAvailable, type CraterClient } from "./crater-client.ts";
-import { classifyDeclaration, classifyUndetectedReason, isOutOfScope, type ViewportDetectionResult } from "./detection-classify.ts";
+import {
+  classifyDeclaration,
+  classifyUndetectedReason,
+  isInteractiveSelector,
+  isOutOfScope,
+  type ViewportDetectionResult,
+} from "./detection-classify.ts";
 import { appendRecords, type DetectionRecord } from "./detection-db.ts";
 import { createLLMProvider } from "./llm-client.ts";
+import { appendBenchHistory, buildBenchHistoryRecord } from "./bench-history.ts";
+import {
+  getCssBenchApprovalSuggestionsPath,
+  getCssBenchFixtureOutputDir,
+  getCssChallengeFixturePath,
+  listCssChallengeFixtureNames,
+  normalizeCssChallengeFixtureSelection,
+} from "./css-challenge-fixtures.ts";
+import {
+  buildCustomPropertyUsageIndex,
+  collectComputedStyleTrackingProperties,
+  findExpectedComputedStyleTargets,
+  mergeComputedStyleProperties,
+  type ComputedStyleTarget,
+} from "./css-custom-properties.ts";
+import { TRACKED_PROPERTIES } from "./computed-style-capture.ts";
+import {
+  hasAnyDetectionSignal,
+  hasCraterPrescanSignal,
+  resolvePrescannerTrial,
+  summarizePrescannerTrials,
+  type PrescannerTrialResolution,
+} from "./prescanner.ts";
 
 // ---- Config ----
 
@@ -32,16 +72,24 @@ function getArg(name: string, fallback: string): string {
   const idx = args.indexOf(`--${name}`);
   return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
 }
+function getArgValues(name: string): string[] {
+  const values: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === `--${name}` && args[i + 1]) values.push(args[i + 1]);
+  }
+  return values;
+}
 function hasFlag(name: string): boolean { return args.includes(`--${name}`); }
 
 const TRIALS = parseInt(getArg("trials", "20"), 10);
 const START_SEED = parseInt(getArg("start-seed", "1"), 10);
 const SAVE_DB = !hasFlag("no-db");
-const FIXTURE = getArg("fixture", "page");
-const BACKEND = getArg("backend", "chromium") as RenderBackend;
-const FIXTURE_DIR = join(import.meta.dirname!, "..", "fixtures", "css-challenge");
-const FIXTURE_PATH = join(FIXTURE_DIR, `${FIXTURE}.html`);
-const TMP = join(import.meta.dirname!, "..", "test-results", "css-bench");
+const FIXTURE_ARGS = getArgValues("fixture");
+type BenchBackend = RenderBackend | "prescanner";
+const BACKEND = getArg("backend", "chromium") as BenchBackend;
+const APPROVAL_PATH = getArg("approval", "");
+const STRICT = hasFlag("strict");
+const SUGGEST_APPROVAL = hasFlag("suggest-approval");
 
 const VIEWPORTS = [
   { width: 1440, height: 900, label: "wide" },
@@ -61,30 +109,182 @@ const BOLD = "\x1b[1m";
 
 function hr() { console.log(`${DIM}${"─".repeat(76)}${RESET}`); }
 
+interface ViewportAnalysisBundle {
+  viewportResults: ViewportDetectionResult[];
+  primaryAnalysis: VrtAnalysis | null;
+  anyVisual: boolean;
+  anyA11y: boolean;
+  anyComputed: boolean;
+  anyHover: boolean;
+  anyPaintTree: boolean;
+  maxDiffRatio: number;
+  maxDiffPixels: number;
+  totalA11yChanges: number;
+  detected: boolean;
+}
+
+async function captureStateForBackend(
+  backend: RenderBackend,
+  viewport: { width: number; height: number; label: string },
+  html: string,
+  screenshotPath: string,
+  options: {
+    browser: Browser | null;
+    craterClient: CraterClient | null;
+    captureHover: boolean;
+    trackedProperties: string[];
+    interactionSelectors?: string[];
+  },
+): Promise<CapturedState> {
+  if (backend === "crater") {
+    if (!options.craterClient) throw new Error("Crater client is not initialized");
+    return capturePageStateCrater(options.craterClient, viewport, html, screenshotPath, {
+      trackedProperties: options.trackedProperties,
+    });
+  }
+  if (!options.browser) throw new Error("Chromium browser is not initialized");
+  return capturePageState(options.browser, viewport, html, screenshotPath, {
+    captureHover: options.captureHover,
+    trackedProperties: options.trackedProperties,
+    interactionSelectors: options.interactionSelectors,
+  });
+}
+
+async function analyzeAcrossViewports(
+  backend: RenderBackend,
+  html: string,
+  trialDir: string,
+  baselines: Map<string, CapturedState>,
+  options: {
+    browser: Browser | null;
+    craterClient: CraterClient | null;
+    captureHover: boolean;
+    trackedProperties: string[];
+    manifest: ApprovalManifest | null;
+    approvalContext: { selector: string; property: string; category: ReturnType<typeof categorizeProperty> };
+    expectedComputedStyleTargets: ComputedStyleTarget[];
+    strict: boolean;
+  },
+): Promise<ViewportAnalysisBundle> {
+  const viewportResults: ViewportDetectionResult[] = [];
+  let anyVisual = false;
+  let anyA11y = false;
+  let maxDiffRatio = 0;
+  let maxDiffPixels = 0;
+  let totalA11yChanges = 0;
+  let primaryAnalysis: VrtAnalysis | null = null;
+  let anyComputed = false;
+  let anyHover = false;
+  let anyPaintTree = false;
+
+  for (const viewport of VIEWPORTS) {
+    const brokenPath = join(trialDir, `${backend}-broken-${viewport.label}.png`);
+    const brokenState = await captureStateForBackend(backend, viewport, html, brokenPath, {
+        browser: options.browser,
+        craterClient: options.craterClient,
+        captureHover: options.captureHover,
+        trackedProperties: options.trackedProperties,
+        interactionSelectors: options.expectedComputedStyleTargets.map((target) => target.selector),
+      });
+    const baseline = baselines.get(viewport.label);
+    if (!baseline) throw new Error(`Missing ${backend} baseline for viewport ${viewport.label}`);
+
+    const analysis = await analyzeVrtDiff(baseline, brokenState, trialDir, {
+      manifest: options.manifest,
+      context: options.approvalContext,
+      strict: options.strict,
+      expectedComputedStyleTargets: options.expectedComputedStyleTargets,
+    });
+
+    const visualDiffDetected = (analysis.vrtDiff?.diffPixels ?? 0) > 0;
+    const paintTreeDiffCount = analysis.paintTreeChanges.length;
+    const computedStyleDiffCount = analysis.trackedComputedStyleTargets.length > 0
+      ? analysis.referencedComputedStyleDiffs.length
+      : analysis.computedStyleDiffs.length;
+
+    viewportResults.push({
+      width: viewport.width,
+      height: viewport.height,
+      visualDiffDetected,
+      visualDiffRatio: analysis.vrtDiff?.diffRatio ?? 0,
+      a11yDiffDetected: analysis.a11yDiff.changes.length > 0,
+      a11yChangeCount: analysis.a11yDiff.changes.length,
+      computedStyleDiffCount,
+      hoverDiffDetected: analysis.hoverDiffDetected,
+      paintTreeDiffCount,
+    });
+
+    if (visualDiffDetected) anyVisual = true;
+    if (analysis.a11yDiff.changes.length > 0) anyA11y = true;
+    if (computedStyleDiffCount > 0) anyComputed = true;
+    if (analysis.hoverDiffDetected) anyHover = true;
+    if (paintTreeDiffCount > 0) anyPaintTree = true;
+    if ((analysis.vrtDiff?.diffRatio ?? 0) > maxDiffRatio) maxDiffRatio = analysis.vrtDiff?.diffRatio ?? 0;
+    if ((analysis.vrtDiff?.diffPixels ?? 0) > maxDiffPixels) maxDiffPixels = analysis.vrtDiff?.diffPixels ?? 0;
+    totalA11yChanges += analysis.a11yDiff.changes.length;
+
+    if (viewport.label === "desktop") {
+      primaryAnalysis = analysis;
+    }
+  }
+
+  return {
+    viewportResults,
+    primaryAnalysis,
+    anyVisual,
+    anyA11y,
+    anyComputed,
+    anyHover,
+    anyPaintTree,
+    maxDiffRatio,
+    maxDiffPixels,
+    totalA11yChanges,
+    detected: hasAnyDetectionSignal(viewportResults),
+  };
+}
+
 // ---- Main ----
 
-async function main() {
-  await mkdir(TMP, { recursive: true });
+async function runFixtureBenchmark(fixture: string) {
+  const fixturePath = getCssChallengeFixturePath(fixture);
+  const tmpDir = getCssBenchFixtureOutputDir(fixture);
+  await mkdir(tmpDir, { recursive: true });
 
-  const htmlRaw = await readFile(FIXTURE_PATH, "utf-8");
+  const htmlRaw = await readFile(fixturePath, "utf-8");
   const originalCss = extractCss(htmlRaw);
   if (!originalCss) { console.error("CSS not found"); process.exit(1); }
 
   const declarations = parseCssDeclarations(originalCss);
+  const customPropertyUsage = buildCustomPropertyUsageIndex(declarations);
+  const trackedProperties = mergeComputedStyleProperties(
+    TRACKED_PROPERTIES,
+    collectComputedStyleTrackingProperties(declarations),
+  );
   const llm = createLLMProvider();
+  const approvalManifest = APPROVAL_PATH ? await loadApprovalManifest(APPROVAL_PATH) : null;
+  const approvalWarnings = approvalManifest ? collectApprovalWarnings(approvalManifest) : [];
 
   console.log();
   console.log(`${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════════╗${RESET}`);
   console.log(`${BOLD}${CYAN}║  CSS Recovery Challenge — Benchmark                                     ║${RESET}`);
   console.log(`${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════════════════╝${RESET}`);
-  console.log(`  ${DIM}Fixture: ${FIXTURE} | Trials: ${TRIALS} | Start seed: ${START_SEED} | CSS declarations: ${declarations.length}${RESET}`);
+  console.log(`  ${DIM}Fixture: ${fixture} | Trials: ${TRIALS} | Start seed: ${START_SEED} | CSS declarations: ${declarations.length}${RESET}`);
   console.log(`  ${DIM}Backend: ${BACKEND} | Viewports: ${VIEWPORTS.map((v) => `${v.label}(${v.width}x${v.height})`).join(", ")}${RESET}`);
   console.log(`  ${DIM}LLM: ${llm ? "enabled" : "disabled"} | DB: ${SAVE_DB ? "enabled" : "disabled"}${RESET}`);
+  if (approvalManifest) {
+    console.log(`  ${DIM}Approval: ${APPROVAL_PATH}${STRICT ? " (strict mode: ignored)" : ""}${RESET}`);
+    for (const warning of approvalWarnings) {
+      console.log(`  ${YELLOW}! ${warning.message}${RESET}`);
+    }
+  }
+  if (SUGGEST_APPROVAL) {
+    console.log(`  ${DIM}Approval suggestions: enabled${RESET}`);
+  }
   console.log();
 
   // Check crater availability
   let craterClient: CraterClient | null = null;
-  if (BACKEND === "crater") {
+  if (BACKEND === "crater" || BACKEND === "prescanner") {
     if (!await isCraterAvailable()) {
       console.log(`  ${RED}Crater BiDi server not available at ws://127.0.0.1:9222${RESET}`);
       console.log(`  ${DIM}Start it: cd ~/ghq/github.com/mizchi/crater && just build-bidi && just start-bidi-with-font${RESET}`);
@@ -93,20 +293,47 @@ async function main() {
     craterClient = await createCraterClient();
   }
 
-  // Capture baselines for each viewport
-  const { browser } = BACKEND === "chromium" ? await createBrowser() : { browser: null as unknown as import("playwright").Browser };
-  const baselines = new Map<string, CapturedState>();
-  for (const vp of VIEWPORTS) {
-    const path = join(TMP, `baseline-${vp.label}.png`);
-    if (BACKEND === "crater" && craterClient) {
-      baselines.set(vp.label, await capturePageStateCrater(craterClient, vp, htmlRaw, path));
-    } else {
-      baselines.set(vp.label, await capturePageState(browser, vp, htmlRaw, path, { captureHover: true }));
+  let browser: Browser | null = null;
+  const chromiumBaselines = new Map<string, CapturedState>();
+  const craterBaselines = new Map<string, CapturedState>();
+
+  async function ensureChromiumResources(): Promise<{ browser: Browser; baselines: Map<string, CapturedState> }> {
+    if (!browser) {
+      ({ browser } = await createBrowser());
+    }
+    for (const viewport of VIEWPORTS) {
+      if (chromiumBaselines.has(viewport.label)) continue;
+      const path = join(tmpDir, `baseline-chromium-${viewport.label}.png`);
+      chromiumBaselines.set(
+        viewport.label,
+        await capturePageState(browser, viewport, htmlRaw, path, {
+          captureHover: true,
+          trackedProperties,
+        }),
+      );
+    }
+    return { browser, baselines: chromiumBaselines };
+  }
+
+  if (BACKEND === "chromium") {
+    await ensureChromiumResources();
+  }
+  if ((BACKEND === "crater" || BACKEND === "prescanner") && craterClient) {
+    for (const viewport of VIEWPORTS) {
+      const path = join(tmpDir, `baseline-crater-${viewport.label}.png`);
+      craterBaselines.set(
+        viewport.label,
+        await capturePageStateCrater(craterClient, viewport, htmlRaw, path, {
+          trackedProperties,
+        }),
+      );
     }
   }
 
   const results: TrialResult[] = [];
   const dbRecords: DetectionRecord[] = [];
+  const approvalSuggestions: ApprovalRule[] = [];
+  const prescannerResolutions: PrescannerTrialResolution[] = [];
   const runId = new Date().toISOString();
   const startTime = Date.now();
 
@@ -116,7 +343,7 @@ async function main() {
     const seed = START_SEED + i;
     const removed = shuffled[i % shuffled.length];
 
-    const trialDir = join(TMP, `trial-${seed}`);
+    const trialDir = join(tmpDir, `trial-${seed}`);
     await mkdir(trialDir, { recursive: true });
 
     process.stdout.write(`  [${String(i + 1).padStart(3)}/${TRIALS}] seed=${seed} ${removed.selector} { ${removed.property} } ... `);
@@ -124,59 +351,76 @@ async function main() {
     const brokenCss = removeCssProperty(originalCss, removed);
     const brokenHtml = replaceCss(htmlRaw, originalCss, brokenCss);
     const classified = classifyDeclaration(removed.selector, removed.mediaCondition);
+    const approvalContext = {
+      selector: removed.selector,
+      property: removed.property,
+      category: categorizeProperty(removed.property),
+    } as const;
+    const expectedComputedStyleTargets = findExpectedComputedStyleTargets(removed, customPropertyUsage);
+    const captureHover = classified.isInteractive ||
+      expectedComputedStyleTargets.some((target) => isInteractiveSelector(target.selector));
 
-    // Multi-viewport detection
-    const vpResults: ViewportDetectionResult[] = [];
-    let anyVisual = false;
-    let anyA11y = false;
-    let maxDiffRatio = 0;
-    let totalA11yChanges = 0;
-    let primaryAnalysis = null;
+    let analysisBundle: ViewportAnalysisBundle;
+    let prescannerResolution: PrescannerTrialResolution | null = null;
 
-    let anyComputed = false;
-    let anyHover = false;
-    let anyPaintTree = false;
-
-    for (const vp of VIEWPORTS) {
-      const brokenPath = join(trialDir, `broken-${vp.label}.png`);
-      const brokenState = BACKEND === "crater" && craterClient
-        ? await capturePageStateCrater(craterClient, vp, brokenHtml, brokenPath)
-        : await capturePageState(browser, vp, brokenHtml, brokenPath, { captureHover: classified.isInteractive });
-      const baseline = baselines.get(vp.label)!;
-      const analysis = await analyzeVrtDiff(baseline, brokenState, trialDir);
-
-      const visDetected = (analysis.vrtDiff?.diffPixels ?? 0) > 0;
-      const a11yDetected = analysis.a11yDiff.changes.length > 0;
-      const diffRatio = analysis.vrtDiff?.diffRatio ?? 0;
-      const cssDiffCount = analysis.computedStyleDiffs.length;
-
-      const paintTreeDiffCount = analysis.paintTreeChanges.length;
-
-      vpResults.push({
-        width: vp.width,
-        height: vp.height,
-        visualDiffDetected: visDetected,
-        visualDiffRatio: diffRatio,
-        a11yDiffDetected: a11yDetected,
-        a11yChangeCount: analysis.a11yDiff.changes.length,
-        computedStyleDiffCount: cssDiffCount,
-        hoverDiffDetected: analysis.hoverDiffDetected,
-        paintTreeDiffCount,
+    if (BACKEND === "prescanner") {
+      const craterBundle = await analyzeAcrossViewports("crater", brokenHtml, trialDir, craterBaselines, {
+        browser: null,
+        craterClient,
+        captureHover: false,
+        trackedProperties,
+        manifest: approvalManifest,
+        approvalContext,
+        expectedComputedStyleTargets,
+        strict: STRICT,
       });
 
-      if (visDetected) anyVisual = true;
-      if (a11yDetected) anyA11y = true;
-      if (cssDiffCount > 0) anyComputed = true;
-      if (analysis.hoverDiffDetected) anyHover = true;
-      if (paintTreeDiffCount > 0) anyPaintTree = true;
-      if (diffRatio > maxDiffRatio) maxDiffRatio = diffRatio;
-      totalA11yChanges += analysis.a11yDiff.changes.length;
+      if (hasCraterPrescanSignal(craterBundle.viewportResults)) {
+        prescannerResolution = resolvePrescannerTrial(craterBundle.viewportResults, craterBundle.viewportResults);
+        analysisBundle = craterBundle;
+      } else {
+        const chromiumResources = await ensureChromiumResources();
+        const chromiumBundle = await analyzeAcrossViewports("chromium", brokenHtml, trialDir, chromiumResources.baselines, {
+          browser: chromiumResources.browser,
+          craterClient: null,
+          captureHover,
+          trackedProperties,
+          manifest: approvalManifest,
+          approvalContext,
+          expectedComputedStyleTargets,
+          strict: STRICT,
+        });
+        prescannerResolution = resolvePrescannerTrial(craterBundle.viewportResults, chromiumBundle.viewportResults);
+        analysisBundle = chromiumBundle;
+      }
 
-      // Use desktop analysis for LLM prompt
-      if (vp.label === "desktop") primaryAnalysis = analysis;
+      prescannerResolutions.push(prescannerResolution);
+    } else {
+      const activeBackend = BACKEND;
+      const baselines = activeBackend === "crater" ? craterBaselines : (await ensureChromiumResources()).baselines;
+      analysisBundle = await analyzeAcrossViewports(activeBackend, brokenHtml, trialDir, baselines, {
+        browser,
+        craterClient,
+        captureHover,
+        trackedProperties,
+        manifest: approvalManifest,
+        approvalContext,
+        expectedComputedStyleTargets,
+        strict: STRICT,
+      });
     }
 
-    const detected = anyVisual || anyA11y || anyComputed || anyHover || anyPaintTree;
+    const vpResults = analysisBundle.viewportResults;
+    const primaryAnalysis = analysisBundle.primaryAnalysis;
+    const anyVisual = analysisBundle.anyVisual;
+    const anyA11y = analysisBundle.anyA11y;
+    const anyComputed = analysisBundle.anyComputed;
+    const anyHover = analysisBundle.anyHover;
+    const anyPaintTree = analysisBundle.anyPaintTree;
+    const maxDiffRatio = analysisBundle.maxDiffRatio;
+    const maxDiffPixels = analysisBundle.maxDiffPixels;
+    const totalA11yChanges = analysisBundle.totalA11yChanges;
+    const detected = prescannerResolution?.finalDetected ?? analysisBundle.detected;
 
     const result: TrialResult = {
       seed,
@@ -198,6 +442,8 @@ async function main() {
       fixedDiffRatio: -1,
       attempts: 0,
       llmMs: 0,
+      fallbackUsed: prescannerResolution?.fallbackUsed ?? false,
+      resolvedBy: prescannerResolution?.resolvedBy ?? (BACKEND === "chromium" ? "chromium" : "crater"),
     };
 
     // LLM fix attempt (desktop viewport)
@@ -220,12 +466,17 @@ async function main() {
           const fixedCss = applyCssFix(brokenCss, fix);
           const fixedHtml = replaceCss(htmlRaw, originalCss, fixedCss);
           const fixedPath = join(trialDir, "fixed.png");
+          const chromiumResources = await ensureChromiumResources();
           const desktopVp = VIEWPORTS[0];
-          await capturePageState(browser, desktopVp, fixedHtml, fixedPath);
+          await capturePageState(chromiumResources.browser, desktopVp, fixedHtml, fixedPath, {
+            trackedProperties,
+          });
           const { compareScreenshots } = await import("./heatmap.ts");
           const fixedDiff = await compareScreenshots({
             testId: "page", testTitle: "page", projectName: "css-challenge",
-            screenshotPath: fixedPath, baselinePath: baselines.get("desktop")!.screenshotPath, status: "changed",
+            screenshotPath: fixedPath,
+            baselinePath: chromiumResources.baselines.get("desktop")!.screenshotPath,
+            status: "changed",
           }, { outputDir: trialDir });
           result.fixedDiffRatio = fixedDiff?.diffRatio ?? 0;
           result.pixelPerfect = result.fixedDiffRatio === 0;
@@ -238,6 +489,17 @@ async function main() {
 
     results.push(result);
 
+    if (SUGGEST_APPROVAL && primaryAnalysis) {
+      approvalSuggestions.push(suggestApprovalRule({
+        selector: removed.selector,
+        property: removed.property,
+        category: approvalContext.category,
+        maxDiffPixels,
+        maxDiffRatio,
+        paintTreeChanges: primaryAnalysis.paintTreeChanges,
+      }));
+    }
+
     // Build detection record
     const undetectedReason = detected
       ? null
@@ -245,8 +507,10 @@ async function main() {
 
     dbRecords.push({
       runId,
-      fixture: FIXTURE,
+      fixture,
       backend: BACKEND,
+      fallbackUsed: result.fallbackUsed,
+      backendResolvedBy: result.resolvedBy,
       selector: removed.selector,
       property: removed.property,
       value: removed.value,
@@ -261,6 +525,11 @@ async function main() {
 
     // Status line
     const status: string[] = [];
+    if (prescannerResolution) {
+      if (prescannerResolution.resolvedBy === "crater") status.push(`${CYAN}prescan${RESET}`);
+      else if (prescannerResolution.resolvedBy === "chromium") status.push(`${YELLOW}fallback${RESET}`);
+      else status.push(`${YELLOW}fallback-pass${RESET}`);
+    }
     for (const vr of vpResults) {
       const label = vr.width >= 1440 ? "W" : vr.width > 500 ? "D" : "M";
       if (vr.visualDiffDetected) status.push(`${label}:${(vr.visualDiffRatio * 100).toFixed(0)}%`);
@@ -270,6 +539,9 @@ async function main() {
     if (anyComputed && !anyVisual) status.push(`${CYAN}css-diff${RESET}`);
     if (anyHover && !anyVisual) status.push(`${CYAN}hover${RESET}`);
     if (anyPaintTree && !anyVisual) status.push(`${CYAN}paint-tree${RESET}`);
+    if (primaryAnalysis && (primaryAnalysis.approvedVisualRules.length > 0 || primaryAnalysis.approvedPaintTreeMatches.length > 0)) {
+      status.push(`${CYAN}approved${RESET}`);
+    }
     if (!detected) status.push(`${RED}silent${RESET}${undetectedReason ? `(${undetectedReason})` : ""}`);
     if (result.llmAttempted) {
       if (result.exactMatch) status.push(`${GREEN}exact${RESET}`);
@@ -282,12 +554,14 @@ async function main() {
     await rm(trialDir, { recursive: true, force: true }).catch(() => {});
   }
 
-  if (BACKEND === "crater" && craterClient) {
+  if (craterClient) {
     await craterClient.close();
-  } else {
+  }
+  if (browser) {
     await browser.close();
   }
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  const elapsedMs = Date.now() - startTime;
+  const elapsed = (elapsedMs / 1000).toFixed(1);
 
   // ============================================================
   // Report
@@ -307,17 +581,28 @@ async function main() {
   const computedDetected = dbRecords.filter((r) => r.viewports.some((v) => v.computedStyleDiffCount > 0)).length;
   const hoverDetected = dbRecords.filter((r) => r.viewports.some((v) => v.hoverDiffDetected)).length;
   const paintTreeDetected = dbRecords.filter((r) => r.viewports.some((v) => v.paintTreeDiffCount > 0)).length;
+  const prescannerSummary = BACKEND === "prescanner"
+    ? summarizePrescannerTrials(prescannerResolutions)
+    : null;
 
   console.log(`  ${BOLD}Detection${RESET}`);
   console.log(`    Visual diff:           ${fmtRate(visualDetected, TRIALS)}`);
   console.log(`    Computed style diff:   ${fmtRate(computedDetected, TRIALS)}`);
   console.log(`    Hover diff:            ${fmtRate(hoverDetected, TRIALS)}`);
-  if (paintTreeDetected > 0 || BACKEND === "crater") {
+  if (paintTreeDetected > 0 || BACKEND === "crater" || BACKEND === "prescanner") {
     console.log(`    Paint tree diff:       ${fmtRate(paintTreeDetected, TRIALS)}`);
   }
   console.log(`    A11y diff:             ${fmtRate(a11yDetected, TRIALS)}`);
   console.log(`    ${BOLD}Any signal:${RESET}            ${fmtRate(eitherDetected, TRIALS)}`);
   console.log(`    Undetected (silent):   ${fmtRate(neitherDetected, TRIALS, true)}`);
+  if (prescannerSummary) {
+    console.log();
+    console.log(`  ${BOLD}Prescanner${RESET}`);
+    console.log(`    Resolved by crater:    ${fmtRate(prescannerSummary.craterResolved, prescannerSummary.total)}`);
+    console.log(`    Chromium fallback:     ${fmtRate(prescannerSummary.chromiumFallbacks, prescannerSummary.total, true)}`);
+    console.log(`    Fallback detected:     ${fmtRate(prescannerSummary.chromiumDetected, prescannerSummary.total)}`);
+    console.log(`    Fallback pass:         ${fmtRate(prescannerSummary.passedAfterFallback, prescannerSummary.total, true)}`);
+  }
 
   // Scoped rate (excluding animation)
   const scoped = dbRecords.filter((r) => !isOutOfScope(r.property));
@@ -393,19 +678,70 @@ async function main() {
   // Persist to DB
   if (SAVE_DB) {
     await appendRecords(dbRecords);
+    await appendBenchHistory([
+      buildBenchHistoryRecord({
+        runId,
+        fixture,
+        backend: BACKEND,
+        trials: TRIALS,
+        startSeed: START_SEED,
+        elapsedMs,
+        llmEnabled: !!llm,
+        approvalPath: APPROVAL_PATH || undefined,
+        strict: STRICT,
+        suggestApproval: SUGGEST_APPROVAL,
+        visualDetected,
+        computedDetected,
+        hoverDetected,
+        paintTreeDetected,
+        a11yDetected,
+        eitherDetected,
+        neitherDetected,
+        prescanner: prescannerSummary,
+      }),
+    ]);
     console.log(`  ${DIM}DB: ${dbRecords.length} records appended${RESET}`);
+    console.log(`  ${DIM}Bench history: appended${RESET}`);
+  }
+
+  if (SUGGEST_APPROVAL) {
+    const suggestionPath = getCssBenchApprovalSuggestionsPath(fixture);
+    await writeFile(suggestionPath, JSON.stringify({ rules: approvalSuggestions }, null, 2));
+    console.log(`  ${DIM}Approval suggestions: ${suggestionPath}${RESET}`);
   }
 
   // JSON report
-  const reportPath = join(TMP, "bench-report.json");
+  const reportPath = join(tmpDir, "bench-report.json");
   const report = {
-    meta: { trials: TRIALS, startSeed: START_SEED, elapsed, viewports: VIEWPORTS, llmEnabled: !!llm, totalDeclarations: declarations.length },
+    meta: {
+      fixture,
+      trials: TRIALS,
+      startSeed: START_SEED,
+      elapsed,
+      viewports: VIEWPORTS,
+      llmEnabled: !!llm,
+      totalDeclarations: declarations.length,
+      approvalPath: APPROVAL_PATH || undefined,
+      strict: STRICT,
+      suggestApproval: SUGGEST_APPROVAL,
+      approvalWarnings,
+      prescanner: prescannerSummary,
+    },
     detection: { visualDetected, a11yDetected, eitherDetected, neitherDetected, rate: eitherDetected / TRIALS },
     trials: dbRecords,
   };
   await writeFile(reportPath, JSON.stringify(report, null, 2));
   console.log(`  ${DIM}Report: ${reportPath}${RESET}`);
   console.log();
+}
+
+async function main() {
+  const availableFixtures = await listCssChallengeFixtureNames();
+  const fixtures = normalizeCssChallengeFixtureSelection(FIXTURE_ARGS, availableFixtures);
+
+  for (const fixture of fixtures) {
+    await runFixtureBenchmark(fixture);
+  }
 }
 
 function shuffleWithSeed<T>(arr: T[], seed: number): T[] {

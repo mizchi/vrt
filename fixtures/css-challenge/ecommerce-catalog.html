@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ecommerce Catalog</title>
+<style id="target-css">
+:root { --bg: #f5f7fb; --surface: #ffffff; --surface-muted: #eef2ff; --text: #172033; --text-muted: #64748b; --line: #d7deea; --accent: #2563eb; --accent-hover: #1d4ed8; --success: #0f9f6e; --shadow: 0 20px 40px rgba(15,23,42,0.08); --radius: 18px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Inter, Arial, sans-serif; background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%); color: var(--text); line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+button, input, select { font: inherit; }
+
+.top-strip { background: #0f172a; color: #e2e8f0; text-align: center; padding: 10px 16px; font-size: 13px; letter-spacing: 0.04em; }
+.site-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px; padding: 18px 32px; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(215,222,234,0.8); }
+.brand { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; }
+.brand-mark { color: var(--accent); }
+.search-wrap { flex: 1; max-width: 540px; position: relative; }
+.search-wrap input { width: 100%; padding: 13px 16px 13px 44px; border: 1px solid var(--line); border-radius: 999px; background: #f8fafc; color: var(--text); transition: border-color 0.18s, box-shadow 0.18s; }
+.search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); outline: none; }
+.search-icon { position: absolute; top: 50%; left: 16px; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+.header-links { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.header-link { padding: 10px 14px; border-radius: 999px; color: var(--text-muted); transition: background 0.18s, color 0.18s; }
+.header-link:hover { background: var(--surface-muted); color: var(--text); }
+.cart-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: #eff6ff; color: var(--accent); font-weight: 700; }
+
+.page-shell { max-width: 1360px; margin: 0 auto; padding: 28px 24px 56px; display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; }
+.filters { align-self: start; position: sticky; top: 96px; display: flex; flex-direction: column; gap: 18px; }
+.panel { background: var(--surface); border: 1px solid rgba(215,222,234,0.9); border-radius: var(--radius); box-shadow: var(--shadow); }
+.panel-head { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.panel-title { font-size: 15px; font-weight: 700; letter-spacing: 0.01em; }
+.panel-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.chip-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; background: #f8fafc; color: var(--text-muted); border: 1px solid transparent; transition: background 0.18s, border-color 0.18s, color 0.18s; cursor: pointer; }
+.chip:hover { background: #eff6ff; border-color: rgba(37,99,235,0.2); color: var(--accent); }
+.chip.active { background: #dbeafe; color: var(--accent); font-weight: 700; }
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-track { flex: 1; height: 6px; border-radius: 999px; background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 62%, #dbeafe 62%, #dbeafe 100%); }
+.range-value { font-size: 13px; color: var(--text-muted); }
+.check-row { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 14px; }
+.check-row input { accent-color: var(--accent); }
+
+.catalog-main { display: flex; flex-direction: column; gap: 24px; }
+.hero-banner { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; padding: 28px; background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); color: #eff6ff; overflow: hidden; }
+.hero-copy { display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.72); }
+.hero-copy h1 { font-size: 42px; line-height: 1.04; letter-spacing: -0.05em; max-width: 12ch; }
+.hero-copy p { max-width: 44ch; color: rgba(255,255,255,0.8); }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 999px; border: none; cursor: pointer; transition: transform 0.12s, background 0.18s, color 0.18s, box-shadow 0.18s; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: #ffffff; color: #0f172a; font-weight: 700; }
+.btn-primary:hover { background: #dbeafe; box-shadow: 0 10px 20px rgba(15,23,42,0.2); }
+.btn-secondary { background: rgba(255,255,255,0.12); color: #ffffff; border: 1px solid rgba(255,255,255,0.22); }
+.btn-secondary:hover { background: rgba(255,255,255,0.2); }
+.hero-card { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.18); border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 16px; backdrop-filter: blur(10px); }
+.hero-stat { display: flex; justify-content: space-between; align-items: baseline; }
+.hero-stat strong { font-size: 30px; letter-spacing: -0.04em; }
+.hero-stat span { color: rgba(255,255,255,0.7); font-size: 13px; }
+.hero-meter { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.16); overflow: hidden; }
+.hero-meter > span { display: block; width: 68%; height: 100%; background: linear-gradient(90deg, #34d399 0%, #f8fafc 100%); }
+
+.results-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.results-meta { display: flex; flex-direction: column; gap: 6px; }
+.results-meta h2 { font-size: 28px; letter-spacing: -0.04em; }
+.results-meta p { color: var(--text-muted); }
+.sort-select { min-width: 180px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); }
+.product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.product-card { overflow: hidden; transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s; }
+.product-card:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(15,23,42,0.12); border-color: rgba(37,99,235,0.18); }
+.product-media { aspect-ratio: 1.05; background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 100%); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.media-shape { width: 100%; height: 100%; border-radius: 26px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 0%, rgba(59,130,246,0.35) 55%, rgba(37,99,235,0.65) 100%); }
+.product-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.product-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.badge { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; background: #ecfdf5; color: var(--success); font-size: 12px; font-weight: 700; }
+.product-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.product-desc { color: var(--text-muted); font-size: 14px; min-height: 42px; }
+.rating { color: #f59e0b; font-size: 13px; }
+.price { font-size: 26px; font-weight: 800; letter-spacing: -0.04em; }
+.muted-price { color: var(--text-muted); font-size: 13px; }
+.product-actions { display: flex; gap: 10px; }
+.product-actions .btn { flex: 1; }
+.btn-cart { background: var(--accent); color: #ffffff; font-weight: 700; }
+.btn-cart:hover { background: var(--accent-hover); }
+.btn-save { background: #f8fafc; color: var(--text); border: 1px solid var(--line); }
+.btn-save:hover { background: #eff6ff; color: var(--accent); }
+
+.info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.info-card { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.info-card strong { font-size: 15px; }
+.info-card p { color: var(--text-muted); font-size: 14px; }
+
+@media (max-width: 1100px) {
+  .page-shell { grid-template-columns: 1fr; }
+  .filters { position: static; order: 2; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-banner { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .site-header { padding: 16px 18px; flex-wrap: wrap; }
+  .header-links { width: 100%; justify-content: space-between; }
+  .page-shell { padding: 20px 16px 40px; }
+  .results-head { flex-direction: column; align-items: stretch; }
+  .product-grid { grid-template-columns: 1fr; }
+  .info-grid { grid-template-columns: 1fr; }
+  .hero-copy h1 { font-size: 34px; }
+}
+</style>
+</head>
+<body>
+<div class="top-strip">Spring launch week. Free shipping on orders over $120.</div>
+<header class="site-header" role="banner">
+  <a class="brand" href="#"><span class="brand-mark">North</span>Supply</a>
+  <div class="search-wrap" role="search">
+    <span class="search-icon" aria-hidden="true">Q</span>
+    <input type="search" placeholder="Search products, brands, categories" aria-label="Search products">
+  </div>
+  <nav class="header-links" aria-label="Store">
+    <a class="header-link" href="#">New arrivals</a>
+    <a class="header-link" href="#">Collections</a>
+    <a class="header-link" href="#">Support</a>
+    <a class="cart-pill" href="#">Cart 3</a>
+  </nav>
+</header>
+
+<div class="page-shell">
+  <aside class="filters">
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Filters</h2><a class="header-link" href="#">Reset</a></div>
+      <div class="panel-body">
+        <div class="chip-list">
+          <button class="chip active" type="button">Workspace</button>
+          <button class="chip" type="button">Audio</button>
+          <button class="chip" type="button">Travel</button>
+          <button class="chip" type="button">Wellness</button>
+        </div>
+        <div class="range-row"><div class="range-track" aria-hidden="true"></div><span class="range-value">$40 to $220</span></div>
+        <label class="check-row"><input type="checkbox" checked> Free shipping</label>
+        <label class="check-row"><input type="checkbox" checked> In stock today</label>
+        <label class="check-row"><input type="checkbox"> Same day pickup</label>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Delivery promise</h2></div>
+      <div class="panel-body">
+        <p class="product-desc">Most catalog items ship in under 48 hours from our Tokyo and Portland studios.</p>
+      </div>
+    </section>
+  </aside>
+
+  <main class="catalog-main" role="main">
+    <section class="panel hero-banner">
+      <div class="hero-copy">
+        <span class="eyebrow">Curated systems</span>
+        <h1>Hardware that keeps a modern desk calm.</h1>
+        <p>Explore a tighter catalog of tools built for focused work, quick setup, and everyday reliability.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" type="button">Shop best sellers</button>
+          <button class="btn btn-secondary" type="button">Build a bundle</button>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-stat"><strong>4.8</strong><span>average review score</span></div>
+        <div class="hero-meter"><span></span></div>
+        <div class="hero-stat"><strong>97%</strong><span>kept after 30 days</span></div>
+      </div>
+    </section>
+
+    <section class="results-head">
+      <div class="results-meta">
+        <h2>Featured catalog</h2>
+        <p>18 products tuned for compact setups and hybrid work.</p>
+      </div>
+      <label>
+        <span class="eyebrow" style="color:#64748b">Sort by</span>
+        <select class="sort-select" aria-label="Sort products">
+          <option>Popular now</option>
+          <option>Price low to high</option>
+          <option>Newest arrivals</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="product-grid" aria-label="Products">
+      <article class="panel product-card">
+        <div class="product-media"><div class="media-shape"></div></div>
+        <div class="product-body">
+          <div class="product-row"><span class="badge">Fast ship</span><span class="rating">4.9 stars</span></div>
+          <h3 class="product-title">Arc desk lamp</h3>
+          <p class="product-desc">Warm gradient light with a narrow footprint for shared desks.</p>
+          <div class="product-row"><strong class="price">$149</strong><span class="muted-price">includes USB-C cable</span></div>
+          <div class="product-actions"><button class="btn btn-cart" type="button">Add to cart</button><button class="btn btn-save" type="button">Save</button></div>
+        </div>
+      </article>
+      <article class="panel product-card">
+        <div class="product-media"><div class="media-shape"></div></div>
+        <div class="product-body">
+          <div class="product-row"><span class="badge">New</span><span class="rating">4.7 stars</span></div>
+          <h3 class="product-title">Fold keyboard</h3>
+          <p class="product-desc">Mechanical travel board with quiet switches and a slim carry case.</p>
+          <div class="product-row"><strong class="price">$119</strong><span class="muted-price">hot swap enabled</span></div>
+          <div class="product-actions"><button class="btn btn-cart" type="button">Add to cart</button><button class="btn btn-save" type="button">Save</button></div>
+        </div>
+      </article>
+      <article class="panel product-card">
+        <div class="product-media"><div class="media-shape"></div></div>
+        <div class="product-body">
+          <div class="product-row"><span class="badge">Bundle</span><span class="rating">4.8 stars</span></div>
+          <h3 class="product-title">Studio speaker pair</h3>
+          <p class="product-desc">Balanced desktop sound with room tuning presets for small spaces.</p>
+          <div class="product-row"><strong class="price">$219</strong><span class="muted-price">two year warranty</span></div>
+          <div class="product-actions"><button class="btn btn-cart" type="button">Add to cart</button><button class="btn btn-save" type="button">Save</button></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="info-grid">
+      <div class="panel info-card"><strong>30 day trial</strong><p>Take products home and return them without restocking fees.</p></div>
+      <div class="panel info-card"><strong>Human setup help</strong><p>Book a short call for cable routing, sizing, and pairing guidance.</p></div>
+      <div class="panel info-card"><strong>Accessory bundles</strong><p>Save on matching stands, mats, and travel sleeves at checkout.</p></div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
