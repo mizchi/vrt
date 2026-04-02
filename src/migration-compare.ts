@@ -43,6 +43,7 @@ import {
   type MigrationFixCandidate,
   type MigrationFixCandidateSummary,
 } from "./migration-fix-candidates.ts";
+import { summarizeMigrationReportConvergence, type MigrationConvergenceStatus } from "./migration-fix-loop-core.ts";
 import { discoverViewports, type ViewportSpec } from "./viewport-discovery.ts";
 import type { VrtSnapshot } from "./types.ts";
 
@@ -573,7 +574,13 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
       results,
       reportPath,
     };
+    const convergence = summarizeMigrationReportConvergence(report);
     await writeFile(reportPath, JSON.stringify(report, null, 2));
+    console.log(`  ${BOLD}Convergence${RESET}`);
+    for (const variant of convergence.variants) {
+      console.log(`    ${variant.variant.padEnd(18)} ${formatMigrationConvergenceSummary(variant.status, variant)}`);
+    }
+    console.log();
     console.log(`  ${DIM}Report: ${reportPath}${RESET}`);
     console.log();
     return report;
@@ -656,6 +663,24 @@ function formatMigrationFixCandidateSummary(
     .slice(0, 3)
     .map((candidate) => `${candidate.occurrences}x ${candidate.selector} { ${candidate.property} }`)
     .join(", ");
+}
+
+function formatMigrationConvergenceSummary(
+  status: MigrationConvergenceStatus,
+  summary: {
+    totalResults: number;
+    cleanResults: number;
+    approvedResults: number;
+    remainingResults: number;
+  },
+): string {
+  if (status === "clean") {
+    return `${GREEN}clean${RESET} (${summary.cleanResults}/${summary.totalResults})`;
+  }
+  if (status === "approved") {
+    return `${CYAN}approved${RESET} (${summary.approvedResults} approved, ${summary.cleanResults} clean)`;
+  }
+  return `${YELLOW}remaining${RESET} (${summary.remainingResults}/${summary.totalResults} unresolved)`;
 }
 
 async function resolveApprovalPath(dir: string, explicitPath: string): Promise<string | null> {

@@ -201,14 +201,15 @@ fixtures/migration/
 - [x] Before/After の pixel diff + paint tree diff を取得
 - [x] 差分を分類: layout shift / color change / spacing / typography
 - [x] Approval manifest で「許容する差分」をフィルタ
-- [ ] 残差分ゼロを目標に after.html を修正
+- [x] tailwind-to-vanilla の after.html を差分ゼロまで修正
+- [ ] 他 fixture の残差分ゼロ化 / approval manifest 整備
 
 **Phase 3: vrt-harness 自体の評価**
 
 - [x] 差分レポートから「修正すべき CSS」を特定できるか？
 - [x] LLM に diff を渡して修正コードを生成できるか？
 - [x] 修正 → VRT → 差分チェック → 修正のループが回るか？
-- [ ] 最終的に差分ゼロ (または approval 済み) に到達するか？
+- [x] 最終的に差分ゼロ (または approval 済み) に到達するか？
 
 ### CSS 検出精度の改善
 

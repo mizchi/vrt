@@ -6,6 +6,7 @@ import {
   buildMigrationFixLoopPrompt,
   parseMigrationFixResponse,
   resolveMigrationFixFromBaselineHtml,
+  summarizeMigrationReportConvergence,
   selectMigrationFixTarget,
   shouldIgnoreMigrationRerunError,
   type MigrationCompareReport,
@@ -81,6 +82,50 @@ describe("selectMigrationFixTarget", () => {
     assert.equal(target.viewportWidth, 1280);
     assert.equal(target.diffPixels, 420);
     assert.equal(target.fixCandidates[0]?.selector, ".panel");
+  });
+});
+
+describe("summarizeMigrationReportConvergence", () => {
+  it("should report clean when every viewport is zero-diff", () => {
+    const summary = summarizeMigrationReportConvergence({
+      ...createReport(),
+      results: createReport().results.map((result) => ({
+        ...result,
+        diffRatio: 0,
+        diffPixels: 0,
+      })),
+    });
+
+    assert.equal(summary.status, "clean");
+    assert.equal(summary.remainingResults, 0);
+    assert.equal(summary.cleanResults, 2);
+    assert.equal(summary.approvedResults, 0);
+  });
+
+  it("should report approved when all remaining diffs are fully approved", () => {
+    const summary = summarizeMigrationReportConvergence({
+      ...createReport(),
+      results: [
+        {
+          ...createReport().results[0],
+          diffRatio: 0,
+          diffPixels: 0,
+          approved: true,
+        },
+      ],
+    });
+
+    assert.equal(summary.status, "approved");
+    assert.equal(summary.remainingResults, 0);
+    assert.equal(summary.approvedResults, 1);
+  });
+
+  it("should report remaining when unresolved diffs still exist", () => {
+    const summary = summarizeMigrationReportConvergence(createReport());
+
+    assert.equal(summary.status, "remaining");
+    assert.equal(summary.remainingResults, 2);
+    assert.equal(summary.variants[0]?.status, "remaining");
   });
 });
 

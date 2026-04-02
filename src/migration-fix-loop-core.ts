@@ -14,6 +14,8 @@ export interface MigrationCompareReportResult {
   viewport: string;
   diffRatio: number;
   diffPixels: number;
+  approved?: boolean;
+  partiallyApproved?: boolean;
   dominantCategory: MigrationDiffCategory | "none";
   categorySummary: string;
   paintTreeSummary: string;
@@ -49,6 +51,26 @@ export interface SelectedMigrationFixTarget extends MigrationCompareReportResult
   viewportWidth: number;
 }
 
+export type MigrationConvergenceStatus = "clean" | "approved" | "remaining";
+
+export interface MigrationVariantConvergence {
+  variant: string;
+  totalResults: number;
+  cleanResults: number;
+  approvedResults: number;
+  remainingResults: number;
+  status: MigrationConvergenceStatus;
+}
+
+export interface MigrationReportConvergence {
+  totalResults: number;
+  cleanResults: number;
+  approvedResults: number;
+  remainingResults: number;
+  status: MigrationConvergenceStatus;
+  variants: MigrationVariantConvergence[];
+}
+
 export function selectMigrationFixTarget(
   report: MigrationCompareReport,
   options: { variant?: string } = {},
@@ -73,6 +95,29 @@ export function selectMigrationFixTarget(
     ...target,
     variantFile: resolveVariantFile(report, target),
     viewportWidth: report.viewports.find((viewport) => viewport.label === target.viewport)?.width ?? 0,
+  };
+}
+
+export function summarizeMigrationReportConvergence(
+  report: MigrationCompareReport,
+): MigrationReportConvergence {
+  const variants = [...new Set(report.results.map((result) => result.variant))]
+    .map((variant) => summarizeMigrationVariantConvergence(
+      variant,
+      report.results.filter((result) => result.variant === variant),
+    ));
+
+  const cleanResults = variants.reduce((sum, variant) => sum + variant.cleanResults, 0);
+  const approvedResults = variants.reduce((sum, variant) => sum + variant.approvedResults, 0);
+  const remainingResults = variants.reduce((sum, variant) => sum + variant.remainingResults, 0);
+
+  return {
+    totalResults: report.results.length,
+    cleanResults,
+    approvedResults,
+    remainingResults,
+    status: summarizeConvergenceStatus(cleanResults, approvedResults, remainingResults),
+    variants,
   };
 }
 
@@ -200,6 +245,33 @@ export function shouldIgnoreMigrationRerunError(error: unknown): boolean {
       || message.includes("Permission denied")
       || message.includes("MachPortRendezvousServer")
     );
+}
+
+function summarizeMigrationVariantConvergence(
+  variant: string,
+  results: MigrationCompareReportResult[],
+): MigrationVariantConvergence {
+  const cleanResults = results.filter((result) => result.diffPixels === 0 && !result.approved).length;
+  const approvedResults = results.filter((result) => result.diffPixels === 0 && !!result.approved).length;
+  const remainingResults = results.filter((result) => result.diffPixels > 0 || result.partiallyApproved).length;
+  return {
+    variant,
+    totalResults: results.length,
+    cleanResults,
+    approvedResults,
+    remainingResults,
+    status: summarizeConvergenceStatus(cleanResults, approvedResults, remainingResults),
+  };
+}
+
+function summarizeConvergenceStatus(
+  cleanResults: number,
+  approvedResults: number,
+  remainingResults: number,
+): MigrationConvergenceStatus {
+  if (remainingResults > 0) return "remaining";
+  if (approvedResults > 0) return "approved";
+  return cleanResults > 0 ? "clean" : "remaining";
 }
 
 function resolveVariantFile(

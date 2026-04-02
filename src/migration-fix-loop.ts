@@ -10,6 +10,7 @@ import {
   parseMigrationFixResponse,
   resolveMigrationFixFromBaselineHtml,
   selectMigrationFixTarget,
+  summarizeMigrationReportConvergence,
   shouldIgnoreMigrationRerunError,
   type MigrationCompareReport,
   type MigrationFix,
@@ -42,8 +43,13 @@ const IN_PLACE = hasFlag("in-place");
 
 async function main() {
   const report = JSON.parse(await readFile(REPORT_PATH, "utf-8")) as MigrationCompareReport;
+  const convergence = summarizeMigrationReportConvergence(report);
   const target = selectMigrationFixTarget(report, { variant: VARIANT_FILTER || undefined });
   if (!target) {
+    if (convergence.status !== "remaining") {
+      console.log(`Report already converged: ${convergence.status}.`);
+      process.exit(0);
+    }
     console.error("No non-zero migration diff with fix candidates found.");
     process.exit(1);
   }
@@ -84,6 +90,7 @@ async function main() {
   console.log(`Diff: ${(target.diffRatio * 100).toFixed(2)}% / ${target.diffPixels} px`);
   console.log(`Category: ${target.categorySummary}`);
   console.log(`Paint tree: ${target.paintTreeSummary}`);
+  console.log(`Current convergence: ${convergence.status}`);
 
   if (!fix) {
     console.log();
@@ -122,7 +129,9 @@ async function main() {
   console.log();
   console.log(`Rerun: in-process migration compare (${basename(baselinePath)} vs ${basename(outputPath)})`);
   try {
-    await runMigrationCompare(rerunOptions);
+    const rerunReport = await runMigrationCompare(rerunOptions);
+    const rerunConvergence = summarizeMigrationReportConvergence(rerunReport);
+    console.log(`Convergence after rerun: ${rerunConvergence.status}`);
   } catch (error) {
     if (!shouldIgnoreMigrationRerunError(error)) throw error;
     console.log("Rerun skipped: Playwright browser launch is blocked in the current sandbox.");

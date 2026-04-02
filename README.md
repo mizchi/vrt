@@ -107,6 +107,7 @@ Known diff を `approval.json` で許容できる。
 - `src/migration-compare.ts` の approval は diff 全体ではなく region 単位で評価する。migration category から `layout/spacing/visual/typography` と `geometry/paint/text` を推定するので、known diff の一部だけを残差分から外せる。JSON report には `rawCategorySummary` と `approvedPixels` も残す。
 - `src/migration-compare.ts` は best-effort で `paint tree diff` も取得する。既定では `ws://127.0.0.1:9222` の Crater BiDi を見に行き、使えれば viewport ごとの `Paint Tree` summary と JSON report に `paintTree*` を載せる。無効化したい場合は `--no-paint-tree`、URL を変える場合は `--paint-tree-url` を使う。
 - `src/migration-compare.ts` の JSON report には source `dir` と `variantFile` も残るので、後段の fix loop から元ファイルを再解決できる。
+- `src/migration-compare.ts` は report から `clean / approved / remaining` を集計し、variant ごとの `Convergence` を summary に出す。現在の `tailwind-to-vanilla` report は `10/10 clean` で、approval なしで差分ゼロに到達している。
 - `src/migration-fix-loop.ts` は `migration-report.json` を読み、最大 diff の viewport を 1 件選んで fix prompt を作る。baseline に同じ `selector/property` があればその値を自動適用し、なければ `ANTHROPIC_API_KEY` がある場合だけ LLM を呼ぶ。`just migration-fix-loop -- --report test-results/migration/migration-report.json --no-rerun` のように使える。
 - `src/migration-fix-loop.ts` は `--selector/--property/--value/--media` で手動 fix、`--response-file` で外部 LLM 応答の取り込み、`--prompt-out` で prompt の保存にも対応する。既定では `<variant>.fixloop.html` を書き出し、同一プロセス内で `migration-compare` を rerun する。compare を走らせず適用だけ見たい場合は `--no-rerun` を使う。
 - sandbox などで Playwright browser launch が拒否される場合、`migration-fix-loop` は fix file の書き出しを維持したまま rerun を warning 扱いでスキップする。
