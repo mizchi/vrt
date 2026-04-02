@@ -7,6 +7,7 @@ import {
   parseMigrationFixResponse,
   resolveMigrationFixFromBaselineHtml,
   selectMigrationFixTarget,
+  shouldIgnoreMigrationRerunError,
   type MigrationCompareReport,
 } from "./migration-fix-loop-core.ts";
 
@@ -192,5 +193,21 @@ describe("applyMigrationFixToHtml", () => {
     });
 
     assert.match(nextHtml, /@media \(min-width: 768px\) \{\n  \.panel \{ gap: 28px; padding: 32px; \}\n\}/);
+  });
+});
+
+describe("shouldIgnoreMigrationRerunError", () => {
+  it("should ignore known Playwright sandbox launch failures", () => {
+    assert.equal(
+      shouldIgnoreMigrationRerunError(new Error("browserType.launch: ... Operation not permitted ... MachPortRendezvousServer")),
+      true,
+    );
+  });
+
+  it("should preserve unrelated rerun errors", () => {
+    assert.equal(
+      shouldIgnoreMigrationRerunError(new Error("migration compare failed: diff output missing")),
+      false,
+    );
   });
 });

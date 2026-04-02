@@ -192,6 +192,16 @@ export function applyMigrationFixToCss(css: string, fix: MigrationFix): string {
   return css;
 }
 
+export function shouldIgnoreMigrationRerunError(error: unknown): boolean {
+  const message = String(error);
+  return message.includes("browserType.launch:")
+    && (
+      message.includes("Operation not permitted")
+      || message.includes("Permission denied")
+      || message.includes("MachPortRendezvousServer")
+    );
+}
+
 function resolveVariantFile(
   report: MigrationCompareReport,
   result: MigrationCompareReportResult,

@@ -11,6 +11,7 @@
  */
 import { readFile, writeFile, mkdir, access } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium, type Browser } from "playwright";
 import {
   collectApprovalWarnings,
@@ -47,12 +48,11 @@ import type { VrtSnapshot } from "./types.ts";
 
 // ---- Config ----
 
-const args = process.argv.slice(2);
-function getArg(name: string, fallback: string): string {
+function getArg(args: string[], name: string, fallback: string): string {
   const idx = args.indexOf(`--${name}`);
   return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
 }
-function getArgList(name: string): string[] {
+function getArgList(args: string[], name: string): string[] {
   const idx = args.indexOf(`--${name}`);
   if (idx < 0) return [];
   const values: string[] = [];
@@ -61,19 +61,39 @@ function getArgList(name: string): string[] {
   }
   return values;
 }
+function hasFlag(args: string[], name: string): boolean { return args.includes(`--${name}`); }
 
-const DIR = getArg("dir", ".");
-const BASELINE = getArg("baseline", args[0] ?? "");
-const VARIANTS = getArgList("variants").length > 0 ? getArgList("variants") : (args[1] ? [args[1]] : []);
-const TMP = join(process.cwd(), "test-results", "migration");
-const AUTO_DISCOVER = !hasFlag("no-discover");
-const MAX_VIEWPORTS = parseInt(getArg("max-viewports", "15"), 10);
-const RANDOM_SAMPLES = parseInt(getArg("random-samples", "1"), 10);
-const APPROVAL_PATH = getArg("approval", "");
-const STRICT = hasFlag("strict");
-const PAINT_TREE_URL = getArg("paint-tree-url", DEFAULT_BIDI_URL);
-const ENABLE_PAINT_TREE = !hasFlag("no-paint-tree");
-function hasFlag(name: string): boolean { return args.includes(`--${name}`); }
+export interface MigrationCompareOptions {
+  dir: string;
+  baseline: string;
+  variants: string[];
+  outputDir: string;
+  fixedViewports?: ViewportSpec[];
+  autoDiscover: boolean;
+  maxViewports: number;
+  randomSamples: number;
+  approvalPath: string;
+  strict: boolean;
+  paintTreeUrl: string;
+  enablePaintTree: boolean;
+}
+
+export function parseMigrationCompareArgs(args: string[]): MigrationCompareOptions {
+  const variants = getArgList(args, "variants");
+  return {
+    dir: getArg(args, "dir", "."),
+    baseline: getArg(args, "baseline", args[0] ?? ""),
+    variants: variants.length > 0 ? variants : (args[1] ? [args[1]] : []),
+    outputDir: join(process.cwd(), "test-results", "migration"),
+    autoDiscover: !hasFlag(args, "no-discover"),
+    maxViewports: parseInt(getArg(args, "max-viewports", "15"), 10),
+    randomSamples: parseInt(getArg(args, "random-samples", "1"), 10),
+    approvalPath: getArg(args, "approval", ""),
+    strict: hasFlag(args, "strict"),
+    paintTreeUrl: getArg(args, "paint-tree-url", DEFAULT_BIDI_URL),
+    enablePaintTree: !hasFlag(args, "no-paint-tree"),
+  };
+}
 
 // Fallback viewports (used when --no-discover)
 const STATIC_VIEWPORTS: ViewportSpec[] = [
@@ -103,42 +123,105 @@ interface PaintTreeStatus {
   error?: string;
 }
 
+export interface MigrationCompareResult {
+  variant: string;
+  variantFile: string;
+  viewport: string;
+  diffRatio: number;
+  diffPixels: number;
+  totalPixels: number;
+  rawDiffRatio: number;
+  rawDiffPixels: number;
+  rawDominantCategory: MigrationDiffCategory | "none";
+  rawCategorySummary: string;
+  rawCategoryCounts: Record<MigrationDiffCategory, number>;
+  approved: boolean;
+  partiallyApproved: boolean;
+  approvedPixels: number;
+  approvalReasons: string[];
+  dominantCategory: MigrationDiffCategory | "none";
+  categorySummary: string;
+  categoryCounts: Record<MigrationDiffCategory, number>;
+  rawPaintTreeChangeCount: number;
+  rawPaintTreeSummary: string;
+  rawPaintTreeCounts: Record<PaintTreeChangeType, number>;
+  paintTreeChangeCount: number;
+  paintTreeSummary: string;
+  paintTreeCounts: Record<PaintTreeChangeType, number>;
+  approvedPaintTreeCount: number;
+  approvedPaintTreeReasons: string[];
+  fixCandidates: MigrationFixCandidate[];
+}
+
+export interface MigrationCompareReport {
+  dir: string;
+  baseline: string;
+  variants: string[];
+  viewports: ViewportSpec[];
+  approvalPath?: string;
+  strict: boolean;
+  approvalWarnings: Awaited<ReturnType<typeof collectApprovalWarnings>>;
+  paintTree: PaintTreeStatus;
+  results: MigrationCompareResult[];
+  reportPath: string;
+}
+
 // ---- Main ----
 
-async function main() {
-  if (!BASELINE || VARIANTS.length === 0) {
+async function main(cliArgs = process.argv.slice(2)) {
+  const options = parseMigrationCompareArgs(cliArgs);
+  if (!options.baseline || options.variants.length === 0) {
     console.log(`Usage: npx tsx src/migration-compare.ts --dir <dir> --baseline <file> --variants <file1> <file2> ... [--approval approval.json] [--strict] [--no-paint-tree] [--paint-tree-url ws://127.0.0.1:9222]`);
     console.log(`   or: npx tsx src/migration-compare.ts <before.html> <after.html>`);
     process.exit(1);
   }
+  await runMigrationCompare(options);
+}
 
-  await mkdir(TMP, { recursive: true });
+export async function runMigrationCompare(options: MigrationCompareOptions): Promise<MigrationCompareReport> {
+  const {
+    dir,
+    baseline,
+    variants,
+    outputDir,
+    autoDiscover,
+    maxViewports,
+    randomSamples,
+    approvalPath,
+    strict,
+    paintTreeUrl,
+    enablePaintTree,
+  } = options;
 
-  const baselinePath = resolve(DIR, BASELINE);
+  await mkdir(outputDir, { recursive: true });
+
+  const baselinePath = resolve(dir, baseline);
   const baselineHtml = await readFile(baselinePath, "utf-8");
-  const baselineName = basename(BASELINE, ".html");
-  const resolvedApprovalPath = await resolveApprovalPath(DIR, APPROVAL_PATH);
+  const baselineName = basename(baseline, ".html");
+  const resolvedApprovalPath = await resolveApprovalPath(dir, approvalPath);
   const approvalManifest = resolvedApprovalPath ? await loadApprovalManifest(resolvedApprovalPath) : null;
   const approvalWarnings = approvalManifest ? collectApprovalWarnings(approvalManifest) : [];
   const baselinePaintTrees = new Map<string, PaintNode>();
   const paintTreeStatus: PaintTreeStatus = {
-    enabled: ENABLE_PAINT_TREE,
+    enabled: enablePaintTree,
     available: false,
-    url: ENABLE_PAINT_TREE ? PAINT_TREE_URL : undefined,
+    url: enablePaintTree ? paintTreeUrl : undefined,
   };
 
   // Auto-discover breakpoints from all HTML files
   let VIEWPORTS: ViewportSpec[];
-  if (AUTO_DISCOVER) {
+  if (options.fixedViewports && options.fixedViewports.length > 0) {
+    VIEWPORTS = options.fixedViewports;
+  } else if (autoDiscover) {
     // Collect all HTML to find all breakpoints
     const allHtmls = [baselineHtml];
-    for (const v of VARIANTS) {
-      allHtmls.push(await readFile(resolve(DIR, v), "utf-8"));
+    for (const v of variants) {
+      allHtmls.push(await readFile(resolve(dir, v), "utf-8"));
     }
     const combined = allHtmls.join("\n");
     const discovery = discoverViewports(combined, {
-      maxViewports: MAX_VIEWPORTS,
-      randomSamples: RANDOM_SAMPLES,
+      maxViewports,
+      randomSamples,
     });
     VIEWPORTS = discovery.viewports;
 
@@ -154,16 +237,16 @@ async function main() {
   console.log(`${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════════╗${RESET}`);
   console.log(`${BOLD}${CYAN}║  Migration VRT Compare                                                  ║${RESET}`);
   console.log(`${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════════════════╝${RESET}`);
-  console.log(`  ${DIM}Baseline: ${BASELINE}${RESET}`);
-  console.log(`  ${DIM}Variants: ${VARIANTS.join(", ")}${RESET}`);
+  console.log(`  ${DIM}Baseline: ${baseline}${RESET}`);
+  console.log(`  ${DIM}Variants: ${variants.join(", ")}${RESET}`);
   console.log(`  ${DIM}Viewports (${VIEWPORTS.length}): ${VIEWPORTS.map((v) => `${v.label}(${v.width})`).join(", ")}${RESET}`);
   if (resolvedApprovalPath) {
-    console.log(`  ${DIM}Approval: ${resolvedApprovalPath}${STRICT ? " (strict mode: ignored)" : ""}${RESET}`);
+    console.log(`  ${DIM}Approval: ${resolvedApprovalPath}${strict ? " (strict mode: ignored)" : ""}${RESET}`);
     for (const warning of approvalWarnings) {
       console.log(`  ${YELLOW}! ${warning.message}${RESET}`);
     }
   }
-  if (!ENABLE_PAINT_TREE) {
+  if (!enablePaintTree) {
     console.log(`  ${DIM}Paint tree: disabled${RESET}`);
   } else if (paintTreeStatus.error) {
     console.log(`  ${YELLOW}Paint tree: unavailable (${paintTreeStatus.error})${RESET}`);
@@ -185,13 +268,13 @@ async function main() {
     browser = await chromium.launch();
     const baselineScreenshots = new Map<string, string>();
 
-    if (ENABLE_PAINT_TREE) {
-      const available = await isCraterAvailable(PAINT_TREE_URL);
+    if (enablePaintTree) {
+      const available = await isCraterAvailable(paintTreeUrl);
       if (!available) {
-        paintTreeStatus.error = `Crater BiDi unavailable at ${PAINT_TREE_URL}`;
+        paintTreeStatus.error = `Crater BiDi unavailable at ${paintTreeUrl}`;
       } else {
         try {
-          paintTreeClient = new CraterClient(PAINT_TREE_URL);
+          paintTreeClient = new CraterClient(paintTreeUrl);
           await paintTreeClient.connect();
           paintTreeStatus.available = true;
         } catch (error) {
@@ -202,9 +285,9 @@ async function main() {
     }
 
     if (paintTreeStatus.available) {
-      console.log(`  ${DIM}Paint tree: enabled via ${PAINT_TREE_URL}${RESET}`);
+      console.log(`  ${DIM}Paint tree: enabled via ${paintTreeUrl}${RESET}`);
       console.log();
-    } else if (ENABLE_PAINT_TREE && paintTreeStatus.error) {
+    } else if (enablePaintTree && paintTreeStatus.error) {
       console.log(`  ${YELLOW}Paint tree: unavailable (${paintTreeStatus.error})${RESET}`);
       console.log();
     }
@@ -213,7 +296,7 @@ async function main() {
     for (const vp of VIEWPORTS) {
       const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
       await page.setContent(baselineHtml, { waitUntil: "networkidle" });
-      const path = join(TMP, `${baselineName}-${vp.label}.png`);
+      const path = join(outputDir, `${baselineName}-${vp.label}.png`);
       await page.screenshot({ path, fullPage: true });
       baselineScreenshots.set(vp.label, path);
       await page.close();
@@ -265,8 +348,8 @@ async function main() {
       fixCandidates: MigrationFixCandidate[];
     }> = [];
 
-    for (const variantFile of VARIANTS) {
-      const variantPath = resolve(DIR, variantFile);
+    for (const variantFile of variants) {
+      const variantPath = resolve(dir, variantFile);
       const variantHtml = await readFile(variantPath, "utf-8");
       const variantName = basename(variantFile, ".html");
 
@@ -275,7 +358,7 @@ async function main() {
       for (const vp of VIEWPORTS) {
         const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
         await page.setContent(variantHtml, { waitUntil: "networkidle" });
-        const variantScreenshotPath = join(TMP, `${variantName}-${vp.label}.png`);
+        const variantScreenshotPath = join(outputDir, `${variantName}-${vp.label}.png`);
         await page.screenshot({ path: variantScreenshotPath, fullPage: true });
         await page.close();
 
@@ -287,7 +370,7 @@ async function main() {
           baselinePath: baselineScreenshots.get(vp.label)!,
           status: "changed",
         };
-        const diff = await compareScreenshots(snap, { outputDir: TMP });
+        const diff = await compareScreenshots(snap, { outputDir });
         const rawDiffRatio = diff?.diffRatio ?? 0;
         const rawDiffPixels = diff?.diffPixels ?? 0;
         const rawClassification = classifyMigrationDiff(diff);
@@ -296,7 +379,7 @@ async function main() {
             diff,
             approvalManifest,
             buildMigrationRegionApprovalContexts(diff),
-            { strict: STRICT },
+            { strict },
           )
           : null;
         const finalDiff = approved?.diff ?? diff;
@@ -324,7 +407,7 @@ async function main() {
               variantPaintTree,
             );
             const approvedPaintTree = approvalManifest
-              ? filterApprovedPaintTreeChanges(rawPaintTreeChanges, approvalManifest, {}, { strict: STRICT })
+              ? filterApprovedPaintTreeChanges(rawPaintTreeChanges, approvalManifest, {}, { strict })
               : null;
             filteredPaintTreeChanges = approvedPaintTree?.remainingChanges ?? rawPaintTreeChanges;
             approvedPaintTreeCount = approvedPaintTree?.approvedChanges.length ?? 0;
@@ -449,7 +532,7 @@ async function main() {
     }
     console.log();
 
-    if (ENABLE_PAINT_TREE) {
+    if (enablePaintTree) {
       console.log(`  ${BOLD}Paint Tree${RESET}`);
       if (!paintTreeStatus.available) {
         console.log(`    ${DIM}${paintTreeStatus.error ?? "unavailable"}${RESET}`);
@@ -477,20 +560,23 @@ async function main() {
     console.log();
 
     // Save JSON report
-    const reportPath = join(TMP, "migration-report.json");
-    await writeFile(reportPath, JSON.stringify({
-      dir: DIR,
-      baseline: BASELINE,
-      variants: VARIANTS,
+    const reportPath = join(outputDir, "migration-report.json");
+    const report: MigrationCompareReport = {
+      dir,
+      baseline,
+      variants,
       viewports: VIEWPORTS,
       approvalPath: resolvedApprovalPath || undefined,
-      strict: STRICT,
+      strict,
       approvalWarnings,
       paintTree: paintTreeStatus,
       results,
-    }, null, 2));
+      reportPath,
+    };
+    await writeFile(reportPath, JSON.stringify(report, null, 2));
     console.log(`  ${DIM}Report: ${reportPath}${RESET}`);
     console.log();
+    return report;
   } finally {
     await browser?.close();
     await paintTreeClient?.close();
@@ -583,4 +669,8 @@ async function resolveApprovalPath(dir: string, explicitPath: string): Promise<s
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+const isCliEntry = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+
+if (isCliEntry) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

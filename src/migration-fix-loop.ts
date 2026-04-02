@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { extractCss } from "./css-challenge-core.ts";
 import { createLLMProvider } from "./llm-client.ts";
+import { runMigrationCompare, type MigrationCompareOptions } from "./migration-compare.ts";
 import {
   applyMigrationFixToHtml,
   buildMigrationFixLoopPrompt,
   parseMigrationFixResponse,
   resolveMigrationFixFromBaselineHtml,
   selectMigrationFixTarget,
+  shouldIgnoreMigrationRerunError,
   type MigrationCompareReport,
   type MigrationFix,
   type SelectedMigrationFixTarget,
@@ -118,10 +118,15 @@ async function main() {
 
   if (NO_RERUN) return;
 
-  const rerunArgs = buildRerunArgs(report, baselinePath, outputPath);
+  const rerunOptions = buildRerunOptions(report, baselinePath, outputPath);
   console.log();
-  console.log(`Rerun: ${process.execPath} ${rerunArgs.join(" ")}`);
-  await runCompare(rerunArgs);
+  console.log(`Rerun: in-process migration compare (${basename(baselinePath)} vs ${basename(outputPath)})`);
+  try {
+    await runMigrationCompare(rerunOptions);
+  } catch (error) {
+    if (!shouldIgnoreMigrationRerunError(error)) throw error;
+    console.log("Rerun skipped: Playwright browser launch is blocked in the current sandbox.");
+  }
 }
 
 async function resolveFix(input: {
@@ -166,39 +171,25 @@ function resolveOutputPath(variantPath: string): string {
   return join(dirname(variantPath), `${stem}.fixloop${extension || ".html"}`);
 }
 
-function buildRerunArgs(
+function buildRerunOptions(
   report: MigrationCompareReport,
   baselinePath: string,
   variantPath: string,
-): string[] {
-  const compareScript = fileURLToPath(new URL("./migration-compare.ts", import.meta.url));
-  const rerunArgs = [
-    "--experimental-strip-types",
-    compareScript,
-    baselinePath,
-    variantPath,
-  ];
-  if (report.approvalPath) rerunArgs.push("--approval", resolveSourcePath(report.dir, report.approvalPath));
-  if (report.strict) rerunArgs.push("--strict");
-  if (report.paintTree && !report.paintTree.enabled) rerunArgs.push("--no-paint-tree");
-  return rerunArgs;
-}
-
-async function runCompare(compareArgs: string[]): Promise<void> {
-  await new Promise<void>((resolvePromise, rejectPromise) => {
-    const child = spawn(process.execPath, compareArgs, {
-      cwd: process.cwd(),
-      stdio: "inherit",
-    });
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
-      rejectPromise(new Error(`migration-compare exited with code ${code ?? -1}`));
-    });
-    child.on("error", rejectPromise);
-  });
+): MigrationCompareOptions {
+  return {
+    dir: ".",
+    baseline: baselinePath,
+    variants: [variantPath],
+    outputDir: join(process.cwd(), "test-results", "migration"),
+    fixedViewports: report.viewports,
+    autoDiscover: false,
+    maxViewports: report.viewports.length,
+    randomSamples: 0,
+    approvalPath: report.approvalPath ? resolveSourcePath(report.dir, report.approvalPath) : "",
+    strict: report.strict ?? false,
+    paintTreeUrl: report.paintTree?.url ?? "ws://127.0.0.1:9222",
+    enablePaintTree: report.paintTree?.enabled ?? true,
+  };
 }
 
 main().catch((error) => {
