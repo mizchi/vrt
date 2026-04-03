@@ -29,9 +29,12 @@ import {
   buildInteractionTargetPlans,
   captureEmulatedInteractionStyleSnapshotInDom,
   captureComputedStyleSnapshotForTargetSelectorsInDom,
+  buildComputedStyleCaptureExpression,
+  buildComputedStyleCaptureJsonExpression,
   captureComputedStyleSnapshotInDom,
   collectInteractionTargetPlansInDom,
   computedStyleSnapshotToMap,
+  parseComputedStyleSnapshot,
   hasMeaningfulComputedStyleSnapshot,
   mergeComputedStyleSnapshots,
   selectInteractionFallbackPlans,
@@ -361,11 +364,16 @@ export async function capturePageState(
   // Capture computed styles for styled elements + semantic tags
   const computedStyles = new Map<string, Record<string, string>>();
   try {
-    const styles = await page.evaluate(captureComputedStyleSnapshotInDom, trackedProperties);
-    for (const [selector, props] of computedStyleSnapshotToMap(styles)) {
+    // Use JSON-based expression to avoid __name transpilation issue in page.evaluate
+    const expr = buildComputedStyleCaptureJsonExpression(trackedProperties);
+    const jsonStr = await page.evaluate(expr) as string;
+    const snapshot = parseComputedStyleSnapshot(JSON.parse(jsonStr));
+    for (const [selector, props] of computedStyleSnapshotToMap(snapshot)) {
       computedStyles.set(selector, props);
     }
-  } catch { /* ignore */ }
+  } catch (e) {
+    if (process.env.DEBUG_VRT) console.error("[capturePageState] computed style error:", e);
+  }
 
   // Capture hover styles by temporarily activating :hover rules
   // Strategy: inject a <style> that converts :hover rules to always-active versions,

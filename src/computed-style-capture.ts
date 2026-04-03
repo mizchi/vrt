@@ -544,10 +544,14 @@ export function computedStyleSnapshotToMap(
   return map;
 }
 
+// esbuild injects __name(fn, "name") calls into Function.toString() output.
+// Polyfill it as a no-op for page.evaluate contexts.
+const ESBUILD_NAME_POLYFILL = "var __name = typeof __name !== 'undefined' ? __name : function(fn) { return fn; };";
+
 export function buildComputedStyleCaptureExpression(
   props: string[] = TRACKED_PROPERTIES,
 ): string {
-  return `(${captureComputedStyleSnapshotInDom.toString()})(${JSON.stringify(props)})`;
+  return `(function(){ ${ESBUILD_NAME_POLYFILL} return (${captureComputedStyleSnapshotInDom.toString()})(${JSON.stringify(props)}); })()`;
 }
 
 export function buildComputedStyleCaptureJsonExpression(
