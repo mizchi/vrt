@@ -33,6 +33,10 @@ css-challenge *args:
 css-bench *args:
   NO_IMAGES=1 npx tsx src/css-challenge-bench.ts {{args}}
 
+# CSS benchmark (selector block deletion mode)
+css-bench-selector *args:
+  NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --mode selector {{args}}
+
 # CSS benchmark on all fixtures
 css-bench-all trials="30":
   NO_IMAGES=1 npx tsx src/css-challenge-bench.ts --trials {{trials}} --fixture all

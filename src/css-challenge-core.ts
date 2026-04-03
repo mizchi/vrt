@@ -246,6 +246,37 @@ export function parseCssDeclarations(css: string): CssDeclaration[] {
   return declarations;
 }
 
+/** CSS セレクタブロック (同一行の宣言をグループ化) */
+export interface CssSelectorBlock {
+  selector: string;
+  index: number;           // line index
+  text: string;            // original line text
+  declarations: CssDeclaration[];
+  mediaCondition: string | null;
+}
+
+/** 宣言リストからセレクタブロック単位にグループ化 */
+export function groupBySelector(declarations: CssDeclaration[]): CssSelectorBlock[] {
+  const map = new Map<string, CssSelectorBlock>();
+  for (const d of declarations) {
+    const key = `${d.index}:${d.selector}`;
+    let block = map.get(key);
+    if (!block) {
+      block = { selector: d.selector, index: d.index, text: d.text, declarations: [], mediaCondition: d.mediaCondition };
+      map.set(key, block);
+    }
+    block.declarations.push(d);
+  }
+  return [...map.values()];
+}
+
+/** セレクタブロック全体を CSS から削除 */
+export function removeSelectorBlock(css: string, block: CssSelectorBlock): string {
+  const lines = css.split("\n");
+  lines[block.index] = "";
+  return lines.join("\n");
+}
+
 export function removeCssProperty(css: string, declaration: CssDeclaration): string {
   const lines = css.split("\n");
   const line = lines[declaration.index];
