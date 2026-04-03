@@ -18,6 +18,7 @@ import type {
   HtmlSource,
 } from "./api-types.ts";
 import { runSmokeTest } from "./smoke-runner.ts";
+import { isCraterAvailable, CraterClient } from "./crater-client.ts";
 
 // ---- Config ----
 
@@ -30,13 +31,14 @@ const app = new Hono();
 
 // ---- Routes ----
 
-app.get("/api/status", (c) => {
+app.get("/api/status", async (c) => {
+  const craterAvailable = await isCraterAvailable();
   const status: StatusResponse = {
     version: "0.2.0",
-    capabilities: ["compare", "smoke-test", "report"],
+    capabilities: ["compare", "compare-renderers", "smoke-test", "report"],
     backends: [
       { name: "chromium", available: true },
-      { name: "crater", available: false }, // check on demand
+      { name: "crater", available: craterAvailable },
     ],
   };
   return c.json(status);
@@ -145,6 +147,113 @@ app.post("/api/compare", async (c) => {
   const { rm } = await import("node:fs/promises");
   await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
 
+  return c.json(response);
+});
+
+// Renderer comparison: render same HTML with two backends, diff the outputs
+app.post("/api/compare-renderers", async (c) => {
+  const body = await c.req.json<{
+    html: HtmlSource;
+    viewports?: { width: number; height: number; label?: string }[];
+    threshold?: number;
+  }>();
+
+  const html = await resolveHtmlSource(body.html);
+  if (!html) return c.json({ error: "Missing html" }, 400);
+
+  const craterAvailable = await isCraterAvailable();
+  if (!craterAvailable) {
+    return c.json({ error: "Crater BiDi server not available on ws://127.0.0.1:9222" }, 503);
+  }
+
+  const { chromium: pw } = await import("playwright");
+  const { compareScreenshots } = await import("./heatmap.ts");
+  const { discoverViewports } = await import("./viewport-discovery.ts");
+  const { mkdir, rm } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const { PNG } = await import("pngjs");
+
+  const tmpDir = join(process.cwd(), "test-results", "api", `renderers-${Date.now()}`);
+  await mkdir(tmpDir, { recursive: true });
+
+  const viewports = body.viewports ?? discoverViewports(html, { maxViewports: 5, randomSamples: 0 }).viewports;
+  const startTime = Date.now();
+  const results: Array<{
+    viewport: { width: number; height: number; label: string };
+    chromiumDiffRatio: number;
+    craterDiffRatio: number;
+    crossDiffRatio: number;
+    paintTreeChanges: number;
+  }> = [];
+
+  const browser = await pw.launch();
+  const crater = new CraterClient();
+  await crater.connect();
+
+  try {
+    for (const vp of viewports) {
+      const w = vp.width;
+      const h = vp.height ?? 900;
+      const label = vp.label ?? `${w}x${h}`;
+
+      // Chromium render
+      const chromiumPage = await browser.newPage({ viewport: { width: w, height: h } });
+      await chromiumPage.setContent(html, { waitUntil: "networkidle" });
+      const chromiumPath = join(tmpDir, `chromium-${label}.png`);
+      await chromiumPage.screenshot({ path: chromiumPath, fullPage: true });
+      await chromiumPage.close();
+
+      // Crater render
+      await crater.setViewport(w, h);
+      await crater.setContent(html);
+      const { png: craterPng } = await crater.capturePng();
+      const craterPath = join(tmpDir, `crater-${label}.png`);
+      const { writeFile } = await import("node:fs/promises");
+      await writeFile(craterPath, craterPng);
+
+      // Paint tree for detailed diff
+      let paintTreeChanges = 0;
+      try {
+        const { diffPaintTrees } = await import("./crater-client.ts");
+        // Capture paint tree for both renders
+        // (crater only — chromium doesn't have paint tree)
+        paintTreeChanges = 0; // placeholder — would need baseline vs current
+      } catch { /* ignore */ }
+
+      // Cross-renderer diff: chromium vs crater
+      const crossDiff = await compareScreenshots({
+        testId: `cross-${label}`,
+        testTitle: `Chromium vs Crater ${label}`,
+        projectName: "renderer-compare",
+        screenshotPath: craterPath,
+        baselinePath: chromiumPath,
+        status: "changed",
+      }, { outputDir: tmpDir, threshold: body.threshold ?? 0.1 });
+
+      results.push({
+        viewport: { width: w, height: h, label },
+        chromiumDiffRatio: 0, // baseline = chromium
+        craterDiffRatio: crossDiff?.diffRatio ?? 0,
+        crossDiffRatio: crossDiff?.diffRatio ?? 0,
+        paintTreeChanges,
+      });
+    }
+  } finally {
+    await crater.close();
+    await browser.close();
+  }
+
+  const response = {
+    status: results.every((r) => r.crossDiffRatio === 0) ? "match" : "differs",
+    results,
+    meta: {
+      elapsedMs: Date.now() - startTime,
+      viewportCount: results.length,
+      backends: ["chromium", "crater"],
+    },
+  };
+
+  await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   return c.json(response);
 });
 

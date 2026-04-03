@@ -346,18 +346,17 @@ fixtures/migration/
 
 #### 実装タスク
 
-- [ ] `src/smoke-runner.ts` — コアランナー (a11y ツリー → 操作候補 → 実行 → 監視)
-- [ ] 操作候補の生成 (ランダムモード)
-  - a11y ツリーから INTERACTIVE_ROLES の要素を抽出
-  - role に応じた操作マッピング
-  - 外部リンクの除外フィルタ
-- [ ] Playwright バックエンド (クリック、入力、ナビゲーション)
+- [x] `src/smoke-runner.ts` — コアランナー (Playwright getByRole → 操作候補 → 実行 → 監視)
+- [x] 操作候補の生成 (ランダムモード) — role に応じた操作マッピング
+- [x] Playwright バックエンド (クリック、入力、ナビゲーション)
+- [x] エラー監視 (console, exception, timeout)
+- [x] 操作列の記録と再現 (seed ベース)
+- [x] レポート出力 (操作列 + エラー + a11y スナップショット)
+- [x] `just smoke-test <url>` タスク
 - [ ] Crater BiDi バックエンド (同じインターフェース)
-- [ ] エラー監視 (console, exception, timeout)
-- [ ] 操作列の記録と再現 (seed ベース)
 - [ ] LLM reasoning モード (a11y ツリー → 操作列生成)
-- [ ] レポート出力 (操作列 + エラー + a11y スナップショット)
-- [ ] `just smoke-test <url>` タスク
+- [ ] disabled 要素のスキップ (timeout 回避)
+- [ ] 操作後の a11y tree 整合性チェック (ランドマーク消失検出)
 
 #### Crater との相乗効果
 

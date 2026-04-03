@@ -272,6 +272,8 @@ export async function runSmokeTest(
       const isVisible = await locator.isVisible({ timeout: 1000 }).catch(() => false);
       if (!isVisible) {
         result = "timeout";
+      } else if (await locator.isDisabled({ timeout: 500 }).catch(() => false)) {
+        result = "timeout"; // skip disabled elements
       } else {
         switch (candidate.action) {
           case "click":
