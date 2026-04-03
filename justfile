@@ -85,6 +85,10 @@ migration-shadcn:
 bench:
   node --experimental-strip-types src/benchmark.ts
 
+# A11y-driven smoke test (random interaction)
+smoke-test *args:
+  node --experimental-strip-types src/smoke-runner.ts {{args}}
+
 # Run Playwright VRT
 vrt:
   playwright test
