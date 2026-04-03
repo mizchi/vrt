@@ -99,8 +99,8 @@ GET /api/status
   response: { craterVersion, capabilities, ... }
 ```
 
-- [ ] API 型定義 (`src/api-types.ts`)
-- [ ] ローカル実行用の API サーバー (`src/api-server.ts`) — Node.js / Hono
+- [x] API 型定義 (`src/api-types.ts`)
+- [x] ローカル実行用の API サーバー (`src/api-server.ts`) — Node.js / Hono
 - [ ] Cloudflare Workers エントリポイント (`worker/`)
 - [ ] crater WASM バックエンド (layout のみ — paint は将来)
 - [ ] レスポンスの JSON スキーマ / OpenAPI spec
