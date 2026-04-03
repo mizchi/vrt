@@ -29,9 +29,14 @@ import {
   buildInteractionTargetPlans,
   captureEmulatedInteractionStyleSnapshotInDom,
   captureComputedStyleSnapshotForTargetSelectorsInDom,
+  buildComputedStyleCaptureExpression,
+  buildComputedStyleCaptureJsonExpression,
   captureComputedStyleSnapshotInDom,
+  ESBUILD_NAME_POLYFILL,
+  type ComputedStyleSnapshot,
   collectInteractionTargetPlansInDom,
   computedStyleSnapshotToMap,
+  parseComputedStyleSnapshot,
   hasMeaningfulComputedStyleSnapshot,
   mergeComputedStyleSnapshots,
   selectInteractionFallbackPlans,
@@ -246,6 +251,37 @@ export function parseCssDeclarations(css: string): CssDeclaration[] {
   return declarations;
 }
 
+/** CSS セレクタブロック (同一行の宣言をグループ化) */
+export interface CssSelectorBlock {
+  selector: string;
+  index: number;           // line index
+  text: string;            // original line text
+  declarations: CssDeclaration[];
+  mediaCondition: string | null;
+}
+
+/** 宣言リストからセレクタブロック単位にグループ化 */
+export function groupBySelector(declarations: CssDeclaration[]): CssSelectorBlock[] {
+  const map = new Map<string, CssSelectorBlock>();
+  for (const d of declarations) {
+    const key = `${d.index}:${d.selector}`;
+    let block = map.get(key);
+    if (!block) {
+      block = { selector: d.selector, index: d.index, text: d.text, declarations: [], mediaCondition: d.mediaCondition };
+      map.set(key, block);
+    }
+    block.declarations.push(d);
+  }
+  return [...map.values()];
+}
+
+/** セレクタブロック全体を CSS から削除 */
+export function removeSelectorBlock(css: string, block: CssSelectorBlock): string {
+  const lines = css.split("\n");
+  lines[block.index] = "";
+  return lines.join("\n");
+}
+
 export function removeCssProperty(css: string, declaration: CssDeclaration): string {
   const lines = css.split("\n");
   const line = lines[declaration.index];
@@ -330,11 +366,16 @@ export async function capturePageState(
   // Capture computed styles for styled elements + semantic tags
   const computedStyles = new Map<string, Record<string, string>>();
   try {
-    const styles = await page.evaluate(captureComputedStyleSnapshotInDom, trackedProperties);
-    for (const [selector, props] of computedStyleSnapshotToMap(styles)) {
+    // Use JSON-based expression to avoid __name transpilation issue in page.evaluate
+    const expr = buildComputedStyleCaptureJsonExpression(trackedProperties);
+    const jsonStr = await page.evaluate(expr) as string;
+    const snapshot = parseComputedStyleSnapshot(JSON.parse(jsonStr));
+    for (const [selector, props] of computedStyleSnapshotToMap(snapshot)) {
       computedStyles.set(selector, props);
     }
-  } catch { /* ignore */ }
+  } catch (e) {
+    if (process.env.DEBUG_VRT) console.error("[capturePageState] computed style error:", e);
+  }
 
   // Capture hover styles by temporarily activating :hover rules
   // Strategy: inject a <style> that converts :hover rules to always-active versions,
@@ -342,9 +383,11 @@ export async function capturePageState(
   const hoverComputedStyles = new Map<string, Record<string, string>>();
   if (options?.captureHover) {
     try {
-      const interactionPlans = await page.evaluate(collectInteractionTargetPlansInDom);
+      const interactionPlansExpr = `(function(){ ${ESBUILD_NAME_POLYFILL} return (${collectInteractionTargetPlansInDom.toString()})(); })()`;
+      const interactionPlans = await page.evaluate(interactionPlansExpr);
       const expectedInteractionPlans = buildInteractionTargetPlans(options.interactionSelectors ?? []);
-      const emulatedHoverStyles = await page.evaluate(captureEmulatedInteractionStyleSnapshotInDom, trackedProperties);
+      const hoverExpr = `(function(){ ${ESBUILD_NAME_POLYFILL} return (${captureEmulatedInteractionStyleSnapshotInDom.toString()})(${JSON.stringify(trackedProperties)}); })()`;
+      const emulatedHoverStyles = await page.evaluate(hoverExpr) as ComputedStyleSnapshot;
       const fallbackPlans = dedupeInteractionPlans([
         ...expectedInteractionPlans,
         ...selectInteractionFallbackPlans(
@@ -420,11 +463,9 @@ async function capturePlaywrightInteractionFallbackSnapshot(
       }
       interactionApplied = true;
 
-      await page.evaluate(waitForInteractionStylesInDom);
-      snapshots.push(await page.evaluate(captureComputedStyleSnapshotForTargetSelectorsInDom, {
-        props: trackedProperties,
-        selectors: [plan.normalizedSelector],
-      }));
+      await page.evaluate(`(function(){ ${ESBUILD_NAME_POLYFILL} return (${waitForInteractionStylesInDom.toString()})(); })()`);
+      const targetExpr = `(function(){ ${ESBUILD_NAME_POLYFILL} return (${captureComputedStyleSnapshotForTargetSelectorsInDom.toString()})(${JSON.stringify({ props: trackedProperties, selectors: [plan.normalizedSelector] })}); })()`;
+      snapshots.push(await page.evaluate(targetExpr) as ComputedStyleSnapshot);
     } catch { /* ignore individual fallback failures */ }
     finally {
       if (!interactionApplied) continue;
@@ -439,7 +480,8 @@ async function capturePlaywrightInteractionFallbackSnapshot(
         } else {
           await page.mouse.move(0, 0);
         }
-        await page.evaluate(waitForInteractionStylesInDom);
+        await page.evaluate(`(function(){ ${ESBUILD_NAME_POLYFILL} return (${waitForInteractionStylesInDom.toString()})(); })()`);
+
       } catch { /* ignore cleanup failures */ }
     }
   }

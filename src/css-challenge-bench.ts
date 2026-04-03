@@ -25,7 +25,7 @@ import {
   type ApprovalRule,
 } from "./approval.ts";
 import {
-  parseCssDeclarations, removeCssProperty, applyCssFix, normalizeValue,
+  parseCssDeclarations, removeCssProperty, removeSelectorBlock, groupBySelector, applyCssFix, normalizeValue,
   seededRandom, createBrowser, createCraterClient, capturePageState, capturePageStateCrater, analyzeVrtDiff,
   buildFixPrompt, parseLLMFix, categorizeProperty,
   extractCss, replaceCss,
@@ -84,6 +84,8 @@ function getArgValues(name: string): string[] {
 function hasFlag(name: string): boolean { return args.includes(`--${name}`); }
 
 type BenchBackend = RenderBackend | "prescanner";
+export type ChallengeMode = "property" | "selector";
+
 export interface CssChallengeBenchCliOptions {
   trials: number;
   startSeed: number;
@@ -94,6 +96,7 @@ export interface CssChallengeBenchCliOptions {
   strict: boolean;
   suggestApproval: boolean;
   outputRoot: string;
+  mode: ChallengeMode;
 }
 
 export function parseCssChallengeBenchArgs(cliArgs: string[]): CssChallengeBenchCliOptions {
@@ -122,6 +125,7 @@ export function parseCssChallengeBenchArgs(cliArgs: string[]): CssChallengeBench
     strict: hasCliFlag("strict"),
     suggestApproval: hasCliFlag("suggest-approval"),
     outputRoot: getCliArg("output-root", CSS_BENCH_OUTPUT_ROOT),
+    mode: getCliArg("mode", "property") as ChallengeMode,
   };
 }
 
@@ -135,6 +139,7 @@ const APPROVAL_PATH = CLI_OPTIONS.approvalPath;
 const STRICT = CLI_OPTIONS.strict;
 const SUGGEST_APPROVAL = CLI_OPTIONS.suggestApproval;
 const OUTPUT_ROOT = CLI_OPTIONS.outputRoot;
+const MODE = CLI_OPTIONS.mode;
 
 const VIEWPORTS = [
   { width: 1440, height: 900, label: "wide" },
@@ -243,9 +248,12 @@ async function analyzeAcrossViewports(
 
     const visualDiffDetected = (analysis.vrtDiff?.diffPixels ?? 0) > 0;
     const paintTreeDiffCount = analysis.paintTreeChanges.length;
-    const computedStyleDiffCount = analysis.trackedComputedStyleTargets.length > 0
-      ? analysis.referencedComputedStyleDiffs.length
-      : analysis.computedStyleDiffs.length;
+    // In selector mode, use all computed style diffs (tracked targets filter is unreliable for multi-property deletion)
+    const computedStyleDiffCount = MODE === "selector"
+      ? analysis.computedStyleDiffs.length
+      : (analysis.trackedComputedStyleTargets.length > 0
+        ? analysis.referencedComputedStyleDiffs.length
+        : analysis.computedStyleDiffs.length);
 
     viewportResults.push({
       width: viewport.width,
@@ -300,6 +308,7 @@ async function runFixtureBenchmark(fixture: string) {
   if (!originalCss) { console.error("CSS not found"); process.exit(1); }
 
   const declarations = parseCssDeclarations(originalCss);
+  const selectorBlocks = groupBySelector(declarations);
   const customPropertyUsage = buildCustomPropertyUsageIndex(declarations);
   const trackedProperties = mergeComputedStyleProperties(
     TRACKED_PROPERTIES,
@@ -313,7 +322,7 @@ async function runFixtureBenchmark(fixture: string) {
   console.log(`${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════════╗${RESET}`);
   console.log(`${BOLD}${CYAN}║  CSS Recovery Challenge — Benchmark                                     ║${RESET}`);
   console.log(`${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════════════════╝${RESET}`);
-  console.log(`  ${DIM}Fixture: ${fixture} | Trials: ${TRIALS} | Start seed: ${START_SEED} | CSS declarations: ${declarations.length}${RESET}`);
+  console.log(`  ${DIM}Fixture: ${fixture} | Mode: ${MODE} | Trials: ${TRIALS} | Declarations: ${declarations.length} | Selectors: ${selectorBlocks.length}${RESET}`);
   console.log(`  ${DIM}Backend: ${BACKEND} | Viewports: ${VIEWPORTS.map((v) => `${v.label}(${v.width}x${v.height})`).join(", ")}${RESET}`);
   console.log(`  ${DIM}LLM: ${llm ? "enabled" : "disabled"} | DB: ${SAVE_DB ? "enabled" : "disabled"}${RESET}`);
   if (approvalManifest) {
@@ -382,18 +391,32 @@ async function runFixtureBenchmark(fixture: string) {
   const runId = new Date().toISOString();
   const startTime = Date.now();
 
-  const shuffled = shuffleWithSeed(declarations, START_SEED);
+  const shuffledProps = shuffleWithSeed(declarations, START_SEED);
+  const shuffledBlocks = shuffleWithSeed(selectorBlocks, START_SEED);
 
   for (let i = 0; i < TRIALS; i++) {
     const seed = START_SEED + i;
-    const removed = shuffled[i % shuffled.length];
+
+    // Select what to remove based on mode
+    let removed: CssDeclaration;
+    let brokenCss: string;
+    let trialLabel: string;
+
+    if (MODE === "selector") {
+      const block = shuffledBlocks[i % shuffledBlocks.length];
+      removed = block.declarations[0]; // Use first declaration for classification
+      brokenCss = removeSelectorBlock(originalCss, block);
+      trialLabel = `${block.selector} { ${block.declarations.length} props }`;
+    } else {
+      removed = shuffledProps[i % shuffledProps.length];
+      brokenCss = removeCssProperty(originalCss, removed);
+      trialLabel = `${removed.selector} { ${removed.property} }`;
+    }
 
     const trialDir = join(tmpDir, `trial-${seed}`);
     await mkdir(trialDir, { recursive: true });
 
-    process.stdout.write(`  [${String(i + 1).padStart(3)}/${TRIALS}] seed=${seed} ${removed.selector} { ${removed.property} } ... `);
-
-    const brokenCss = removeCssProperty(originalCss, removed);
+    process.stdout.write(`  [${String(i + 1).padStart(3)}/${TRIALS}] seed=${seed} ${trialLabel} ... `);
     const brokenHtml = replaceCss(htmlRaw, originalCss, brokenCss);
     const classified = classifyDeclaration(removed.selector, removed.mediaCondition);
     const approvalContext = {
@@ -401,7 +424,13 @@ async function runFixtureBenchmark(fixture: string) {
       property: removed.property,
       category: categorizeProperty(removed.property),
     } as const;
-    const expectedComputedStyleTargets = findExpectedComputedStyleTargets(removed, customPropertyUsage);
+    // In selector mode, track computed styles for ALL declarations in the block
+    const removedDeclarations = MODE === "selector"
+      ? (shuffledBlocks[i % shuffledBlocks.length]?.declarations ?? [removed])
+      : [removed];
+    const expectedComputedStyleTargets = removedDeclarations.flatMap(
+      (d) => findExpectedComputedStyleTargets(d, customPropertyUsage),
+    );
     const captureHover = classified.isInteractive ||
       expectedComputedStyleTargets.some((target) => isInteractiveSelector(target.selector));
 

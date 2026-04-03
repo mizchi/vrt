@@ -3,12 +3,15 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "vrt": "./src/vrt.ts"
+  },
   "scripts": {
     "test": "node --test --experimental-strip-types src/**/*.test.ts",
-    "demo": "tsx src/demo.ts",
-    "demo:fix": "tsx src/demo-fix-loop.ts",
-    "demo:multi": "tsx src/demo-scenarios.ts",
-    "demo:multistep": "tsx src/demo-multistep.ts",
+    "demo": "node --experimental-strip-types src/demo.ts",
+    "demo:fix": "node --experimental-strip-types src/demo-fix-loop.ts",
+    "demo:multi": "node --experimental-strip-types src/demo-scenarios.ts",
+    "demo:multistep": "node --experimental-strip-types src/demo-multistep.ts",
     "vrt": "playwright test",
     "vrt:update": "playwright test --update-snapshots"
   },
@@ -17,10 +20,11 @@
     "@types/ws": "^8.18.1",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.58.2",
-    "pngjs": "^7.0.0",
-    "tsx": "^4.21.0"
+    "pngjs": "^7.0.0"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.12",
+    "hono": "^4.12.10",
     "ws": "^8.20.0"
   }
 }
