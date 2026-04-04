@@ -37,6 +37,33 @@ export interface CraterBreakpointDiscoveryDiagnostics {
   unsupportedQueries: string[];
 }
 
+export interface CraterRuleViewportMapEntry {
+  selector: string;
+  properties: string[];
+  mediaCondition: string;
+  activeAtWidths: number[];
+  inactiveAtWidths: number[];
+}
+
+export interface CraterRuleViewportMap {
+  rules: CraterRuleViewportMapEntry[];
+}
+
+export interface CraterComputedStyleWithState {
+  normal: Record<string, string>;
+  forced: Record<string, string>;
+  diff: Array<{ property: string; normal: string; forced: string }>;
+}
+
+export interface CraterBatchRenderResult {
+  results: Array<{
+    id: string;
+    paintData?: string;
+    width?: number;
+    height?: number;
+  }>;
+}
+
 export interface CraterBreakpointDiscoveryResult {
   breakpoints: CraterResponsiveBreakpoint[];
   diagnostics?: CraterBreakpointDiscoveryDiagnostics;
@@ -200,6 +227,57 @@ export class CraterClient {
       breakpoints: result?.breakpoints ?? [],
       diagnostics: result?.diagnostics,
     };
+  }
+
+  /** CSS rule → viewport mapping (#33) */
+  async getCssRuleViewportMap(viewportWidths?: number[]): Promise<CraterRuleViewportMap> {
+    const resp = await this.sendBidi("browsingContext.getCssRuleViewportMap", {
+      context: this.requireContextId(),
+      ...(viewportWidths ? { viewportWidths } : {}),
+    }, 30_000);
+    if (resp.type === "error") throw new Error(resp.message || resp.error || "getCssRuleViewportMap failed");
+    return (resp.result as CraterRuleViewportMap) ?? { rules: [] };
+  }
+
+  /** Required test viewports (#33) */
+  async getRequiredTestViewports(): Promise<{ viewports: Array<{ width: number; reason: string }> }> {
+    const resp = await this.sendBidi("browsingContext.getRequiredTestViewports", {
+      context: this.requireContextId(),
+    }, 30_000);
+    if (resp.type === "error") throw new Error(resp.message || resp.error || "getRequiredTestViewports failed");
+    return (resp.result as { viewports: Array<{ width: number; reason: string }> }) ?? { viewports: [] };
+  }
+
+  /** Computed styles with forced pseudo-class state (#34) */
+  async getComputedStylesWithState(
+    selector: string,
+    forcedStates: string[],
+    properties: string[],
+  ): Promise<CraterComputedStyleWithState> {
+    const resp = await this.sendBidi("browsingContext.getComputedStylesWithState", {
+      context: this.requireContextId(),
+      selector,
+      forcedStates,
+      properties,
+    }, 30_000);
+    if (resp.type === "error") throw new Error(resp.message || resp.error || "getComputedStylesWithState failed");
+    return (resp.result as CraterComputedStyleWithState) ?? { normal: {}, forced: {}, diff: [] };
+  }
+
+  /** Batch variant rendering (#28) */
+  async batchRender(
+    baseHtml: string,
+    viewport: { width: number; height: number },
+    variants: Array<{ id: string; cssRemove?: { selector: string; property?: string }; replaceCss?: { original: string; replacement: string } }>,
+  ): Promise<CraterBatchRenderResult> {
+    const resp = await this.sendBidi("browsingContext.batchRender", {
+      context: this.requireContextId(),
+      baseHtml,
+      viewport,
+      variants,
+    }, 120_000);
+    if (resp.type === "error") throw new Error(resp.message || resp.error || "batchRender failed");
+    return (resp.result as CraterBatchRenderResult) ?? { results: [] };
   }
 
   // ---- Private ----
