@@ -63,6 +63,27 @@ export interface CompareOptions {
   a11y?: boolean;
   /** heatmap 画像を生成 */
   generateHeatmap?: boolean;
+  /** VLM reasoning (画像認識で diff を分析) */
+  vlmReasoning?: VlmReasoningOptions;
+}
+
+export interface VlmReasoningOptions {
+  /** モデル tier: free, cheap, mid, premium */
+  tier?: "free" | "cheap" | "mid" | "premium";
+  /** 特定のモデル ID */
+  model?: string;
+  /** カスタムプロンプト */
+  prompt?: string;
+  /** max tokens */
+  maxTokens?: number;
+}
+
+export interface VlmReasoningResult {
+  model: string;
+  content: string;
+  costUsd: number;
+  latencyMs: number;
+  tokens: number;
 }
 
 export interface CompareResponse {
@@ -90,6 +111,8 @@ export interface ViewportResult {
   hoverDiff?: HoverDiffResult;
   /** approval で承認された差分 */
   approvedDiffs?: ApprovedDiff[];
+  /** VLM reasoning (画像認識による分析) */
+  vlmReasoning?: VlmReasoningResult;
   /** この viewport の判定 */
   status: "pass" | "fail" | "approved";
 }

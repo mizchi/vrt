@@ -81,6 +81,10 @@ migration-tailwind:
 migration-shadcn:
   node --experimental-strip-types src/migration-compare.ts --dir fixtures/migration/shadcn-to-luna --baseline before.html --variants after.html
 
+# VLM model benchmark (compare vision models on VRT diffs)
+vlm-bench *args:
+  node --experimental-strip-types src/vlm-bench.ts {{args}}
+
 # Performance benchmark (deterministic APIs only)
 bench:
   node --experimental-strip-types src/benchmark.ts
