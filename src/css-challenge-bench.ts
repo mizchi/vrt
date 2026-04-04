@@ -141,11 +141,14 @@ const SUGGEST_APPROVAL = CLI_OPTIONS.suggestApproval;
 const OUTPUT_ROOT = CLI_OPTIONS.outputRoot;
 const MODE = CLI_OPTIONS.mode;
 
-const VIEWPORTS = [
+const BASE_VIEWPORTS = [
   { width: 1440, height: 900, label: "wide" },
   { width: 1280, height: 900, label: "desktop" },
   { width: 375, height: 812, label: "mobile" },
 ];
+
+// Dynamically expanded with breakpoint discovery (populated per fixture)
+let VIEWPORTS = [...BASE_VIEWPORTS];
 
 // ---- Terminal helpers ----
 
@@ -310,6 +313,18 @@ async function runFixtureBenchmark(fixture: string) {
   const declarations = parseCssDeclarations(originalCss);
   const selectorBlocks = groupBySelector(declarations);
   const customPropertyUsage = buildCustomPropertyUsageIndex(declarations);
+
+  // Discover breakpoints and expand viewports
+  const { discoverViewports } = await import("./viewport-discovery.ts");
+  const discovery = discoverViewports(htmlRaw, { maxViewports: 10, randomSamples: 0, includeStandard: false });
+  const existingWidths = new Set(BASE_VIEWPORTS.map((v) => v.width));
+  const extraViewports = discovery.viewports
+    .filter((v) => !existingWidths.has(v.width))
+    .map((v) => ({ width: v.width, height: 900, label: v.label }));
+  VIEWPORTS = [...BASE_VIEWPORTS, ...extraViewports];
+  if (extraViewports.length > 0) {
+    console.log(`  ${DIM}Breakpoint discovery: +${extraViewports.length} viewport(s): ${extraViewports.map((v) => `${v.label}(${v.width})`).join(", ")}${RESET}`);
+  }
   const trackedProperties = mergeComputedStyleProperties(
     TRACKED_PROPERTIES,
     collectComputedStyleTrackingProperties(declarations),
