@@ -571,6 +571,7 @@ export async function analyzeVrtDiff(
   brokenState: CapturedState,
   outputDir: string,
   approvalOptions: AnalysisApprovalOptions = {},
+  options?: { skipHeatmap?: boolean },
 ): Promise<VrtAnalysis> {
   const vrtSnap: VrtSnapshot = {
     testId: "page", testTitle: "page", projectName: "css-challenge",
@@ -578,7 +579,7 @@ export async function analyzeVrtDiff(
     baselinePath: baselineState.screenshotPath,
     status: "changed",
   };
-  const rawVrtDiff = await compareScreenshots(vrtSnap, { outputDir });
+  const rawVrtDiff = await compareScreenshots(vrtSnap, { outputDir, skipHeatmap: options?.skipHeatmap });
 
   let visualSemantic: VisualSemanticDiff | null = null;
   let visualReport = "";

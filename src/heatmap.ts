@@ -58,6 +58,7 @@ export async function compareScreenshots(
   opts: {
     threshold?: number; // pixelmatch threshold (0-1), default 0.1
     outputDir?: string;
+    skipHeatmap?: boolean; // skip PNG heatmap generation for speed
   } = {}
 ): Promise<VrtDiff | null> {
   if (!snapshot.baselinePath) return null;
@@ -98,9 +99,9 @@ export async function compareScreenshots(
     { threshold }
   );
 
-  // ヒートマップ出力
+  // ヒートマップ出力 (skip PNG encode if skipHeatmap is set)
   let heatmapPath: string | undefined;
-  if (opts.outputDir && diffPixels > 0) {
+  if (opts.outputDir && diffPixels > 0 && !opts.skipHeatmap) {
     const safeName = snapshot.testId.replace(/[/\\:]/g, "_");
     heatmapPath = `${opts.outputDir}/${safeName}_heatmap.png`;
     await encodePng(heatmapPath, { width, height, data: diffOutput });

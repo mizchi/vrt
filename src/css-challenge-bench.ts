@@ -247,7 +247,7 @@ async function analyzeAcrossViewports(
       context: options.approvalContext,
       strict: options.strict,
       expectedComputedStyleTargets: options.expectedComputedStyleTargets,
-    });
+    }, { skipHeatmap: true });
 
     const visualDiffDetected = (analysis.vrtDiff?.diffPixels ?? 0) > 0;
     const paintTreeDiffCount = analysis.paintTreeChanges.length;

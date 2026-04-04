@@ -247,6 +247,124 @@ async function main() {
     results.push(r);
   }
 
+  // ---- groupBySelector + removeSelectorBlock ----
+  {
+    const { parseCssDeclarations, groupBySelector, removeSelectorBlock, extractCss } = await import("./css-challenge-core.ts");
+    const html = await readFile(join(import.meta.dirname!, "..", "fixtures", "css-challenge", "dashboard.html"), "utf-8");
+    const css = extractCss(html)!;
+    const decls = parseCssDeclarations(css);
+
+    const r1 = await bench("groupBySelector (276 decls → blocks)", () => {
+      groupBySelector(decls);
+    }, 500);
+    results.push(r1);
+
+    const blocks = groupBySelector(decls);
+    const r2 = await bench("removeSelectorBlock", () => {
+      removeSelectorBlock(css, blocks[0]);
+    }, 500);
+    results.push(r2);
+  }
+
+  // ---- Viewport discovery from real HTML ----
+  {
+    const { discoverViewports } = await import("./viewport-discovery.ts");
+    const html = await readFile(join(import.meta.dirname!, "..", "fixtures", "css-challenge", "grid-complex.html"), "utf-8");
+
+    const r = await bench("discoverViewports (grid-complex)", () => {
+      discoverViewports(html, { maxViewports: 10, randomSamples: 1 });
+    }, 200);
+    results.push(r);
+  }
+
+  // ---- JSONL read/write ----
+  {
+    const { appendRecords, readAllRecords } = await import("./detection-db.ts");
+    const { tmpdir } = await import("node:os");
+    const dbPath = join(tmpdir(), `bench-jsonl-${Date.now()}.jsonl`);
+
+    // Write 100 records
+    const records: DetectionRecord[] = [];
+    for (let i = 0; i < 100; i++) {
+      records.push({
+        runId: "bench", fixture: "test", backend: "chromium",
+        selector: `.el-${i}`, property: "color", value: "red",
+        category: "visual", selectorType: "class", isInteractive: false,
+        mediaCondition: null, viewports: [], detected: true, undetectedReason: null,
+      } as any);
+    }
+
+    const rw = await bench("JSONL write 100 records", async () => {
+      await appendRecords(records, dbPath);
+    }, 20);
+    results.push(rw);
+
+    // Append to get 2000 records
+    for (let i = 0; i < 19; i++) await appendRecords(records, dbPath);
+
+    const rr = await bench("JSONL read 2000 records", async () => {
+      await readAllRecords(dbPath);
+    }, 20);
+    results.push(rr);
+
+    const { rm } = await import("node:fs/promises");
+    await rm(dbPath, { force: true });
+  }
+
+  // ---- Image crop (heatmap size mismatch) ----
+  {
+    const { compareScreenshots } = await import("./heatmap.ts");
+    const img1 = createTestImage(1280, 900, 1);
+    const img2 = createTestImage(1280, 920, 2); // different height
+    const p1 = join(TMP, "crop-base.png");
+    const p2 = join(TMP, "crop-curr.png");
+    await savePng(p1, img1, 1280, 900);
+    await savePng(p2, img2, 1280, 920);
+
+    const r = await bench("compareScreenshots (mismatch+heatmap)", async () => {
+      await compareScreenshots({
+        testId: "crop", testTitle: "crop", projectName: "bench",
+        screenshotPath: p2, baselinePath: p1, status: "changed",
+      }, { outputDir: TMP });
+    }, 10);
+    results.push(r);
+
+    const r2 = await bench("compareScreenshots (mismatch, no heatmap)", async () => {
+      await compareScreenshots({
+        testId: "crop2", testTitle: "crop2", projectName: "bench",
+        screenshotPath: p2, baselinePath: p1, status: "changed",
+      }, { outputDir: TMP, skipHeatmap: true });
+    }, 10);
+    results.push(r2);
+  }
+
+  // ---- Full migration-compare pipeline (no browser) ----
+  {
+    const { extractBreakpoints } = await import("./viewport-discovery.ts");
+    const { parseCssDeclarations, extractCss, diffComputedStyles } = await import("./css-challenge-core.ts");
+    const html1 = await readFile(join(import.meta.dirname!, "..", "fixtures", "css-challenge", "page.html"), "utf-8");
+    const html2 = await readFile(join(import.meta.dirname!, "..", "fixtures", "css-challenge", "dashboard.html"), "utf-8");
+
+    const r = await bench("CSS analysis pipeline (parse+bp+diff)", () => {
+      const css1 = extractCss(html1)!;
+      const css2 = extractCss(html2)!;
+      parseCssDeclarations(css1);
+      parseCssDeclarations(css2);
+      extractBreakpoints(css1);
+      extractBreakpoints(css2);
+    }, 200);
+    results.push(r);
+  }
+
+  // ---- Module import time ----
+  {
+    // Cold import is already done, measure hot re-import cost
+    const r = await bench("import('./viewport-discovery.ts')", async () => {
+      await import("./viewport-discovery.ts");
+    }, 100);
+    results.push(r);
+  }
+
   // ---- Report ----
   console.log(`  ${"Name".padEnd(40)} ${"avg".padStart(10)} ${"ops/s".padStart(10)} ${"total".padStart(10)} ${DIM}n${RESET}`);
   console.log(`  ${"─".repeat(40)} ${"─".repeat(10)} ${"─".repeat(10)} ${"─".repeat(10)} ${DIM}─${RESET}`);
