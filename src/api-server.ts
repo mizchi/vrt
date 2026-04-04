@@ -28,7 +28,18 @@ const PORT = parseInt(args.find((a, i) => args[i - 1] === "--port") ?? "3456", 1
 
 // ---- App ----
 
+const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
+
 const app = new Hono();
+
+// Body size limit
+app.use("*", async (c, next) => {
+  const contentLength = parseInt(c.req.header("content-length") ?? "0", 10);
+  if (contentLength > MAX_BODY_SIZE) {
+    return c.json({ error: `Request body too large (max ${MAX_BODY_SIZE} bytes)` }, 413);
+  }
+  await next();
+});
 
 // ---- Routes ----
 
@@ -46,14 +57,29 @@ app.get("/api/status", async (c) => {
 });
 
 app.post("/api/compare", async (c) => {
-  const body = await c.req.json<CompareRequest>();
+  let body: CompareRequest;
+  try {
+    body = await c.req.json<CompareRequest>();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  if (!body.baseline || !body.current) {
+    return c.json({ error: "Missing baseline or current in request body" }, 400);
+  }
+  if (!body.baseline.html && !body.baseline.url) {
+    return c.json({ error: "baseline must have html or url" }, 400);
+  }
+  if (!body.current.html && !body.current.url) {
+    return c.json({ error: "current must have html or url" }, 400);
+  }
 
   // Resolve HTML sources
   const baselineHtml = await resolveHtmlSource(body.baseline);
   const currentHtml = await resolveHtmlSource(body.current);
 
   if (!baselineHtml || !currentHtml) {
-    return c.json({ error: "Missing baseline or current HTML" }, 400);
+    return c.json({ error: "Failed to resolve baseline or current HTML" }, 400);
   }
 
   // Lazy import heavy modules
@@ -269,11 +295,21 @@ app.post("/api/compare-renderers", async (c) => {
 });
 
 app.post("/api/smoke-test", async (c) => {
-  const body = await c.req.json<SmokeTestRequest>();
+  let body: SmokeTestRequest;
+  try {
+    body = await c.req.json<SmokeTestRequest>();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
 
-  // Resolve HTML if file path
-  if (!body.target.html && !body.target.url) {
+  if (!body.target?.html && !body.target?.url) {
     return c.json({ error: "Missing target.html or target.url" }, 400);
+  }
+  if (body.target.url && !body.target.url.startsWith("http://") && !body.target.url.startsWith("https://")) {
+    return c.json({ error: "target.url must use http:// or https://" }, 400);
+  }
+  if (typeof body.maxActions === "number" && (body.maxActions < 1 || body.maxActions > 1000)) {
+    return c.json({ error: "maxActions must be 1-1000" }, 400);
   }
 
   const result = await runSmokeTest(body);

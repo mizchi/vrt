@@ -56,7 +56,10 @@ export async function readAllRecords(dbPath?: string): Promise<DetectionRecord[]
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      records.push(JSON.parse(trimmed));
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && typeof parsed.selector === "string" && typeof parsed.detected === "boolean") {
+        records.push(parsed);
+      }
     } catch {
       // skip malformed lines
     }
