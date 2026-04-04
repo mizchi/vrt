@@ -80,11 +80,13 @@ export interface ReasoningPipeline {
   analyze(options: AnalyzeOptions): Promise<StructuredDiffReport>;
 
   /** Stage 2: 構造化 diff + CSS → 修正提案 */
-  suggestFix(report: StructuredDiffReport, cssSource: string): Promise<FixSuggestion>;
+  suggestFix(report: StructuredDiffReport, cssSource: string, cssDiff?: string): Promise<FixSuggestion>;
 
   /** Stage 1 + 2 を連続実行。解像度不足なら自動エスカレーション */
   analyzeAndFix(options: AnalyzeOptions & {
     cssSource: string;
+    /** CSS テキスト diff (MISSING/CHANGED 行。Stage 2 に直接渡される) */
+    cssDiff?: string;
     /** エスカレーション用の高解像度画像 (adaptive resolution で使用) */
     highResHeatmapBase64?: string;
   }): Promise<{ analysis: StructuredDiffReport; fix: FixSuggestion; escalated: boolean }>;
@@ -119,17 +121,22 @@ REGRESSION: <yes/no>`;
 
 // ---- Stage 2 prompt ----
 
-function buildStage2Prompt(report: StructuredDiffReport, cssSource: string): string {
+function buildStage2Prompt(report: StructuredDiffReport, cssSource: string, cssDiff?: string): string {
   const changeList = report.changes
     .map((c) => `- ${c.element}: ${c.property} changed from "${c.before}" to "${c.after}" (${c.severity})`)
     .join("\n");
 
-  return `You are fixing CSS to match a target visual appearance. A VRT analysis found these differences:
+  const cssDiffSection = cssDiff
+    ? `\n## CSS Diff from Baseline (authoritative — use these exact values)\n${cssDiff}`
+    : "";
 
-## Visual Changes Detected
+  return `You are fixing CSS to match a target visual appearance.
+
+## Visual Changes Detected (from image analysis)
 ${changeList}
 
 Summary: ${report.summary}
+${cssDiffSection}
 
 ## Current CSS
 \`\`\`css
@@ -137,18 +144,18 @@ ${cssSource}
 \`\`\`
 
 ## Task
-Provide CSS fixes to make the current page match the baseline. For each fix, output ONE line in this format:
+Provide CSS fixes to restore the baseline appearance. For each fix, output ONE line in this format:
 FIX: [selector] | [property] | [value] | [reason]
 
-Example:
-FIX: h1 | color | #333333 | Restore original heading color
-FIX: .card | padding | 16px | Restore card padding from 12px to 16px
+IMPORTANT RULES:
+- If "CSS Diff from Baseline" is provided above, use those EXACT selectors and values. They are authoritative.
+- Do NOT modify selectors that are not mentioned in the diff.
+- Do NOT guess CSS values — only use values from the diff or the visual analysis.
+- For MISSING rules, add them back exactly as shown.
 
 After all fixes, add:
 EXPLANATION: <brief explanation of the root cause>
-CONFIDENCE: <high/medium/low>
-
-Only suggest fixes for actual differences. Be precise with CSS values.`;
+CONFIDENCE: <high/medium/low>`;
 }
 
 // ---- Parser ----
@@ -300,10 +307,10 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
       };
     },
 
-    async suggestFix(report, cssSource) {
+    async suggestFix(report, cssSource, cssDiff?) {
       if (!llmClient) throw new Error("No LLM available for Stage 2");
 
-      const prompt = buildStage2Prompt(report, cssSource);
+      const prompt = buildStage2Prompt(report, cssSource, cssDiff);
       const resp = await llmClient.completeWithImages(prompt, { maxTokens: 2048 });
       const parsed = parseStage2Response(resp.content);
 
@@ -323,7 +330,7 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
 
       // Step 1: analyze at initial resolution
       let analysis = await this.analyze(options);
-      let fix = await this.suggestFix(analysis, options.cssSource);
+      let fix = await this.suggestFix(analysis, options.cssSource, options.cssDiff);
       let escalated = false;
 
       // Step 2: if fix confidence is low and we can escalate, try higher resolution
@@ -343,7 +350,7 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
               heatmapBase64: escalationImage,
               resolution: nextRes,
             });
-            fix = await this.suggestFix(analysis, options.cssSource);
+            fix = await this.suggestFix(analysis, options.cssSource, options.cssDiff);
             escalated = true;
           }
         }

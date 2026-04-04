@@ -22,6 +22,10 @@ import { createReasoningPipeline, type StructuredDiffReport, type FixSuggestion 
 import { resolveResolutionForViewport } from "./image-resize.ts";
 import { getCssChallengeFixturePath } from "./css-challenge-fixtures.ts";
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // ---- Config ----
 
 const args = process.argv.slice(2);
@@ -159,15 +163,28 @@ async function main() {
       ? (await readFile(diff.heatmapPath)).toString("base64")
       : (await readFile(brokenPath)).toString("base64");
 
-    // Enrich text report with actual CSS selectors so VLM doesn't guess
+    // Build rich text report: CSS text diff + selector list
     const currentDecls = parseCssDeclarations(currentCss);
-    const selectorList = [...new Set(currentDecls.map((d) => d.selector))].slice(0, 30).join(", ");
-    const textReport = `Pixel diff: ${(diffRatio * 100).toFixed(1)}%. ${diff?.regions.length ?? 0} diff regions.\nAvailable CSS selectors: ${selectorList}`;
+    const originalDecls = parseCssDeclarations(originalCss);
+    const missingSelectors = [...new Set(originalDecls.map((d) => d.selector))]
+      .filter((s) => !currentDecls.some((d) => d.selector === s));
+    const cssDiffLines: string[] = [];
+    for (const od of originalDecls) {
+      const cd = currentDecls.find((d) => d.selector === od.selector && d.property === od.property);
+      if (!cd) cssDiffLines.push(`MISSING: ${od.selector} { ${od.property}: ${od.value} }`);
+      else if (cd.value !== od.value) cssDiffLines.push(`CHANGED: ${od.selector} { ${od.property}: ${od.value} → ${cd.value} }`);
+    }
+    const textReport = [
+      `Pixel diff: ${(diffRatio * 100).toFixed(1)}%. ${diff?.regions.length ?? 0} diff regions.`,
+      missingSelectors.length > 0 ? `Missing CSS selectors: ${missingSelectors.join(", ")}` : "",
+      cssDiffLines.length > 0 ? `CSS diff from baseline:\n${cssDiffLines.slice(0, 20).join("\n")}` : "",
+    ].filter(Boolean).join("\n");
 
     const { analysis, fix, escalated } = await pipeline.analyzeAndFix({
       heatmapBase64,
       textReport,
       cssSource: currentCss,
+      cssDiff: cssDiffLines.join("\n"),
       highResHeatmapBase64: (await readFile(brokenPath)).toString("base64"),
     });
 
@@ -179,26 +196,37 @@ async function main() {
 
     console.log(`    LLM: ${fix.fixes.length} fixes proposed (${fix.llmLatencyMs}ms, confidence: ${fix.confidence})`);
 
-    // Apply fixes
-    let patchedCss = currentCss;
+    // Filter fixes: prioritize MISSING selectors, only touch existing selectors if property was in original
+    const missingProps = new Set(cssDiffLines.filter((l) => l.startsWith("MISSING:")).map((l) => {
+      const m = l.match(/MISSING:\s*(.+?)\s*\{/);
+      return m ? m[1].trim() : "";
+    }));
+    const validFixes = fix.fixes.filter((f) => {
+      // Always allow fixes for missing selectors
+      if (missingProps.has(f.selector)) return true;
+      // For existing selectors, only if the property was in the diff
+      return cssDiffLines.some((l) => l.includes(f.selector) && l.includes(f.property));
+    });
+    if (validFixes.length < fix.fixes.length) {
+      console.log(`    ${YELLOW}Filtered: ${fix.fixes.length - validFixes.length} fixes for unknown selectors${RESET}`);
+    }
+
+    // Apply fixes to a candidate CSS
+    let candidateCss = currentCss;
     let applied = 0;
-    for (const f of fix.fixes) {
-      // Find the rule and add/replace property
-      const lines = patchedCss.split("\n");
+    for (const f of validFixes) {
+      const lines = candidateCss.split("\n");
       let patched = false;
       for (let i = 0; i < lines.length; i++) {
         const trimmed = lines[i].trim();
         const match = trimmed.match(/^([^{]+)\{([^}]+)\}\s*$/);
         if (match && match[1].trim() === f.selector) {
-          // Check if property exists
           const body = match[2];
-          const propRegex = new RegExp(`${f.property}\\s*:[^;]+;?`);
+          const propRegex = new RegExp(`${escapeRegex(f.property)}\\s*:[^;]+;?`);
           if (propRegex.test(body)) {
-            // Replace existing
             const newBody = body.replace(propRegex, `${f.property}: ${f.value};`);
             lines[i] = `${f.selector} { ${newBody.trim()} }`;
           } else {
-            // Add property
             const newBody = `${body.trim()} ${f.property}: ${f.value};`;
             lines[i] = `${f.selector} { ${newBody} }`;
           }
@@ -208,17 +236,50 @@ async function main() {
         }
       }
       if (!patched) {
-        // Selector not found — append new rule
-        patchedCss += `\n${f.selector} { ${f.property}: ${f.value}; }`;
+        candidateCss += `\n${f.selector} { ${f.property}: ${f.value}; }`;
         applied++;
       } else {
-        patchedCss = lines.join("\n");
+        candidateCss = lines.join("\n");
       }
     }
 
-    console.log(`    Applied: ${applied}/${fix.fixes.length} fixes`);
-    currentCss = patchedCss;
-    history.push({ round, diffRatio, changes: analysis.changes.length, fixes: applied, escalated });
+    // Dry run: verify fix doesn't make things worse
+    const candidateHtml = replaceCss(htmlRaw, originalCss, candidateCss);
+    const candidatePath = join(TMP, `candidate-r${round}.png`);
+    {
+      const page = await browser.newPage({ viewport: VIEWPORT });
+      await page.setContent(candidateHtml, { waitUntil: "networkidle" });
+      await page.screenshot({ path: candidatePath, fullPage: true });
+      await page.close();
+    }
+    const candidateDiff = await compareScreenshots({
+      testId: `candidate-r${round}`, testTitle: `candidate-r${round}`, projectName: "fix-loop",
+      screenshotPath: candidatePath, baselinePath, status: "changed",
+    }, { outputDir: TMP, skipHeatmap: true });
+    const candidateDiffRatio = candidateDiff?.diffRatio ?? 1;
+
+    if (candidateDiffRatio < diffRatio) {
+      // Fix improved things — accept
+      console.log(`    Applied: ${applied}/${validFixes.length} fixes → diff ${(diffRatio * 100).toFixed(1)}% → ${(candidateDiffRatio * 100).toFixed(1)}% ${GREEN}✓${RESET}`);
+      currentCss = candidateCss;
+      if (candidateDiffRatio === 0) {
+        console.log(`    ${GREEN}${BOLD}✓ PIXEL-PERFECT — Fix succeeded!${RESET}`);
+        fixed = true;
+        history.push({ round, diffRatio: 0, changes: analysis.changes.length, fixes: applied, escalated });
+        break;
+      }
+      if (candidateDiffRatio < 0.005) {
+        console.log(`    ${GREEN}✓ Near-perfect (< 0.5%)${RESET}`);
+        fixed = true;
+        history.push({ round, diffRatio: candidateDiffRatio, changes: analysis.changes.length, fixes: applied, escalated });
+        break;
+      }
+    } else {
+      // Fix made things worse or no change — rollback
+      console.log(`    Applied: ${applied}/${validFixes.length} fixes → diff ${(diffRatio * 100).toFixed(1)}% → ${(candidateDiffRatio * 100).toFixed(1)}% ${RED}✗ rollback${RESET}`);
+    }
+
+    history.push({ round, diffRatio: Math.min(diffRatio, candidateDiffRatio), changes: analysis.changes.length, fixes: applied, escalated });
   }
 
   await browser.close();
