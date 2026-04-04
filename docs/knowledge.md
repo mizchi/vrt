@@ -631,3 +631,55 @@ Fixture 別:
 
 - `width` 50% — natural size と CSS width が同値の dead-code
 - `background` 82% — 親と同系色、`pre code` 上書き等
+
+## VLM モデル比較 (2026-04-04)
+
+### Fix Loop 結果 (hard case: .readme-body pre 6 props, 4.1% diff)
+
+| Model | Fix | 速度 | コスト/call | 月額 (21K/日) | CHANGE 数 |
+|-------|-----|------|-----------|-------------|----------|
+| **meta-llama/llama-4-scout** | ✅ 1r | **1.0s** | $0.14e-7 | **$0.09** | 11 |
+| **amazon/nova-lite-v1** | ✅ 1r | 2.3s | $0.14e-7 | $0.09 | 7 |
+| qwen/qwen3-vl-235b-a22b (MoE) | ✅ 1r | 3.2s | $0.25e-7 | $0.16 | 8 |
+| amazon/nova-2-lite-v1 | ✅ 1r | 3.5s | $1.38e-7 | $0.87 | 27 |
+| google/gemini-3-flash-preview | ✅ 1r | 5.1s | $1.20e-7 | $0.76 | 10 |
+| qwen/qwen3-vl-8b-instruct | ✅ 1r | 7.0s | $0.30e-7 | $0.19 | 28 |
+| bytedance-seed/seed-1.6-flash | ✅ 1r | 8.6s | $0.49e-7 | $0.31 | 10 |
+| openai/gpt-5-nano | ✅ 1r | 10.1s | $0.24e-7 | $0.15 | 0 |
+| google/gemma-4-31b-it | ✅ 1r | 40.5s | $0.10e-7 | $0.06 | — |
+| openai/gpt-4.1-nano | ❌ | 1.2s | — | — | — |
+
+### 画像解像度とトークンコスト
+
+| 解像度 | トークン | コスト倍率 |
+|--------|---------|----------|
+| 800x600 (full) | 499 | 1x |
+| 400x300 (medium) | 132 | 0.26x |
+| 200x150 (low) | 94 | 0.19x |
+
+色 (カラー/グレースケール/2値) はトークン数に影響しない。
+
+### Viewport 別解像度プリセット
+
+| Preset | サイズ | 対応 viewport |
+|--------|--------|-------------|
+| low | 375x320 | mobile (375-640px) |
+| medium | 640x480 | tablet/desktop (768-1280px) |
+| high | 1280x900 | wide (1440px+) |
+
+### 2段階パイプライン
+
+```
+Stage 1 (VLM, 安い): heatmap → 構造化 diff (CHANGE: element | property | before | after)
+Stage 2 (LLM, 高精度): 構造化 diff + CSS source + CSS text diff → FIX: selector | property | value
+```
+
+**CSS text diff を Stage 2 に直接渡すと VLM の品質差が無関係になる。** 全モデルが同じ fix 結果に到達。
+
+### コスト試算 (10,000 ページ/日)
+
+| 構成 | AI/月 | レンダリング/月 | 合計 |
+|------|-------|-------------|------|
+| Crater + llama-4-scout | $0.09 | $0 | **$0.09** |
+| Crater + free モデル | $0 | $0 | **$0** |
+| Chromium + llama-4-scout | $0.09 | $168 | $168 |
