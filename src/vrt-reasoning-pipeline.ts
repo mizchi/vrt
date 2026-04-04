@@ -11,6 +11,7 @@
  */
 import { createUnifiedLLMClient, type UnifiedLLMClient, type LLMResponse } from "./llm-client.ts";
 import { createVlmClient, resolveModel, type VlmClient, type VlmResponse } from "./vlm-client.ts";
+import { resizeBase64Png, type ResolutionPreset, RESOLUTION_PRESETS } from "./image-resize.ts";
 
 // ---- Types ----
 
@@ -55,28 +56,38 @@ export interface PipelineConfig {
   /** Stage 2: LLM for code generation (default: from VRT_LLM_PROVIDER) */
   llmProvider?: "gemini" | "anthropic" | "openrouter";
   llmModel?: string;
+  /** 画像解像度 (default: medium = 400x300) */
+  resolution?: ResolutionPreset;
+  /** 解像度が足りない場合に自動エスカレーション (default: true) */
+  adaptiveResolution?: boolean;
+  /** エスカレーション上限 (default: high) */
+  maxResolution?: ResolutionPreset;
+}
+
+export interface AnalyzeOptions {
+  heatmapBase64?: string;
+  baselineBase64?: string;
+  currentBase64?: string;
+  textReport?: string;
+  /** 解像度 override (pipeline config より優先) */
+  resolution?: ResolutionPreset;
+  /** 対象セレクタの領域だけ切り出して分析 (base64 PNG) */
+  selectorCropBase64?: string;
 }
 
 export interface ReasoningPipeline {
   /** Stage 1: 画像 → 構造化 diff */
-  analyze(options: {
-    heatmapBase64?: string;
-    baselineBase64?: string;
-    currentBase64?: string;
-    textReport?: string;
-  }): Promise<StructuredDiffReport>;
+  analyze(options: AnalyzeOptions): Promise<StructuredDiffReport>;
 
   /** Stage 2: 構造化 diff + CSS → 修正提案 */
   suggestFix(report: StructuredDiffReport, cssSource: string): Promise<FixSuggestion>;
 
-  /** Stage 1 + 2 を連続実行 */
-  analyzeAndFix(options: {
-    heatmapBase64?: string;
-    baselineBase64?: string;
-    currentBase64?: string;
-    textReport?: string;
+  /** Stage 1 + 2 を連続実行。解像度不足なら自動エスカレーション */
+  analyzeAndFix(options: AnalyzeOptions & {
     cssSource: string;
-  }): Promise<{ analysis: StructuredDiffReport; fix: FixSuggestion }>;
+    /** エスカレーション用の高解像度画像 (adaptive resolution で使用) */
+    highResHeatmapBase64?: string;
+  }): Promise<{ analysis: StructuredDiffReport; fix: FixSuggestion; escalated: boolean }>;
 
   vlmModel: string;
   llmModel: string;
@@ -260,23 +271,24 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
         };
       }
 
-      // Build image prompt
+      // Select image: selectorCrop > heatmap > current
       let imageBase64: string | null = null;
-      if (options.heatmapBase64) imageBase64 = options.heatmapBase64;
+      if (options.selectorCropBase64) imageBase64 = options.selectorCropBase64;
+      else if (options.heatmapBase64) imageBase64 = options.heatmapBase64;
       else if (options.currentBase64) imageBase64 = options.currentBase64;
+
+      if (!imageBase64) throw new Error("No image data provided for VLM analysis");
+
+      // Resize image to configured resolution
+      const resolution = options.resolution ?? config?.resolution ?? "medium";
+      imageBase64 = resizeBase64Png(imageBase64, { resolution });
 
       let prompt = STAGE1_PROMPT;
       if (options.textReport) {
         prompt += `\n\nAdditional context from VRT pipeline:\n${options.textReport}`;
       }
 
-      let resp: VlmResponse;
-      if (imageBase64) {
-        resp = await vlmClient.analyzeImage(imageBase64, prompt, { maxTokens: 1024 });
-      } else {
-        // Text-only fallback for VLM
-        throw new Error("No image data provided for VLM analysis");
-      }
+      const resp = await vlmClient.analyzeImage(imageBase64, prompt, { maxTokens: 1024 });
 
       const parsed = parseStage1Response(resp.content);
       return {
@@ -305,9 +317,39 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
     },
 
     async analyzeAndFix(options) {
-      const analysis = await this.analyze(options);
-      const fix = await this.suggestFix(analysis, options.cssSource);
-      return { analysis, fix };
+      const adaptive = config?.adaptiveResolution !== false;
+      const maxRes = config?.maxResolution ?? "high";
+      const resolutionLadder: ResolutionPreset[] = ["low", "medium", "high", "full"];
+
+      // Step 1: analyze at initial resolution
+      let analysis = await this.analyze(options);
+      let fix = await this.suggestFix(analysis, options.cssSource);
+      let escalated = false;
+
+      // Step 2: if fix confidence is low and we can escalate, try higher resolution
+      if (adaptive && fix.confidence === "low" && analysis.changes.length <= 1) {
+        const currentRes = options.resolution ?? config?.resolution ?? "medium";
+        const currentIdx = resolutionLadder.indexOf(currentRes);
+        const maxIdx = resolutionLadder.indexOf(maxRes);
+
+        if (currentIdx < maxIdx) {
+          const nextRes = resolutionLadder[currentIdx + 1];
+          const escalationImage = options.highResHeatmapBase64 ?? options.heatmapBase64;
+
+          if (escalationImage) {
+            // Re-analyze at higher resolution
+            analysis = await this.analyze({
+              ...options,
+              heatmapBase64: escalationImage,
+              resolution: nextRes,
+            });
+            fix = await this.suggestFix(analysis, options.cssSource);
+            escalated = true;
+          }
+        }
+      }
+
+      return { analysis, fix, escalated };
     },
   };
 }
