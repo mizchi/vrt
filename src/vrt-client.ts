@@ -100,6 +100,24 @@ export class VrtClient {
     });
   }
 
+  // ---- Reasoning Pipeline ----
+
+  async reason(request: import("./api-types.ts").ReasoningPipelineRequest): Promise<import("./api-types.ts").ReasoningPipelineResponse> {
+    return this.post("/api/reason", request);
+  }
+
+  async analyzeImage(heatmapBase64: string, textReport?: string): Promise<import("./api-types.ts").ReasoningPipelineResponse> {
+    return this.reason({ heatmapBase64, textReport, stages: "analyze" });
+  }
+
+  async analyzeAndFix(options: {
+    heatmapBase64?: string;
+    textReport?: string;
+    cssSource: string;
+  }): Promise<import("./api-types.ts").ReasoningPipelineResponse> {
+    return this.reason({ ...options, stages: "both" });
+  }
+
   // ---- Helpers ----
 
   async isAvailable(): Promise<boolean> {

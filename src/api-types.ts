@@ -86,6 +86,59 @@ export interface VlmReasoningResult {
   tokens: number;
 }
 
+// ---- Reasoning Pipeline API ----
+
+export interface ReasoningPipelineRequest {
+  /** heatmap PNG (base64) */
+  heatmapBase64?: string;
+  /** baseline screenshot (base64) */
+  baselineBase64?: string;
+  /** current screenshot (base64) */
+  currentBase64?: string;
+  /** VRT text report (computed style diff, pixel diff %, etc.) */
+  textReport?: string;
+  /** CSS source to fix (required for Stage 2) */
+  cssSource?: string;
+  /** Run both stages (default: stage1 only if cssSource is absent) */
+  stages?: "analyze" | "fix" | "both";
+  /** Stage 1 VLM model override */
+  vlmModel?: string;
+  /** Stage 2 LLM provider override */
+  llmProvider?: "gemini" | "anthropic" | "openrouter";
+}
+
+export interface ReasoningPipelineResponse {
+  analysis?: {
+    changes: Array<{
+      element: string;
+      property: string;
+      before: string;
+      after: string;
+      severity: "low" | "medium" | "high";
+    }>;
+    summary: string;
+    regression: boolean;
+    model: string;
+    latencyMs: number;
+    costUsd: number;
+  };
+  fix?: {
+    fixes: Array<{
+      selector: string;
+      property: string;
+      value: string;
+      reason: string;
+    }>;
+    explanation: string;
+    confidence: "high" | "medium" | "low";
+    model: string;
+    latencyMs: number;
+    costUsd: number;
+  };
+  totalCostUsd: number;
+  totalLatencyMs: number;
+}
+
 export interface CompareResponse {
   /** 全体の判定 */
   status: "pass" | "fail" | "approved";
