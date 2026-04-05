@@ -2,7 +2,7 @@
 /**
  * Detection Pattern Report
  *
- * 蓄積された JSONL データから検出パターンの集計レポートを出力する。
+ * Generate aggregated detection pattern reports from accumulated JSONL data.
  *
  * Usage: npx tsx src/detection-report.ts
  */

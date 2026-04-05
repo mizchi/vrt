@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * vrt — 統一 CLI エントリポイント
+ * vrt -- unified CLI entry point
  *
  * Usage:
  *   vrt compare <before> <after> [options]

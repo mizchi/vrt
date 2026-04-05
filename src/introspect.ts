@@ -11,7 +11,7 @@ import type {
 import { LANDMARK_ROLES, INTERACTIVE_ROLES } from "./a11y-semantic.ts";
 
 /**
- * a11y スナップショットから UI の仕様を自動生成する
+ * Auto-generate UI specifications from a11y snapshots.
  */
 export async function introspect(snapshotDir: string): Promise<IntrospectResult> {
   const files = (await readdir(snapshotDir)).filter((f) => f.endsWith(".a11y.json"));
@@ -62,10 +62,10 @@ function introspectPage(testId: string, tree: A11yNode): PageIntrospection {
 
   const unlabeledCount = interactiveElements.filter((e) => !e.hasLabel).length;
 
-  // 自動推測された不変条件
+  // Auto-inferred invariants
   const suggestedInvariants = generateInvariants(testId, landmarks, interactiveElements, headingLevels, unlabeledCount);
 
-  // 画面の説明を自動生成
+  // Auto-generate page description
   const description = generateDescription(testId, landmarks, interactiveElements);
 
   return {
@@ -111,7 +111,7 @@ function generateInvariants(
 ): SpecInvariant[] {
   const invariants: SpecInvariant[] = [];
 
-  // ランドマーク存在 (全ランドマークを invariant に含める)
+  // Landmark existence (include all landmarks as invariants)
   for (const lm of landmarks) {
     invariants.push({
       description: `${lm.role} landmark "${lm.name || "(unnamed)"}" is present`,
@@ -120,7 +120,7 @@ function generateInvariants(
     });
   }
 
-  // インタラクティブ要素の role スナップショット (role-changed 検出用)
+  // Interactive element role snapshot (for role-changed detection)
   const roleCounts = new Map<string, number>();
   for (const el of interactive) {
     roleCounts.set(el.role, (roleCounts.get(el.role) ?? 0) + 1);
@@ -133,7 +133,7 @@ function generateInvariants(
     });
   }
 
-  // ラベルなし要素の警告
+  // Unlabeled element warning
   if (unlabeledCount > 0) {
     invariants.push({
       description: `${unlabeledCount} interactive element(s) without labels — should be fixed`,
@@ -148,7 +148,7 @@ function generateInvariants(
     });
   }
 
-  // 白飛び/エラー (常に)
+  // Whiteout/error checks (always)
   invariants.push({ description: "Page is not blank/whiteout", check: "no-whiteout", cost: "low" });
   invariants.push({ description: "No error state indicators", check: "no-error-state", cost: "low" });
 
@@ -156,7 +156,7 @@ function generateInvariants(
 }
 
 /**
- * introspect 結果から UiSpec (long-cycle spec) を生成する
+ * Generate UiSpec (long-cycle spec) from introspect results.
  */
 export function introspectToSpec(result: IntrospectResult): UiSpec {
   return {
@@ -174,7 +174,7 @@ export function introspectToSpec(result: IntrospectResult): UiSpec {
 }
 
 /**
- * UiSpec の不変条件を検証する
+ * Verify UiSpec invariants.
  */
 export function verifySpec(
   spec: UiSpec,
@@ -202,7 +202,7 @@ export function verifySpec(
     const skipped: SkippedInvariant[] = [];
 
     for (const inv of pageSpec.invariants) {
-      // dep graph でスキップ判定
+      // Skip via dep graph
       if (inv.dependsOn && changedFiles && depEdges) {
         const affected = isAffectedByChanges(inv.dependsOn, changedFiles, depEdges);
         if (!affected) {
@@ -211,18 +211,18 @@ export function verifySpec(
         }
       }
 
-      // NL assertion は高コストなのでスキップ可能にマーク
+      // NL assertion is high-cost, mark as skippable
       if (inv.check === "nl-assertion" || inv.cost === "high") {
         skipped.push({ invariant: inv, reason: "High-cost assertion — skipped (use --full to run)" });
         continue;
       }
 
-      // ヒューリスティクス検証
+      // Heuristic verification
       const result = checkInvariant(inv, data);
       checked.push(result);
     }
 
-    // グローバル不変条件も追加
+    // Also check global invariants
     for (const inv of spec.global ?? []) {
       const result = checkInvariant(inv, data);
       checked.push(result);
@@ -307,11 +307,11 @@ function isAffectedByChanges(
   changedFiles: string[],
   depEdges: Map<string, string[]>
 ): boolean {
-  // 直接一致
+  // Direct match
   for (const dep of dependsOn) {
     if (changedFiles.some((f) => f.includes(dep))) return true;
   }
-  // 1-hop 依存
+  // 1-hop dependency
   for (const dep of dependsOn) {
     const edges = depEdges.get(dep) ?? [];
     for (const edge of edges) {

@@ -1,37 +1,37 @@
-# pixelmatch 実装比較ベンチマーク (native 追加)
+# pixelmatch Implementation Comparison Benchmark (native added)
 
-**日付**: 2026-04-03
+**Date**: 2026-04-03
 
-## 結果
+## Results
 
-500x500 identical images での比較:
+Comparison with 500x500 identical images:
 
-| 実装 | 時間 | 倍率 (vs npm v7) |
-|------|------|:----------------:|
+| Implementation | Time | Multiplier (vs npm v7) |
+|----------------|------|:----------------------:|
 | **MoonBit native** | **85µs** | **6.6x faster** |
 | npm pixelmatch v7 (JS) | 560µs | 1x |
 | MoonBit WASM-GC | 1,110µs | 0.5x |
 | MoonBit JS | 1,940µs | 0.3x |
 
-## Native ビルドの修正
+## Native Build Fix
 
-MoonBit native ビルドは `mizchi/zlib` の FFI stub (`zlib_impl_native.c`) がシステムの zlib にリンクする必要がある。
+MoonBit native build requires `mizchi/zlib`'s FFI stub (`zlib_impl_native.c`) to link against the system's zlib.
 
-**問題**: `cc-link-flags: "-lz"` が `mizchi/zlib` の `moon.pkg` に設定されているが、依存先のテスト/ベンチバイナリのリンクには自動伝播しない。
+**Problem**: `cc-link-flags: "-lz"` is set in `mizchi/zlib`'s `moon.pkg`, but it doesn't auto-propagate to the link stage of dependent test/bench binaries.
 
-**修正** (mizchi/pixelmatch):
+**Fix** (mizchi/pixelmatch):
 ```
-# src/moon.pkg に追加
+# Add to src/moon.pkg
 options(
   link: { "native": { "cc-link-flags": "-lz" } },
 )
 ```
 
-`src/moon.pkg` と `src/e2e/moon.pkg` の両方に追加が必要。
+Must be added to both `src/moon.pkg` and `src/e2e/moon.pkg`.
 
-## VRT harness への含意
+## Implications for VRT harness
 
-- **PNG encode (153ms) が最大のボトルネック** — pixelmatch 自体は高速
-- Native pixelmatch は 85µs (6.6x) だが、Node.js から呼ぶには WASM component 経由が必要
-- **最適化の方向**: crater の `capturePaintData` (生 RGBA) → pixelmatch 直接比較で PNG encode/decode スキップ
-- Paint tree diff (0.07ms) は pixelmatch native (0.085ms) と同等速度
+- **PNG encode (153ms) is the biggest bottleneck** — pixelmatch itself is fast
+- Native pixelmatch is 85µs (6.6x) but calling from Node.js requires WASM component bridge
+- **Optimization direction**: crater's `capturePaintData` (raw RGBA) → direct pixelmatch comparison, skipping PNG encode/decode
+- Paint tree diff (0.07ms) is comparable speed to pixelmatch native (0.085ms)

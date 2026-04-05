@@ -1,8 +1,8 @@
 /**
- * Viewport Discovery — CSS から breakpoint を発見し、境界チェック用 viewport を生成
+ * Viewport Discovery -- discover breakpoints from CSS and generate boundary-check viewports
  *
- * @media クエリから breakpoint を抽出し、quickcheck 的に
- * 境界 ±1px + 範囲内ランダムサンプルの viewport リストを生成する。
+ * Extracts breakpoints from @media queries and generates viewport lists
+ * at boundary +/-1px + random samples within ranges (quickcheck-style).
  */
 
 // ---- Types ----
@@ -43,7 +43,7 @@ type ViewportBreakpoint = Breakpoint | ResponsiveBreakpoint;
 const MEDIA_PATTERN = /@media\s+([^{]+)\{/g;
 const WIDTH_PATTERN = /\(\s*(min|max)-width\s*:\s*([\d.]+)(px|rem|em)\s*\)/g;
 
-/** CSS テキストから全 breakpoint を抽出 */
+/** Extract all breakpoints from CSS text */
 export function extractBreakpoints(css: string): Breakpoint[] {
   const breakpoints = new Map<string, Breakpoint>(); // dedupe by key
 
@@ -67,7 +67,7 @@ export function extractBreakpoints(css: string): Breakpoint[] {
   return [...breakpoints.values()].sort((a, b) => a.value - b.value);
 }
 
-/** HTML の <style> から breakpoint を抽出 */
+/** Extract breakpoints from HTML <style> */
 export function extractBreakpointsFromHtml(html: string): Breakpoint[] {
   const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/g);
   if (!styleMatch) return [];
@@ -160,10 +160,10 @@ export function extractResponsiveBreakpointsFromHtml(
 
 export interface ViewportOptions {
   height?: number;              // default: 900
-  maxViewports?: number;        // 上限 (コスト制御)
-  randomSamples?: number;       // 範囲内ランダムサンプル数 (default: 0)
-  seed?: number;                // ランダム seed
-  includeStandard?: boolean;    // 標準 viewport (375, 1280, 1440) を含める (default: true)
+  maxViewports?: number;        // upper limit (cost control)
+  randomSamples?: number;       // random samples within range (default: 0)
+  seed?: number;                // random seed
+  includeStandard?: boolean;    // include standard viewports (375, 1280, 1440) (default: true)
 }
 
 const STANDARD_VIEWPORTS: Array<{ width: number; label: string }> = [
@@ -173,12 +173,12 @@ const STANDARD_VIEWPORTS: Array<{ width: number; label: string }> = [
 ];
 
 /**
- * Breakpoint から quickcheck 的に viewport リストを生成
+ * Generate viewport list from breakpoints (quickcheck-style).
  *
- * 各 breakpoint に対して:
- * - 境界直上 (+1px): breakpoint が有効になった直後
- * - 境界直下 (-1px): breakpoint が有効になる直前
- * - (オプション) 範囲内のランダムサンプル
+ * For each breakpoint:
+ * - boundary +1px: just after breakpoint activates
+ * - boundary -1px: just before breakpoint activates
+ * - (optional) random samples within range
  */
 export function generateViewports(
   breakpoints: ViewportBreakpoint[],
@@ -254,7 +254,7 @@ export function generateViewports(
 }
 
 /**
- * HTML から breakpoint を発見し、境界チェック用 viewport を生成
+ * Discover breakpoints from HTML and generate boundary-check viewports.
  */
 export function discoverViewports(
   html: string,

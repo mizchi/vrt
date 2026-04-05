@@ -14,7 +14,7 @@ import type {
 } from "./types.ts";
 
 /**
- * expectation.json を読み込む
+ * Load expectation.json.
  */
 export async function loadExpectation(path: string): Promise<VrtExpectation> {
   const raw = await readFile(path, "utf-8");
@@ -22,19 +22,19 @@ export async function loadExpectation(path: string): Promise<VrtExpectation> {
 }
 
 /**
- * A11y 変更が期待通りかを判定する
+ * Check if a11y changes match expectations.
  *
- * "regression-expected" なページでは、検出された regression が
- * expectedA11yChanges にマッチするかで approve/reject を決める
+ * For "regression-expected" pages, approve/reject based on whether
+ * detected regressions match expectedA11yChanges.
  */
 export function matchA11yExpectation(
   pageExp: PageExpectation,
   a11yDiff: A11yDiff | undefined
 ): { matched: boolean; reasoning: string; matchedChanges: string[]; unmatchedExpected: string[]; unexpectedChanges: string[] } {
-  // expect (自然言語) から a11y フィールドを推測 (構造化が省略された場合)
+  // Infer a11y field from NL expect (when structured fields are omitted)
   const a11yMode = pageExp.a11y ?? inferA11yMode(pageExp.expect);
 
-  // no-change を期待
+  // Expecting no-change
   if (a11yMode === "no-change") {
     if (!a11yDiff || a11yDiff.changes.length === 0) {
       return { matched: true, reasoning: "No a11y changes as expected", matchedChanges: [], unmatchedExpected: [], unexpectedChanges: [] };
@@ -73,7 +73,7 @@ export function matchA11yExpectation(
     };
   }
 
-  // マッチング: expected vs actual (1パスで matched indices を追跡)
+  // Match expected vs actual (single pass, tracking matched indices)
   const expected = pageExp.expectedA11yChanges ?? [];
   const actual = [...a11yDiff.changes];
   const matchedChanges: string[] = [];
@@ -101,7 +101,7 @@ export function matchA11yExpectation(
   const allExpectedMatched = matchedChanges.length === expected.length;
   const noUnexpected = unexpectedChanges.length === 0;
 
-  // regression-expected: 期待された regression がすべて検出されれば OK
+  // regression-expected: OK if all expected regressions are detected
   if (a11yMode === "regression-expected") {
     if (allExpectedMatched) {
       return {
@@ -121,7 +121,7 @@ export function matchA11yExpectation(
     };
   }
 
-  // changed: すべての変更が expected にマッチし、unexpected がなければ OK
+  // changed: OK if all changes match expected and no unexpected changes
   return {
     matched: allExpectedMatched && noUnexpected,
     reasoning: allExpectedMatched && noUnexpected
@@ -134,19 +134,17 @@ export function matchA11yExpectation(
 }
 
 /**
- * Expected と Actual の A11y 変更を照合する
+ * Match expected vs actual a11y changes.
  *
- * 段階的マッチング:
- * 1. 構造化フィールド (type, role, name, path) があればそれで厳密マッチ
- * 2. 構造化フィールドがなければ description の fuzzy マッチにフォールバック
- *
- * モデル改善で構造化フィールドが不要になっても description だけで動く
+ * Graduated matching:
+ * 1. Structured fields (type, role, name, path) for strict matching if present
+ * 2. Falls back to description fuzzy matching if no structured fields
  */
 function matchesSingleA11yChange(exp: ExpectedA11yChange, actual: A11yChange): boolean {
   const hasStructuredHints = exp.type || exp.path || exp.role || exp.name;
 
   if (hasStructuredHints) {
-    // 構造化マッチ: 指定されたフィールドのみチェック (optional なので部分一致)
+    // Structured match: check only specified fields (partial match since optional)
     if (exp.type && exp.type !== actual.type) return false;
     if (exp.path && !actual.path.toLowerCase().includes(exp.path.toLowerCase())) return false;
     if (exp.role) {
@@ -162,13 +160,13 @@ function matchesSingleA11yChange(exp: ExpectedA11yChange, actual: A11yChange): b
     return true;
   }
 
-  // description-only fuzzy マッチ: キーワードの重複度で判定
+  // Description-only fuzzy match: keyword overlap
   return fuzzyDescriptionMatch(exp.description, actual);
 }
 
 /**
- * description のキーワードで fuzzy マッチ
- * 将来的にはここを LLM 呼び出しに置き換え可能
+ * Fuzzy match via description keywords.
+ * Can be replaced with LLM call in the future.
  */
 export const STOP_WORDS = new Set([
   "gets", "from", "with", "that", "this", "should",
@@ -211,7 +209,7 @@ function fuzzyDescriptionMatch(description: string, actual: A11yChange): boolean
 }
 
 /**
- * 自然言語の expect フィールドから a11y モードを推測する
+ * Infer a11y mode from the NL expect field.
  */
 function inferVisualMode(expect?: string): PageExpectation["visual"] {
   if (!expect) return undefined;
@@ -235,8 +233,8 @@ function describe(change: A11yChange): string {
 }
 
 /**
- * Expectation ベースの cross-validation
- * 通常の crossValidate の代替。expectation が定義されたページはそちらを優先する。
+ * Expectation-based cross-validation.
+ * Alternative to crossValidate. Pages with expectations use this instead.
  */
 export function crossValidateWithExpectation(
   testId: string,
@@ -246,8 +244,7 @@ export function crossValidateWithExpectation(
   intent: ChangeIntent
 ): CrossValidationResult {
   if (!pageExp) {
-    // expectation 未定義 → 通常の判定にフォールバック
-    // (呼び出し元で通常の crossValidate を使う)
+    // No expectation defined -- fall back to normal cross-validation
     return {
       testId,
       visualDiff,
@@ -301,7 +298,7 @@ export function crossValidateWithExpectation(
 // ---- Scoring ----
 
 /**
- * 改善ループ全体のスコアを算出する
+ * Score the overall improvement loop.
  */
 export function scoreLoop(
   ctx: UnifiedAgentContext,
@@ -315,19 +312,19 @@ export function scoreLoop(
 ): LoopScore {
   const details: ScoreDetail[] = [];
 
-  // 1. 使いやすさ (出力の明瞭さ)
+  // 1. Usability (output clarity)
   const usabilityScore = scoreUsability(ctx, details);
 
-  // 2. 実用性 (検出精度)
+  // 2. Practicality (detection accuracy)
   const practicalityScore = scorePracticality(ctx, expectations, details);
 
-  // 3. 修正ステップ
+  // 3. Fix steps
   const stepsScore = scoreFixSteps(meta.fixSteps, details);
 
-  // 4. 最終品質
+  // 4. Final quality
   const qualityScore = scoreFinalQuality(ctx, details);
 
-  // 5. トークン消費量
+  // 5. Token usage
   const tokenScore = scoreTokenUsage(meta.tokenUsage, details);
 
   return {
@@ -344,13 +341,13 @@ export function scoreLoop(
 function scoreUsability(ctx: UnifiedAgentContext, details: ScoreDetail[]): number {
   let score = 100;
 
-  // Verdicts がすべて明確な判定を持っているか
+  // Whether all verdicts have clear decisions
   const escalated = ctx.verdicts.filter((v) => v.decision === "escalate");
   if (escalated.length > 0) {
-    score -= escalated.length * 10; // escalate は判断できなかったことを意味
+    score -= escalated.length * 10; // escalate means indecisive
   }
 
-  // Cross-validation が意味のある結果を出しているか
+  // Whether cross-validation produced meaningful results
   const cvWithReasoning = ctx.crossValidations.filter((cv) => cv.reasoning.length > 20);
   const cvRatio = cvWithReasoning.length / Math.max(ctx.crossValidations.length, 1);
   score = Math.round(score * (0.5 + cvRatio * 0.5));
@@ -372,7 +369,7 @@ function scorePracticality(ctx: UnifiedAgentContext, expectations: VrtExpectatio
     const cv = ctx.crossValidations.find((c) => c.testId === pageExp.testId);
     if (!cv) continue;
 
-    // cross-validation が approve → expectation を満たしている
+    // cross-validation approve -> expectation met
     if (cv.recommendation === "approve") {
       matched++;
     }
@@ -393,11 +390,11 @@ function scoreFixSteps(steps: number, details: ScoreDetail[]): number {
 function scoreFinalQuality(ctx: UnifiedAgentContext, details: ScoreDetail[]): number {
   let score = 100;
 
-  // 未解決の reject
+  // Unresolved rejects
   const rejected = ctx.verdicts.filter((v) => v.decision === "reject");
   score -= rejected.length * 25;
 
-  // 品質チェック失敗
+  // Failed quality checks
   const failedErrors = ctx.qualityChecks.filter((c) => !c.passed && c.severity === "error");
   score -= failedErrors.length * 20;
 

@@ -9,7 +9,7 @@ import type {
 import { decodePng, detectWhiteout, detectEmptyContent } from "./heatmap.ts";
 
 /**
- * 全品質チェックを実行する
+ * Run all quality checks.
  */
 export async function runQualityChecks(
   snapshots: VrtSnapshot[],
@@ -19,18 +19,18 @@ export async function runQualityChecks(
 ): Promise<QualityCheckResult[]> {
   const results: QualityCheckResult[] = [];
 
-  // 各スナップショットに対する個別チェック
+  // Per-snapshot checks
   for (const snapshot of snapshots) {
     const snapshotChecks = await checkSnapshot(snapshot);
     results.push(...snapshotChecks);
   }
 
-  // カバレッジチェック
+  // Coverage check
   if (graph && affected) {
     results.push(checkCoverage(snapshots, affected));
   }
 
-  // エラー状態チェック (diff がある場合)
+  // Error state check (when diff exists)
   for (const diff of diffs) {
     if (diff.diffRatio > 0.5) {
       results.push({
@@ -46,7 +46,7 @@ export async function runQualityChecks(
 }
 
 /**
- * 個別スナップショットの品質チェック
+ * Per-snapshot quality checks.
  */
 async function checkSnapshot(
   snapshot: VrtSnapshot
@@ -56,7 +56,7 @@ async function checkSnapshot(
   try {
     const png = await decodePng(snapshot.screenshotPath);
 
-    // 白飛び検出
+    // Whiteout detection
     const whiteout = detectWhiteout(png);
     results.push({
       check: "whiteout",
@@ -67,7 +67,7 @@ async function checkSnapshot(
       severity: whiteout.isWhiteout ? "error" : "info",
     });
 
-    // 空コンテンツ検出
+    // Empty content detection
     const empty = detectEmptyContent(png);
     results.push({
       check: "empty-content",
@@ -78,7 +78,7 @@ async function checkSnapshot(
       severity: empty.isEmpty ? "error" : "info",
     });
 
-    // エラー状態検出 (赤い領域の割合)
+    // Error state detection (red pixel ratio)
     const errorState = detectErrorIndicators(png);
     results.push({
       check: "error-state",
@@ -101,9 +101,9 @@ async function checkSnapshot(
 }
 
 /**
- * エラー表示の視覚的指標を検出
- * - 大量の赤色ピクセル (エラーメッセージ、バリデーションエラー)
- * - 黄色/オレンジの警告色
+ * Detect visual indicators of error states.
+ * - High red pixel ratio (error messages, validation errors)
+ * - Yellow/orange warning colors
  */
 function detectErrorIndicators(data: {
   width: number;
@@ -125,11 +125,11 @@ function detectErrorIndicators(data: {
     const b = pixels[offset + 2];
     sampled++;
 
-    // 赤系 (エラー表示): R高, G低, B低
+    // Red (error): high R, low G, low B
     if (r > 180 && g < 80 && b < 80) {
       redCount++;
     }
-    // 黄/オレンジ系 (警告表示): R高, G中〜高, B低
+    // Yellow/orange (warning): high R, mid-high G, low B
     if (r > 200 && g > 120 && g < 220 && b < 60) {
       yellowCount++;
     }
@@ -155,8 +155,7 @@ function detectErrorIndicators(data: {
 }
 
 /**
- * VRT カバレッジ: 影響を受けるコンポーネントのうち、
- * VRT スナップショットが存在する割合を計算する
+ * VRT coverage: ratio of affected components that have VRT snapshots.
  */
 function checkCoverage(
   snapshots: VrtSnapshot[],
@@ -171,7 +170,7 @@ function checkCoverage(
     };
   }
 
-  // スナップショットの testTitle/testId にコンポーネント名が含まれるかで判定
+  // Check if snapshot testTitle/testId contains the component name
   const snapshotNames = new Set(
     snapshots.flatMap((s) => [s.testTitle.toLowerCase(), s.testId.toLowerCase()])
   );
@@ -180,7 +179,7 @@ function checkCoverage(
   const uncovered: string[] = [];
 
   for (const comp of affected) {
-    // コンポーネントのファイル名 (拡張子なし) でマッチング
+    // Match by component filename (without extension)
     const name = comp.node.id
       .replace(/\.[^.]+$/, "")
       .split("/")
@@ -199,7 +198,7 @@ function checkCoverage(
   }
 
   const ratio = covered.length / affected.length;
-  const passed = ratio >= 0.8; // 80% カバレッジ閾値
+  const passed = ratio >= 0.8; // 80% coverage threshold
 
   return {
     check: "coverage",

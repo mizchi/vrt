@@ -40,7 +40,7 @@ export const INTERACTIVE_ROLES = new Set([
 ]);
 
 /**
- * 2つの A11y ツリースナップショットを比較し、セマンティック差分を返す
+ * Compare two a11y tree snapshots and return the semantic diff.
  */
 export function diffA11yTrees(
   baseline: A11ySnapshot,
@@ -79,7 +79,7 @@ function diffNodes(
     ? `${path} > ${nodeLabel(after ?? before!)}`
     : nodeLabel(after ?? before!);
 
-  // ノード追加
+  // Node added
   if (!before && after) {
     changes.push({
       type: isLandmark(after) ? "landmark-changed" : "node-added",
@@ -88,16 +88,16 @@ function diffNodes(
       severity: "info",
       description: `Added ${after.role}${after.name ? ` "${after.name}"` : ""}`,
     });
-    // 子ノードも added として記録しない（親の追加に含める）
+    // Don't record children as added (included in parent addition)
     return;
   }
 
-  // ノード削除
+  // Node removed
   if (before && !after) {
     const severity = isLandmark(before)
-      ? "error" // ランドマーク削除は重大
+      ? "error" // landmark removal is critical
       : isInteractive(before)
-        ? "error" // インタラクティブ要素の削除はリグレッション
+        ? "error" // interactive element removal is regression
         : "warning";
 
     changes.push({
@@ -112,7 +112,7 @@ function diffNodes(
 
   if (!before || !after) return;
 
-  // role 変更
+  // role change
   if (before.role !== after.role) {
     changes.push({
       type: "role-changed",
@@ -124,11 +124,11 @@ function diffNodes(
     });
   }
 
-  // name 変更
+  // name change
   if (before.name !== after.name) {
     const severity =
       isInteractive(before) && !after.name
-        ? "error" // ラベル消失はリグレッション
+        ? "error" // label loss is regression
         : "info";
 
     changes.push({
@@ -143,7 +143,7 @@ function diffNodes(
     });
   }
 
-  // state 変更 (checked, disabled, expanded, pressed, selected)
+  // state change (checked, disabled, expanded, pressed, selected)
   const stateKeys = ["checked", "disabled", "expanded", "pressed", "selected"] as const;
   for (const key of stateKeys) {
     if (before[key] !== after[key]) {
@@ -158,17 +158,17 @@ function diffNodes(
     }
   }
 
-  // 子ノードの差分 (順序ベースマッチング + role+name キーマッチング)
+  // Child node diff (order-based matching + role+name key matching)
   const beforeChildren = before.children ?? [];
   const afterChildren = after.children ?? [];
   diffChildren(beforeChildren, afterChildren, nodePath, changes);
 }
 
 /**
- * 子ノードリストの差分。
- * 1) role+name 完全一致でマッチ
- * 2) 残りを位置ベース (同じインデックス) でマッチ → role/name 変更を検出
- * 3) 残りは追加/削除
+ * Diff child node lists.
+ * 1) Exact match by role+name
+ * 2) Position-based matching for remaining -> detect role/name changes
+ * 3) Remainder is additions/removals
  */
 function diffChildren(
   beforeChildren: A11yNode[],
@@ -176,10 +176,10 @@ function diffChildren(
   parentPath: string,
   changes: A11yChange[]
 ): void {
-  const matched = new Set<number>(); // beforeChildren のマッチ済みインデックス
+  const matched = new Set<number>(); // matched indices in beforeChildren
   const afterMatched = new Set<number>();
 
-  // Pass 1: role+name 完全一致
+  // Pass 1: exact role+name match
   const beforeByKey = new Map<string, { node: A11yNode; index: number }[]>();
   for (let i = 0; i < beforeChildren.length; i++) {
     const key = childKey(beforeChildren[i]);
@@ -199,7 +199,7 @@ function diffChildren(
     }
   }
 
-  // Pass 2: 位置ベースのマッチング (role or name が変わったケースを検出)
+  // Pass 2: position-based matching (detect role or name changes)
   const unmatchedBefore: { node: A11yNode; index: number }[] = [];
   for (let i = 0; i < beforeChildren.length; i++) {
     if (!matched.has(i)) unmatchedBefore.push({ node: beforeChildren[i], index: i });
@@ -209,7 +209,7 @@ function diffChildren(
     if (!afterMatched.has(i)) unmatchedAfter.push({ node: afterChildren[i], index: i });
   }
 
-  // role-only または name-only マッチで対応付け
+  // role-only or name-only match for pairing
   const stillUnmatchedBefore: typeof unmatchedBefore = [];
   const stillUnmatchedAfter = new Set(unmatchedAfter.map((_, i) => i));
 
@@ -218,7 +218,7 @@ function diffChildren(
     for (let j = 0; j < unmatchedAfter.length; j++) {
       if (!stillUnmatchedAfter.has(j)) continue;
       const a = unmatchedAfter[j];
-      // role 一致 or name 一致 → 対応付け (変更として diff)
+      // role or name match -> pair (diff as change)
       if (
         b.node.role === a.node.role ||
         (b.node.name && b.node.name === a.node.name)
@@ -234,7 +234,7 @@ function diffChildren(
     }
   }
 
-  // Pass 3: 残りは追加/削除
+  // Pass 3: remainder is additions/removals
   for (const b of stillUnmatchedBefore) {
     diffNodes(b.node, undefined, parentPath, changes);
   }
@@ -242,7 +242,7 @@ function diffChildren(
     diffNodes(undefined, unmatchedAfter[j].node, parentPath, changes);
   }
 
-  // 構造変化の検出 (子の数が大幅に変わった場合)
+  // Detect structural changes (significant child count change)
   const countDiff = Math.abs(afterChildren.length - beforeChildren.length);
   if (countDiff > 3 && countDiff / Math.max(beforeChildren.length, 1) > 0.3) {
     changes.push({
@@ -287,7 +287,7 @@ function isInteractive(node: A11yNode): boolean {
 // ---- A11y Quality Checks ----
 
 /**
- * A11y ツリーの品質チェック (単体、diff なし)
+ * A11y tree quality checks (standalone, no diff)
  */
 export function checkA11yTree(tree: A11yNode): A11yIssue[] {
   const issues: A11yIssue[] = [];
@@ -305,7 +305,7 @@ export interface A11yIssue {
 function walkTree(node: A11yNode, path: string, issues: A11yIssue[]): void {
   const nodePath = path ? `${path} > ${nodeLabel(node)}` : nodeLabel(node);
 
-  // インタラクティブ要素にラベルがない
+  // Interactive elements without labels
   if (isInteractive(node) && !node.name) {
     issues.push({
       path: nodePath,
@@ -315,7 +315,7 @@ function walkTree(node: A11yNode, path: string, issues: A11yIssue[]): void {
     });
   }
 
-  // 画像にaltがない (role=img で name なし)
+  // Images without alt (role=img with no name)
   if (node.role === "img" && !node.name) {
     issues.push({
       path: nodePath,
@@ -325,8 +325,8 @@ function walkTree(node: A11yNode, path: string, issues: A11yIssue[]): void {
     });
   }
 
-  // heading の level が飛んでいないかは親コンテキストが必要なので、
-  // ここでは個別ノードのチェックのみ
+  // Heading level skip detection needs parent context,
+  // so only individual node checks here
 
   for (const child of node.children ?? []) {
     walkTree(child, nodePath, issues);
@@ -334,7 +334,7 @@ function walkTree(node: A11yNode, path: string, issues: A11yIssue[]): void {
 }
 
 /**
- * Playwright の page.accessibility.snapshot() の出力を A11ySnapshot に変換
+ * Convert Playwright page.accessibility.snapshot() output to A11ySnapshot.
  */
 export function parsePlaywrightA11ySnapshot(
   testId: string,

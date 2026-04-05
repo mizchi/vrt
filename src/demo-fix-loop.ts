@@ -2,10 +2,10 @@
 /**
  * VRT Fix Loop Demo
  *
- * 壊れた状態を検出 → reasoning で修正方針を生成 → 修正適用 → 再検証 → PASS
- * のループをデモする。
+ * Demonstrates the loop: detect broken state -> generate fix via reasoning
+ * -> apply fix -> re-verify -> PASS.
  *
- * kitty graphics protocol で画像を表示。
+ * Displays images via kitty graphics protocol.
  *
  * Usage: npx tsx vrt/src/demo-fix-loop.ts
  */
@@ -93,10 +93,10 @@ const FORM_OK: Rect[] = [
 ];
 const FORM_BROKEN: Rect[] = [
   { x: 40, y: 80, w: 240, h: 110, r: 255, g: 255, b: 255 },
-  // ラベルなし — 空の input だけ
+  // no labels -- bare inputs only
   { x: 50, y: 100, w: 220, h: 20, r: 240, g: 240, b: 245 },
   { x: 50, y: 138, w: 220, h: 20, r: 240, g: 240, b: 245 },
-  { x: 50, y: 165, w: 220, h: 20, r: 180, g: 40, b: 40 },    // 赤ボタン = 壊れてる
+  { x: 50, y: 165, w: 220, h: 20, r: 180, g: 40, b: 40 },    // red button = broken
 ];
 const FORM_FIXED: Rect[] = [
   { x: 40, y: 80, w: 240, h: 110, r: 255, g: 255, b: 255 },
@@ -104,7 +104,7 @@ const FORM_FIXED: Rect[] = [
   { x: 50, y: 100, w: 220, h: 20, r: 240, g: 240, b: 245 },
   { x: 50, y: 126, w: 100, h: 10, r: 80, g: 80, b: 90 },     // "Your message" label
   { x: 50, y: 138, w: 220, h: 20, r: 240, g: 240, b: 245 },
-  { x: 50, y: 165, w: 220, h: 20, r: 35, g: 134, b: 54 },    // 緑ボタン = OK
+  { x: 50, y: 165, w: 220, h: 20, r: 35, g: 134, b: 54 },    // green button = OK
 ];
 
 // ---- Helpers ----
@@ -185,14 +185,14 @@ Be concise. Focus on actionable fixes.`;
 function generateFixPlan(chain: ReasoningChain, issues: ReturnType<typeof checkA11yTree>): string[] {
   const plan: string[] = [];
 
-  // reasoning の unmatched から修正項目を抽出
+  // Extract fix items from unmatched reasoning
   for (const m of chain.mappings) {
     if (!m.realized) {
       plan.push(`FIX: ${m.expected}`);
     }
   }
 
-  // a11y issues から修正項目を抽出
+  // Extract fix items from a11y issues
   for (const issue of issues) {
     if (issue.rule === "label-missing") {
       plan.push(`ADD LABEL: ${issue.message} (at ${issue.path.split(" > ").pop()})`);
@@ -403,7 +403,7 @@ async function main() {
   const fixedSpecFailed = fixedSpecResult.results[0].checked.filter((c) => !c.passed);
   console.log(`\n  ${BOLD}Spec Verification:${RESET} ${fixedSpecFailed.length === 0 ? `${BG_GREEN}${BOLD} ALL PASS ${RESET}` : `${RED}${fixedSpecFailed.length} failed${RESET}`}`);
 
-  // LLM による修正評価
+  // LLM fix evaluation
   if (llm) {
     console.log(`\n  ${DIM}Calling LLM for fix evaluation...${RESET}\n`);
 

@@ -1,10 +1,10 @@
 /**
- * Crater BiDi クライアント
+ * Crater BiDi client
  *
- * mizchi/crater の WebDriver BiDi サーバーに接続し、
- * HTML レンダリング + スクリーンショット取得を行う軽量クライアント。
+ * Lightweight client connecting to mizchi/crater WebDriver BiDi server
+ * for HTML rendering + screenshot capture.
  *
- * crater サーバー起動方法:
+ * Start crater server:
  *   cd ~/ghq/github.com/mizchi/crater
  *   just build-bidi && just start-bidi-with-font
  */
@@ -155,7 +155,7 @@ export class CraterClient {
     return result.result?.value as T;
   }
 
-  /** PNG スクリーンショット (Buffer) */
+  /** PNG screenshot (Buffer) */
   async captureScreenshot(): Promise<Buffer> {
     const resp = await this.sendBidi("browsingContext.captureScreenshotData", {
       context: this.requireContextId(),
@@ -167,7 +167,7 @@ export class CraterClient {
     return Buffer.from(String(resp.result || ""), "base64");
   }
 
-  /** 生 RGBA データ (pixelmatch 互換) */
+  /** Raw RGBA data (pixelmatch compatible) */
   async capturePaintData(): Promise<{ width: number; height: number; data: Uint8Array }> {
     const resp = await this.sendBidi("browsingContext.capturePaintData", {
       context: this.requireContextId(),
@@ -184,7 +184,7 @@ export class CraterClient {
     };
   }
 
-  /** 生 RGBA → PNG Buffer 変換 */
+  /** Raw RGBA -> PNG Buffer conversion */
   async capturePng(): Promise<{ png: Buffer; width: number; height: number }> {
     const { width, height, data } = await this.capturePaintData();
     const png = new PNG({ width, height });
@@ -315,7 +315,7 @@ export class CraterClient {
     });
   }
 
-  /** Paint tree (描画ツリー JSON) */
+  /** Paint tree (render tree JSON) */
   async capturePaintTree(): Promise<PaintNode> {
     const resp = await this.sendBidi("browsingContext.capturePaintTree", {
       context: this.requireContextId(),
@@ -362,7 +362,7 @@ export interface PaintTreeChange {
   after?: string;
 }
 
-/** 2つの paint tree を比較して差分を返す */
+/** Compare two paint trees and return the diff */
 export function diffPaintTrees(baseline: PaintNode, current: PaintNode, path = "root"): PaintTreeChange[] {
   const changes: PaintTreeChange[] = [];
 
@@ -426,7 +426,7 @@ export function diffPaintTrees(baseline: PaintNode, current: PaintNode, path = "
 
 // ---- Utility ----
 
-/** crater サーバーが起動しているか確認 */
+/** Check if crater server is running */
 export async function isCraterAvailable(url = DEFAULT_BIDI_URL): Promise<boolean> {
   try {
     const httpUrl = url.replace("ws://", "http://");

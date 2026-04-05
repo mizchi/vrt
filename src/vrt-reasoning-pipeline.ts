@@ -1,8 +1,8 @@
 /**
- * VRT Reasoning Pipeline — 2段階 VLM + LLM パイプライン
+ * VRT Reasoning Pipeline -- two-stage VLM + LLM pipeline
  *
- * Stage 1 (VLM, 安い): heatmap/スクリーンショット → 構造化 diff レポート
- * Stage 2 (LLM, 高い): 構造化レポート + CSS ソース → 修正コード生成
+ * Stage 1 (VLM, cheap): heatmap/screenshot -> structured diff report
+ * Stage 2 (LLM, expensive): structured report + CSS source -> fix code generation
  *
  * Usage:
  *   const pipeline = createReasoningPipeline();
@@ -56,11 +56,11 @@ export interface PipelineConfig {
   /** Stage 2: LLM for code generation (default: from VRT_LLM_PROVIDER) */
   llmProvider?: "gemini" | "anthropic" | "openrouter";
   llmModel?: string;
-  /** 画像解像度 (default: medium = 400x300) */
+  /** Image resolution (default: medium = 400x300) */
   resolution?: ResolutionPreset;
-  /** 解像度が足りない場合に自動エスカレーション (default: true) */
+  /** Auto-escalate when resolution is insufficient (default: true) */
   adaptiveResolution?: boolean;
-  /** エスカレーション上限 (default: high) */
+  /** Escalation ceiling (default: high) */
   maxResolution?: ResolutionPreset;
 }
 
@@ -69,25 +69,25 @@ export interface AnalyzeOptions {
   baselineBase64?: string;
   currentBase64?: string;
   textReport?: string;
-  /** 解像度 override (pipeline config より優先) */
+  /** Resolution override (takes priority over pipeline config) */
   resolution?: ResolutionPreset;
-  /** 対象セレクタの領域だけ切り出して分析 (base64 PNG) */
+  /** Cropped region for the target selector (base64 PNG) */
   selectorCropBase64?: string;
 }
 
 export interface ReasoningPipeline {
-  /** Stage 1: 画像 → 構造化 diff */
+  /** Stage 1: image -> structured diff */
   analyze(options: AnalyzeOptions): Promise<StructuredDiffReport>;
 
-  /** Stage 2: 構造化 diff + CSS → 修正提案 */
+  /** Stage 2: structured diff + CSS -> fix proposal */
   suggestFix(report: StructuredDiffReport, cssSource: string, cssDiff?: string): Promise<FixSuggestion>;
 
-  /** Stage 1 + 2 を連続実行。解像度不足なら自動エスカレーション */
+  /** Run Stage 1 + 2 sequentially. Auto-escalates resolution if needed */
   analyzeAndFix(options: AnalyzeOptions & {
     cssSource: string;
-    /** CSS テキスト diff (MISSING/CHANGED 行。Stage 2 に直接渡される) */
+    /** CSS text diff (MISSING/CHANGED lines. Passed directly to Stage 2) */
     cssDiff?: string;
-    /** エスカレーション用の高解像度画像 (adaptive resolution で使用) */
+    /** High-resolution image for escalation (used by adaptive resolution) */
     highResHeatmapBase64?: string;
   }): Promise<{ analysis: StructuredDiffReport; fix: FixSuggestion; escalated: boolean }>;
 

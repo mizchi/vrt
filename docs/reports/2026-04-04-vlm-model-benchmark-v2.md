@@ -1,12 +1,12 @@
-# VLM Model Benchmark v2 — 最新モデル比較
+# VLM Model Benchmark v2 — Latest Model Comparison
 
-**日付**: 2026-04-04
-**テスト**: fix-loop (page, seed 11, .readme-body pre 6 props, 4.1% diff) + VLM 単体品質
+**Date**: 2026-04-04
+**Test**: fix-loop (page, seed 11, .readme-body pre 6 props, 4.1% diff) + VLM standalone quality
 
-## Fix Loop 結果
+## Fix Loop Results
 
-| Model | Fix | ラウンド | VLM 速度 | コスト/call | 月額 (21K/日) |
-|-------|-----|---------|---------|-----------|-------------|
+| Model | Fix | Rounds | VLM speed | Cost/call | Monthly (21K/day) |
+|-------|-----|--------|-----------|-----------|-------------------|
 | **meta-llama/llama-4-scout** | ✅ | 1 | **1.0s** | $0.14e-7 | **$0.09** |
 | **amazon/nova-lite-v1** | ✅ | 1 | 2.3s | $0.14e-7 | $0.09 |
 | amazon/nova-2-lite-v1 | ✅ | 1 | 3.5s | $1.38e-7 | $0.87 |
@@ -18,31 +18,31 @@
 | openai/gpt-4.1-nano | ❌ | 2 | 1.2s | — | — |
 | google/gemma-4-31b-it | ✅ | 1 | 40.5s | $0.10e-7 | $0.06 |
 
-## VLM 単体品質 (CHANGE 検出数)
+## VLM Standalone Quality (CHANGE Detection Count)
 
-| Model | CHANGE 数 | 備考 |
-|-------|----------|------|
-| qwen3-vl-8b | 28 | 最も多く検出 (重複含む可能性) |
-| nova-2-lite | 27 | 高品質だがコスト 10x |
-| **llama-4-scout** | **11** | 正確、重複少ない |
+| Model | CHANGE count | Notes |
+|-------|-------------|-------|
+| qwen3-vl-8b | 28 | Most detections (may include duplicates) |
+| nova-2-lite | 27 | High quality but 10x cost |
+| **llama-4-scout** | **11** | Accurate, few duplicates |
 | seed-1.6-flash | 10 | |
 | gemini-3-flash | 10 | |
-| qwen3-vl-235b | 8 | MoE、簡潔 |
-| nova-lite | 7 | 簡潔 |
-| gpt-5-nano | 0 | フォーマットに従わない |
+| qwen3-vl-235b | 8 | MoE, concise |
+| nova-lite | 7 | Concise |
+| gpt-5-nano | 0 | Doesn't follow format |
 
-## 推奨
+## Recommendations
 
-| 用途 | モデル | 理由 |
-|------|--------|------|
-| **デフォルト (コスパ最良)** | **llama-4-scout** | 最速 (1s), 最安 ($0.14e-7), 十分な品質 |
-| 安定重視 | nova-lite | 実績あり, 同コスト, やや遅い |
-| 品質重視 | nova-2-lite | 27 changes 検出, コスト 10x |
-| 大規模 MoE | qwen3-vl-235b | 安定, 簡潔な出力 |
+| Use case | Model | Reason |
+|----------|-------|--------|
+| **Default (best cost-performance)** | **llama-4-scout** | Fastest (1s), cheapest ($0.14e-7), sufficient quality |
+| Stability-focused | nova-lite | Proven track record, same cost, slightly slower |
+| Quality-focused | nova-2-lite | 27 changes detected, 10x cost |
+| Large-scale MoE | qwen3-vl-235b | Stable, concise output |
 
-## 結論
+## Conclusion
 
-**CSS diff がある場合、VLM の品質差は fix 結果に影響しない** (全モデル 0.0% 達成)。
-差が出るのはレイテンシとコストのみ。llama-4-scout が 1.0s/$0.14e-7 でベスト。
+**When CSS diff exists, VLM quality differences don't affect fix results** (all models reach 0.0%).
+The only differences are latency and cost. llama-4-scout is best at 1.0s/$0.14e-7.
 
 *Regenerate: `just vlm-bench --md <models...>`*

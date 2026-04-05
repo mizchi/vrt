@@ -7,19 +7,19 @@ import type {
 } from "./types.ts";
 
 /**
- * Visual Semantic Diff と A11y Semantic Diff を突き合わせ、
- * Intent と照合して統合判定を行う
+ * Cross-validate Visual Semantic Diff with A11y Semantic Diff,
+ * match against Intent, and produce a unified verdict.
  *
- * Cross-Validation マトリクス:
- * | Visual | A11y  | Intent | → 判定          |
- * |--------|-------|--------|-----------------|
- * | なし    | なし   | any    | auto-approve    |
- * | あり    | あり   | match  | auto-approve    |
- * | あり    | あり   | none   | escalate        |
- * | あり    | なし   | style  | approve         |
- * | あり    | なし   | refac  | warning         |
- * | なし    | あり   | any    | reject (a11y破壊) |
- * | any    | regr   | any    | reject          |
+ * Cross-Validation matrix:
+ * | Visual | A11y  | Intent | -> Verdict       |
+ * |--------|-------|--------|------------------|
+ * | none   | none  | any    | auto-approve     |
+ * | yes    | yes   | match  | auto-approve     |
+ * | yes    | yes   | none   | escalate         |
+ * | yes    | none  | style  | approve          |
+ * | yes    | none  | refac  | warning          |
+ * | none   | yes   | any    | reject (a11y)    |
+ * | any    | regr  | any    | reject           |
  */
 export function crossValidate(
   testId: string,
@@ -31,7 +31,7 @@ export function crossValidate(
   const hasA11y = a11yDiff && a11yDiff.changes.length > 0;
   const hasA11yRegression = a11yDiff?.hasRegression ?? false;
 
-  // A11y リグレッション → 無条件拒否
+  // A11y regression -> unconditional reject
   if (hasA11yRegression) {
     const regressions = a11yDiff!.changes
       .filter((c) => c.severity === "error")
@@ -47,7 +47,7 @@ export function crossValidate(
     };
   }
 
-  // 変化なし
+  // No changes
   if (!hasVisual && !hasA11y) {
     return {
       testId,
@@ -62,7 +62,7 @@ export function crossValidate(
 
   const intentMatch = matchesComponentIntent(testId, intent);
 
-  // Visual + A11y 両方変化 + Intent 一致 → 承認
+  // Visual + A11y both changed + intent match -> approve
   if (hasVisual && hasA11y && intentMatch) {
     return {
       testId,
@@ -75,7 +75,7 @@ export function crossValidate(
     };
   }
 
-  // Visual + A11y 両方変化 + Intent 不一致 → エスカレート
+  // Visual + A11y both changed + intent mismatch -> escalate
   if (hasVisual && hasA11y && !intentMatch) {
     return {
       testId,
@@ -88,7 +88,7 @@ export function crossValidate(
     };
   }
 
-  // Visual のみ変化
+  // Visual-only change
   if (hasVisual && !hasA11y) {
     if (intent.changeType === "style" || intent.changeType === "a11y") {
       return {
@@ -123,9 +123,9 @@ export function crossValidate(
     };
   }
 
-  // A11y のみ変化 (Visual は同じなのにセマンティクスが壊れている)
+  // A11y-only change (semantics changed while visual is same)
   if (!hasVisual && hasA11y) {
-    // a11y intent なら OK
+    // OK if a11y intent
     if (intent.changeType === "a11y" && intentMatch) {
       return {
         testId,
@@ -169,14 +169,14 @@ function matchesComponentIntent(
 }
 
 /**
- * Cross-Validation 結果から品質チェックを生成
+ * Generate quality checks from cross-validation results.
  */
 export function crossValidationToQualityChecks(
   results: CrossValidationResult[]
 ): QualityCheckResult[] {
   const checks: QualityCheckResult[] = [];
 
-  // A11y リグレッション
+  // A11y regression
   const regressions = results.filter((r) => r.a11yDiff?.hasRegression);
   if (regressions.length > 0) {
     checks.push({
@@ -194,7 +194,7 @@ export function crossValidationToQualityChecks(
     });
   }
 
-  // Visual-A11y 不整合
+  // Visual-A11y inconsistency
   const mismatches = results.filter((r) => r.consistency === "a11y-only");
   if (mismatches.length > 0) {
     checks.push({

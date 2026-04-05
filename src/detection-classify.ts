@@ -1,8 +1,8 @@
 /**
- * CSS 宣言の分類ロジック
+ * CSS declaration classification logic
  *
- * 事前分類: セレクタ種別、インタラクティブ状態かどうか
- * 事後分類: 未検出時の理由推定
+ * Pre-classification: selector type, interactive state
+ * Post-classification: undetected reason estimation
  */
 import type { PropertyCategory } from "./css-challenge-core.ts";
 
@@ -11,13 +11,13 @@ import type { PropertyCategory } from "./css-challenge-core.ts";
 export type SelectorType = "element" | "class" | "pseudo-class" | "pseudo-element" | "compound";
 
 export type UndetectedReason =
-  | "hover-only"        // :hover, :focus, :active — 静的スクリーンショットでは不可視
-  | "same-as-default"   // 削除してもブラウザデフォルトと同じ
-  | "same-as-parent"    // 親から継承される値と同一 (背景色が同じ等)
-  | "viewport-dependent"// 一部の viewport でのみ検出
-  | "content-dependent" // overflow, wrap 等 — コンテンツ量に依存
-  | "media-scoped"      // @media 内で、テスト viewport に該当しない
-  | "dead-code"         // 他のルールで上書きされている / 対象要素が存在しない
+  | "hover-only"        // :hover, :focus, :active -- invisible in static screenshots
+  | "same-as-default"   // removal yields browser default
+  | "same-as-parent"    // same as inherited value (e.g. matching background)
+  | "viewport-dependent"// detected only at some viewports
+  | "content-dependent" // overflow, wrap, etc. -- depends on content size
+  | "media-scoped"      // inside @media not matching test viewport
+  | "dead-code"         // overridden by another rule / target element missing
   | "unknown";
 
 export interface ViewportDetectionResult {
@@ -176,7 +176,7 @@ const OUT_OF_SCOPE_PROPS = new Set([
   "animation-fill-mode", "animation-play-state",
 ]);
 
-/** animation 系プロパティはスコープ外（別手法で対応予定） */
+/** Animation properties are out of scope */
 export function isOutOfScope(property: string): boolean {
   return OUT_OF_SCOPE_PROPS.has(property);
 }

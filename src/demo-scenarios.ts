@@ -2,10 +2,10 @@
 /**
  * VRT Multi-Scenario Demo
  *
- * 3つの複雑なシナリオを順に実行:
- *   Scenario A: リファクタでラベル消失 → AI 診断 → 修正 → 検証
- *   Scenario B: 機能追加の a11y 不備 → 指摘 → 再実装 → 検証
- *   Scenario C: カスケード修正 (role 変更 → 修正 → 別の問題発生 → 再修正)
+ * Runs 3 complex scenarios sequentially:
+ *   Scenario A: Refactor causes label loss -> AI diagnose -> fix -> verify
+ *   Scenario B: Feature addition with a11y issues -> flag -> re-implement -> verify
+ *   Scenario C: Cascade fix (role change -> fix -> new issue -> re-fix)
  *
  * Usage: ANTHROPIC_API_KEY=sk-ant-... npx tsx vrt/src/demo-scenarios.ts
  */

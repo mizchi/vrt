@@ -1,84 +1,84 @@
-# Reset CSS 比較 — VRT による実測データ
+# Reset CSS Comparison — Empirical Data from VRT
 
-## 概要
+## Overview
 
-normalize.css をベースラインとして、3 つの reset CSS variant を VRT で比較した。
-共通の HTML コンテンツ (見出し、リスト、フォーム、テーブル、画像、footer) に、同一のアプリケーション CSS を適用。
+Compared 3 reset CSS variants using VRT with normalize.css as baseline.
+Applied the same application CSS to shared HTML content (headings, lists, forms, tables, images, footer).
 
-## 比較結果
+## Comparison Results
 
-| Variant | diff (desktop) | diff (mobile) | drop-in 置換 |
-|---------|---------------|---------------|-------------|
-| **modern-normalize** | 0.9% | 2.6% | ✓ 可能 (1行修正) |
-| **no-reset** (ブラウザデフォルト) | 1.7% | 3.6% | △ 条件付き |
-| **destyle** | 6.8% | 12.0% | ✗ 不可 |
+| Variant | diff (desktop) | diff (mobile) | Drop-in replacement |
+|---------|---------------|---------------|---------------------|
+| **modern-normalize** | 0.9% | 2.6% | ✓ Possible (1 line fix) |
+| **no-reset** (browser default) | 1.7% | 3.6% | △ Conditional |
+| **destyle** | 6.8% | 12.0% | ✗ Not possible |
 
-## 各 variant の差分原因
+## Diff Causes per Variant
 
 ### normalize.css → modern-normalize
 
-**diff: 0.9-2.6%** — 最も近い。
+**diff: 0.9-2.6%** — Closest match.
 
-差分の原因:
-1. **`box-sizing: border-box` のグローバル適用** — modern-normalize は `*, ::before, ::after` に `border-box` を設定。normalize.css はしない。form 要素 (input, textarea) の幅が border + padding 分変わる
-2. **`h1` の margin** — normalize.css は `h1 { margin: 0.67em 0 }` を設定。modern-normalize はこれを持たない。アプリ CSS が `margin-bottom` のみ設定している場合、`margin-top` が異なる
+Diff causes:
+1. **Global `box-sizing: border-box` application** — modern-normalize sets `border-box` on `*, ::before, ::after`. normalize.css doesn't. Form element (input, textarea) widths change by border + padding
+2. **`h1` margin** — normalize.css sets `h1 { margin: 0.67em 0 }`. modern-normalize doesn't. When app CSS only specifies `margin-bottom`, `margin-top` differs
 
-修正 (0% にするため):
+Fix (to reach 0%):
 ```css
-/* normalize → modern-normalize 移行時に追加 */
+/* Add when migrating normalize → modern-normalize */
 h1 { margin-top: 0.67em; }
 ```
 
-box-sizing の差は一般的に modern-normalize の方が正しい (CSS の現代的なベストプラクティス)。
-意図的な差異として approve するのが妥当。
+The box-sizing difference generally favors modern-normalize (modern CSS best practice).
+Approving as an intentional difference is reasonable.
 
-### normalize.css → ブラウザデフォルト (no-reset)
+### normalize.css → browser default (no-reset)
 
-**diff: 1.7-3.6%** — moderate。
+**diff: 1.7-3.6%** — Moderate.
 
-差分の原因:
-1. **form 要素の font** — normalize.css は `font-family: inherit; font-size: 100%; line-height: 1.15` を設定。ブラウザデフォルトでは input/select に独自のフォントが使われる
-2. **`h1` の margin** — ブラウザデフォルトの h1 margin は normalize の `0.67em` より大きい
-3. **`pre` のフォント** — normalize.css の `font-family: monospace, monospace` (ダブルでブラウザの quirk を回避) がない
-4. **`hr` の box-sizing** — normalize.css が明示的に `content-box` を設定
+Diff causes:
+1. **Form element fonts** — normalize.css sets `font-family: inherit; font-size: 100%; line-height: 1.15`. Browser defaults use proprietary fonts for input/select
+2. **`h1` margin** — Browser default h1 margin is larger than normalize's `0.67em`
+3. **`pre` font** — normalize.css's `font-family: monospace, monospace` (doubled to work around browser quirk) is absent
+4. **`hr` box-sizing** — normalize.css explicitly sets `content-box`
 
 ### normalize.css → destyle
 
-**diff: 6.8-12.0%** — 大幅に異なる。**drop-in 置換は不可能。**
+**diff: 6.8-12.0%** — Significantly different. **Drop-in replacement is not possible.**
 
-差分の原因:
-1. **`list-style: none`** — リストマーカー (・, 1. 2. 3.) がすべて消える。アプリ CSS が `list-style` を設定していない限り、リストがプレーンテキストになる
-2. **heading のリセット** — `font-size: inherit; font-weight: inherit` で見出しが本文と同じサイズ/太さになる。アプリ CSS で明示的に設定していれば問題ないが、normalize.css のデフォルトに依存しているセレクタが壊れる
-3. **`appearance: none`** — checkbox, radio, select のネイティブ描画が消える。カスタム form コンポーネントを使っている場合のみ許容される
-4. **`margin: 0` on all elements** — p, blockquote, pre, table, form のデフォルト margin がゼロになる。アプリ CSS が `margin-bottom` のみ設定している場合、`margin-top` の差が累積する
-5. **`text-decoration: none` on `a`** — リンクの下線が消える
+Diff causes:
+1. **`list-style: none`** — All list markers (bullets, 1. 2. 3.) disappear. Unless app CSS sets `list-style`, lists become plain text
+2. **Heading reset** — `font-size: inherit; font-weight: inherit` makes headings the same size/weight as body text. No problem if app CSS explicitly sets them, but selectors depending on normalize.css defaults break
+3. **`appearance: none`** — Native rendering of checkbox, radio, select disappears. Only acceptable when using custom form components
+4. **`margin: 0` on all elements** — Default margins of p, blockquote, pre, table, form become zero. When app CSS only sets `margin-bottom`, `margin-top` differences accumulate
+5. **`text-decoration: none` on `a`** — Link underlines disappear
 
-destyle は normalize.css の代替ではなく、CSS をゼロから書く前提の opinionated reset。normalize.css からの移行には、normalize.css が提供していたすべてのデフォルトをアプリ CSS に移す必要がある。
+destyle is not a normalize.css alternative but an opinionated reset that assumes writing CSS from scratch. Migrating from normalize.css requires moving all defaults provided by normalize.css into app CSS.
 
-## 推奨
+## Recommendations
 
 ### normalize.css → modern-normalize
 
-**推奨**。同じ哲学 (normalize, not reset)。差異は `box-sizing` と `h1` margin のみ。
+**Recommended**. Same philosophy (normalize, not reset). Differences are only `box-sizing` and `h1` margin.
 
-移行チェックリスト:
-1. `h1 { margin-top: 0.67em }` を追加 (または既にアプリ CSS で margin を明示指定していれば不要)
-2. `box-sizing: border-box` で form 要素の幅が変わらないか確認
-3. VRT で全 viewport をチェック
+Migration checklist:
+1. Add `h1 { margin-top: 0.67em }` (unnecessary if app CSS already explicitly specifies margin)
+2. Verify form element widths aren't affected by `box-sizing: border-box`
+3. Check all viewports with VRT
 
 ### normalize.css → destyle
 
-**非推奨 (drop-in)**。移行する場合は:
-1. リストに `list-style` を追加
-2. 見出しに `font-size` / `font-weight` を追加
-3. form 要素に `appearance: auto` を追加 (ネイティブ描画が必要な場合)
-4. リンクに `text-decoration: underline` を追加
-5. 全ブロック要素に margin を明示指定
+**Not recommended (for drop-in)**. If migrating:
+1. Add `list-style` to lists
+2. Add `font-size` / `font-weight` to headings
+3. Add `appearance: auto` to form elements (if native rendering needed)
+4. Add `text-decoration: underline` to links
+5. Explicitly specify margins on all block elements
 
-これは normalize.css を再実装するのとほぼ同義。destyle を採用するなら、最初から destyle 前提で CSS を書くべき。
+This is essentially reimplementing normalize.css. If adopting destyle, CSS should be written with destyle in mind from the start.
 
-## VRT の知見
+## VRT Findings
 
-- **mobile では差分が増大する** — responsive CSS の差異 + 垂直方向の累積ズレ
-- **breakpoint 境界 (640px ±1) のテストが重要** — media query の切り替わりで差分が変わる
-- **form 要素が最も差分に敏感** — reset CSS の違いが最も影響するのは input/select/textarea
+- **Diffs increase on mobile** — responsive CSS differences + cumulative vertical shift
+- **Testing at breakpoint boundaries (640px ±1) is important** — diffs change at media query transitions
+- **Form elements are most sensitive to diffs** — reset CSS differences have the most impact on input/select/textarea

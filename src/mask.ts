@@ -1,16 +1,16 @@
 /**
- * VRT Mask — スクリーンショット撮影前に特定セレクタを不可視にする
+ * VRT Mask -- hide specific selectors before screenshotting.
  *
- * visibility: hidden でレイアウトを維持したまま描画だけ消す。
- * 動的コンテンツ (カウンタ, アニメーション, 広告等) の false positive を防ぐ。
+ * Uses visibility: hidden to preserve layout while hiding rendering.
+ * Prevents false positives from dynamic content (counters, animations, ads).
  */
 import type { Page } from "playwright";
 
 const MASK_STYLE_ID = "__vrt-mask-style__";
 
 /**
- * ページにマスクスタイルを注入する。
- * 対象セレクタの要素を visibility: hidden にし、子孫も含めて不可視にする。
+ * Inject mask styles into the page.
+ * Sets visibility: hidden on target selectors including descendants.
  */
 export async function applyMask(page: Page, selectors: string[]): Promise<void> {
   if (selectors.length === 0) return;
@@ -23,8 +23,8 @@ export async function applyMask(page: Page, selectors: string[]): Promise<void> 
 }
 
 /**
- * CLI の --mask フラグからセレクタ配列をパースする。
- * カンマ区切りまたは複数 --mask フラグに対応。
+ * Parse selector array from CLI --mask flags.
+ * Supports comma-separated or multiple --mask flags.
  *
  * --mask ".stars,.carousel"
  * --mask ".stars" --mask ".carousel"

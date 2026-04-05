@@ -1,8 +1,8 @@
 /**
- * vrt API 型定義
+ * vrt API type definitions
  *
- * CLI, サーバー (Hono), Cloudflare Workers, Client SDK の共通型。
- * ここが全てのインターフェースの source of truth。
+ * Shared types for CLI, server (Hono), Cloudflare Workers, and Client SDK.
+ * This is the source of truth for all interfaces.
  */
 
 // ---- Viewport ----
@@ -16,63 +16,63 @@ export interface Viewport {
 // ---- Compare API ----
 
 export interface CompareRequest {
-  /** HTML ベースライン */
+  /** HTML baseline */
   baseline: HtmlSource;
-  /** HTML 比較対象 */
+  /** HTML to compare */
   current: HtmlSource;
-  /** viewport 指定 (省略時は breakpoint 自動発見) */
+  /** Viewport spec (auto-discovers breakpoints if omitted) */
   viewports?: Viewport[];
-  /** breakpoint 自動発見オプション */
+  /** Breakpoint auto-discovery options */
   discover?: DiscoverOptions;
-  /** 許容差分ルール */
+  /** Approval rules for acceptable diffs */
   approval?: ApprovalRule[];
-  /** レンダリングバックエンド */
+  /** Rendering backend */
   backend?: "chromium" | "crater" | "prescanner";
-  /** 追加オプション */
+  /** Additional options */
   options?: CompareOptions;
 }
 
 export interface HtmlSource {
   /** inline HTML */
   html?: string;
-  /** URL (サーバーサイドで fetch) */
+  /** URL (fetched server-side) */
   url?: string;
-  /** ラベル (レポート用) */
+  /** Label (for reports) */
   label?: string;
 }
 
 export interface DiscoverOptions {
-  /** breakpoint 発見バックエンド */
+  /** Breakpoint discovery backend */
   backend?: "regex" | "crater" | "auto";
-  /** ランダムサンプル数 */
+  /** Number of random samples */
   randomSamples?: number;
-  /** viewport 上限 */
+  /** Max viewports */
   maxViewports?: number;
 }
 
 export interface CompareOptions {
   /** pixel diff threshold (0-1) */
   threshold?: number;
-  /** computed style diff を含める */
+  /** Include computed style diff */
   computedStyle?: boolean;
-  /** hover emulation を含める */
+  /** Include hover emulation */
   hoverEmulation?: boolean;
-  /** paint tree diff を含める (crater only) */
+  /** Include paint tree diff (crater only) */
   paintTree?: boolean;
-  /** a11y tree diff を含める */
+  /** Include a11y tree diff */
   a11y?: boolean;
-  /** heatmap 画像を生成 */
+  /** Generate heatmap image */
   generateHeatmap?: boolean;
-  /** VLM reasoning (画像認識で diff を分析) */
+  /** VLM reasoning (analyze diff via image recognition) */
   vlmReasoning?: VlmReasoningOptions;
 }
 
 export interface VlmReasoningOptions {
-  /** モデル tier: free, cheap, mid, premium */
+  /** Model tier: free, cheap, mid, premium */
   tier?: "free" | "cheap" | "mid" | "premium";
-  /** 特定のモデル ID */
+  /** Specific model ID */
   model?: string;
-  /** カスタムプロンプト */
+  /** Custom prompt */
   prompt?: string;
   /** max tokens */
   maxTokens?: number;
@@ -89,8 +89,7 @@ export interface VlmReasoningResult {
 // ---- Reasoning Pipeline API ----
 
 export interface ReasoningPipelineRequest {
-  /** heatmap PNG (base64) */
-  heatmapBase64?: string;
+  /** heatmap PNG (base64) */  heatmapBase64?: string;
   /** baseline screenshot (base64) */
   baselineBase64?: string;
   /** current screenshot (base64) */
@@ -140,13 +139,13 @@ export interface ReasoningPipelineResponse {
 }
 
 export interface CompareResponse {
-  /** 全体の判定 */
+  /** Overall verdict */
   status: "pass" | "fail" | "approved";
-  /** viewport ごとの結果 */
+  /** Per-viewport results */
   viewports: ViewportResult[];
-  /** 発見された breakpoint */
+  /** Discovered breakpoints */
   breakpoints?: BreakpointInfo[];
-  /** メタ情報 */
+  /** Metadata */
   meta: CompareMeta;
 }
 
@@ -154,19 +153,19 @@ export interface ViewportResult {
   viewport: Viewport;
   /** pixel diff */
   pixelDiff: PixelDiffResult;
-  /** computed style diff (オプション) */
+  /** computed style diff (optional) */
   computedStyleDiff?: ComputedStyleDiffResult;
-  /** paint tree diff (crater, オプション) */
+  /** paint tree diff (crater, optional) */
   paintTreeDiff?: PaintTreeDiffResult;
-  /** a11y diff (オプション) */
+  /** a11y diff (optional) */
   a11yDiff?: A11yDiffResult;
-  /** hover diff (オプション) */
+  /** hover diff (optional) */
   hoverDiff?: HoverDiffResult;
-  /** approval で承認された差分 */
+  /** Diffs approved by rules */
   approvedDiffs?: ApprovedDiff[];
-  /** VLM reasoning (画像認識による分析) */
+  /** VLM reasoning (image recognition analysis) */
   vlmReasoning?: VlmReasoningResult;
-  /** この viewport の判定 */
+  /** Verdict for this viewport */
   status: "pass" | "fail" | "approved";
 }
 
@@ -174,9 +173,9 @@ export interface PixelDiffResult {
   diffPixels: number;
   totalPixels: number;
   diffRatio: number;
-  /** heatmap 画像 (base64 PNG, generateHeatmap 時) */
+  /** heatmap image (base64 PNG, when generateHeatmap is set) */
   heatmapBase64?: string;
-  /** diff 領域 */
+  /** Diff regions */
   regions: DiffRegion[];
 }
 
@@ -239,7 +238,7 @@ export interface ApprovedDiff {
 export interface BreakpointInfo {
   value: number;
   type: "min-width" | "max-width";
-  /** canonical 形式 */
+  /** Canonical form */
   op?: "ge" | "gt" | "le" | "lt";
 }
 
@@ -255,7 +254,7 @@ export interface CompareMeta {
 
 export interface BatchCompareRequest {
   baseline: HtmlSource;
-  /** CSS mutation リスト */
+  /** CSS mutation list */
   mutations: CssMutation[];
   viewports?: Viewport[];
   discover?: DiscoverOptions;
@@ -265,9 +264,9 @@ export interface BatchCompareRequest {
 
 export interface CssMutation {
   id: string;
-  /** セレクタ + プロパティの削除 */
+  /** Remove selector + property */
   remove?: { selector: string; property?: string };
-  /** CSS テキストの置換 */
+  /** Replace CSS text */
   replaceCss?: { original: string; replacement: string };
 }
 
@@ -285,13 +284,13 @@ export interface BatchMutationResult {
 // ---- Approval API ----
 
 export interface ApprovalRule {
-  /** マッチ条件 */
+  /** Match conditions */
   selector?: string;
   property?: string;
   category?: string;
   changeType?: string;
 
-  /** 許容条件 */
+  /** Tolerance conditions */
   tolerance?: {
     pixels?: number;
     ratio?: number;
@@ -299,7 +298,7 @@ export interface ApprovalRule {
     colorDelta?: number;
   };
 
-  /** メタ */
+  /** Metadata */
   reason: string;
   issue?: string;
   expires?: string;
@@ -312,45 +311,45 @@ export interface ApprovalManifest {
 // ---- Smoke Test API ----
 
 export interface SmokeTestRequest {
-  /** テスト対象 */
+  /** Test target */
   target: HtmlSource;
-  /** 操作モード */
+  /** Operation mode */
   mode: "random" | "reasoning";
-  /** 最大操作数 */
+  /** Max number of actions */
   maxActions?: number;
-  /** ランダム seed (再現用) */
+  /** Random seed (for reproducibility) */
   seed?: number;
-  /** 外部ナビゲーションをブロック */
+  /** Block external navigation */
   blockExternalNavigation?: boolean;
-  /** LLM provider (reasoning モード) */
+  /** LLM provider (reasoning mode) */
   llmProvider?: string;
 }
 
 export interface SmokeTestResponse {
-  /** 全体の判定 */
+  /** Overall verdict */
   status: "pass" | "crash" | "error";
-  /** 実行した操作列 */
+  /** Executed actions */
   actions: SmokeAction[];
-  /** 検出したエラー */
+  /** Detected errors */
   errors: SmokeError[];
-  /** 各ステップの a11y スナップショット */
+  /** Per-step a11y snapshots */
   snapshots?: A11ySnapshot[];
   meta: SmokeTestMeta;
 }
 
 export interface SmokeAction {
   step: number;
-  /** 操作対象 */
+  /** Target element */
   target: {
     role: string;
     name: string;
     selector?: string;
   };
-  /** 操作種別 */
+  /** Action type */
   action: "click" | "type" | "check" | "uncheck" | "select" | "hover" | "focus";
-  /** 入力値 (type, select) */
+  /** Input value (for type, select) */
   value?: string;
-  /** 操作後の状態 */
+  /** Post-action result */
   result: "ok" | "error" | "navigation" | "timeout";
   elapsedMs: number;
 }

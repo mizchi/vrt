@@ -1,128 +1,128 @@
-# VRT (Visual Regression Testing) + AI 調査メモ
+# VRT (Visual Regression Testing) + AI Research Notes
 
-## 動機
+## Motivation
 
-VRT で検出した差分を AI でリーズニングし、自己修復を行うアーキテクチャを検討する。
-ただしコストが高いため、以下で最適化したい:
+Investigate an architecture that uses AI to reason about diffs detected by VRT and perform self-healing.
+Since this is expensive, we want to optimize with the following:
 
-1. **依存ツリー解析** — 変更の影響範囲を絞り込み、スナップショット対象を最小化
-2. **意図とのすり合わせ** — commit/PR の変更意図と視覚差分を照合し、期待通りの変更を自動承認
+1. **Dependency tree analysis** — Narrow down the scope of impact from changes, minimizing snapshot targets
+2. **Intent matching** — Cross-reference the change intent from commits/PRs with visual diffs, auto-approving expected changes
 
 ---
 
-## 1. 既存ツール・プラグインの状況
+## 1. Existing Tools/Plugins Landscape
 
-### AI-Powered VRT (商用)
+### AI-Powered VRT (Commercial)
 
-| ツール | アプローチ | 特徴 |
-|--------|-----------|------|
-| **Applitools Eyes** | 独自 Visual AI (CV ベース) | UI をセマンティックに理解。レンダリングノイズを無視。最も成熟 |
-| **Percy Visual Review Agent** (BrowserStack) | スマートハイライト + 説明文生成 | 「ヘッダーが4px左にずれた」等の自然言語差分。偽陽性40%削減。人間承認は必要 |
-| **Meticulous AI** | セッションリプレイ | ユーザ操作を記録→再生。静的スクリーンショットではなくフロー単位 |
-| **TestMu SmartUI** | ピクセル + ヒューリスティクス | ルールベースの Smart Ignore (フォントレンダリング等) |
+| Tool | Approach | Features |
+|------|----------|----------|
+| **Applitools Eyes** | Proprietary Visual AI (CV-based) | Understands UI semantically. Ignores rendering noise. Most mature |
+| **Percy Visual Review Agent** (BrowserStack) | Smart highlight + description generation | Natural language diffs like "header shifted 4px left". 40% false positive reduction. Human approval still needed |
+| **Meticulous AI** | Session replay | Records user operations → replays. Flow-based, not static screenshots |
+| **TestMu SmartUI** | Pixel + heuristics | Rule-based Smart Ignore (font rendering, etc.) |
 
-### 依存ツリー対応 VRT
+### Dependency Tree-Aware VRT
 
-| ツール | アプローチ | 特徴 |
-|--------|-----------|------|
-| **Chromatic TurboSnap** | Webpack/Vite Stats → モジュール依存グラフ | 変更ファイル → 影響 Story をマッピング。60-90% のスナップショット削減。**唯一の実装** |
+| Tool | Approach | Features |
+|------|----------|----------|
+| **Chromatic TurboSnap** | Webpack/Vite Stats → module dependency graph | Maps changed files → affected Stories. 60-90% snapshot reduction. **Only implementation** |
 
-### OSS VRT ツール (ピクセルベース)
+### OSS VRT Tools (Pixel-based)
 
 - **Playwright** built-in VRT (pixelmatch)
-- **Lost Pixel** — Storybook/Ladle 対応
-- **BackstopJS** — ビューポート/シナリオ設定
-- **reg-suit / reg-cli** — CI 統合・レポート生成
-- **Visual-Regression-Tracker** — セルフホスト。実験的 VLM サポートあり
+- **Lost Pixel** — Storybook/Ladle support
+- **BackstopJS** — Viewport/scenario configuration
+- **reg-suit / reg-cli** — CI integration, report generation
+- **Visual-Regression-Tracker** — Self-hosted. Experimental VLM support
 
-### ギャップ (未開拓領域)
+### Gaps (Unexplored Areas)
 
-1. **LLM ベース VRT リーズニング**: スクリーンショット差分を Vision LLM に送り判定する OSS ツールは**存在しない**
-2. **依存ツリー対応 VRT**: Chromatic TurboSnap の独占。Vite 単独や任意フレームワークで使える OSS 代替なし
-3. **Intent-aware VRT**: コミットメッセージ/PR 記述から変更意図を抽出し、視覚差分と照合する仕組みは**完全に未開拓**
+1. **LLM-based VRT reasoning**: No OSS tool sends screenshot diffs to a Vision LLM for judgment
+2. **Dependency tree-aware VRT**: Chromatic TurboSnap monopoly. No OSS alternative for standalone Vite or arbitrary frameworks
+3. **Intent-aware VRT**: Extracting change intent from commit messages/PR descriptions and cross-referencing with visual diffs is **completely unexplored**
 
 ---
 
-## 2. 関連論文
+## 2. Related Papers
 
-### VRT 方法論・最適化
+### VRT Methodology/Optimization
 
 - Moradi et al. (2024) — **"AI for Context-Aware Visual Change Detection"** [arXiv:2405.00874](https://arxiv.org/abs/2405.00874)
-  - YOLOv5 で UI コントロールを検出 → グラフ構築 → 空間的文脈から意味のある変更を判定。ピクセル/リージョン比較より優秀
+  - Detects UI controls with YOLOv5 → builds graph → determines meaningful changes from spatial context. Superior to pixel/region comparison
 - Web Application Testing Survey (2024) [arXiv:2412.10476](https://arxiv.org/abs/2412.10476)
-  - 2014-2023 の Web テスト研究サーベイ
+  - Survey of web testing research 2014-2023
 
-### 依存対応テスト選択
+### Dependency-Aware Test Selection
 
-- **DIRTS** (ICST 2023) — DI フレームワーク対応の Regression Test Selection
-- **Lam et al.** (ISSTA 2020) — 順序依存テストの優先付け・選択・並列化。依存対応アルゴリズムで失敗 80% 削減
-- **CORTS/C2RTS** (2025, J. Systems Architecture) — コンポーネントベース RTS。モジュールレベル依存グラフ
+- **DIRTS** (ICST 2023) — DI framework-aware Regression Test Selection
+- **Lam et al.** (ISSTA 2020) — Order-dependent test prioritization, selection, and parallelization. 80% failure reduction with dependency-aware algorithms
+- **CORTS/C2RTS** (2025, J. Systems Architecture) — Component-based RTS. Module-level dependency graphs
 
-### Self-Healing テスト自動化
+### Self-Healing Test Automation
 
 - Chede & Tijare (2025, IJRASET) — **"AI-Driven Self-Healing UI Testing with Visual Proof"**
-  - DOM ベースのヒーリングとセマンティック視覚検証の統合
-- Self-Healing Test Automation with AI/ML (2024) — RL + 画像認識 + 動的ロケータ
-- **SHML** (NeurIPS 2024) [arXiv:2411.00186](https://arxiv.org/abs/2411.00186) — 自律的診断・修復フレームワーク
+  - Integration of DOM-based healing and semantic visual verification
+- Self-Healing Test Automation with AI/ML (2024) — RL + image recognition + dynamic locators
+- **SHML** (NeurIPS 2024) [arXiv:2411.00186](https://arxiv.org/abs/2411.00186) — Autonomous diagnosis/repair framework
 
-### LLM/Vision モデル × テスト
+### LLM/Vision Models × Testing
 
-- **Wang et al.** (TSE 2024) — LLM × ソフトウェアテスト 102 研究のサーベイ [arXiv:2307.07221](https://arxiv.org/abs/2307.07221)
-- **VisionDroid** (2024) [arXiv:2407.03037](https://arxiv.org/abs/2407.03037) — マルチモーダル LLM で GUI 探索 + 非クラッシュバグ検出
-- **Make LLM a Testing Expert** (ICSE 2024) — 機能認識に基づくモバイル GUI テスト
-- **RepairAgent** (ICSE 2025) — LLM ベースの自律プログラム修復エージェント
-- Yu et al. (ACM Computing Surveys, 2025) — Vision-Based Mobile GUI Testing サーベイ [arXiv:2310.13518](https://arxiv.org/abs/2310.13518)
+- **Wang et al.** (TSE 2024) — Survey of 102 studies on LLM × software testing [arXiv:2307.07221](https://arxiv.org/abs/2307.07221)
+- **VisionDroid** (2024) [arXiv:2407.03037](https://arxiv.org/abs/2407.03037) — Multimodal LLM for GUI exploration + non-crash bug detection
+- **Make LLM a Testing Expert** (ICSE 2024) — Functionality-aware mobile GUI testing
+- **RepairAgent** (ICSE 2025) — LLM-based autonomous program repair agent
+- Yu et al. (ACM Computing Surveys, 2025) — Vision-Based Mobile GUI Testing survey [arXiv:2310.13518](https://arxiv.org/abs/2310.13518)
 
-### 参考リポジトリ
+### Reference Repositories
 
-- [LLM4SoftwareTesting](https://github.com/LLM-Testing/LLM4SoftwareTesting) — LLM × テスト論文キュレーション
-- [GUI-Agents-Paper-List](https://github.com/OSU-NLP-Group/GUI-Agents-Paper-List) — GUI エージェント論文一覧
+- [LLM4SoftwareTesting](https://github.com/LLM-Testing/LLM4SoftwareTesting) — Curated LLM × testing papers
+- [GUI-Agents-Paper-List](https://github.com/OSU-NLP-Group/GUI-Agents-Paper-List) — GUI agent paper list
 
 ---
 
-## 3. 考察: 本プロジェクトへの適用可能性
+## 3. Discussion: Applicability to This Project
 
-### 構想: 依存ツリー + Intent-aware + AI リーズニングの統合
+### Vision: Integration of Dependency Tree + Intent-Aware + AI Reasoning
 
 ```
 Code Change
     │
-    ├─ 1. 依存ツリー解析 (低コスト)
-    │     Vite モジュールグラフ / コンポーネント import 解析
-    │     → 影響を受けるコンポーネント/ページを特定
-    │     → VRT スナップショット対象を最小化 (TurboSnap 相当)
+    ├─ 1. Dependency tree analysis (low cost)
+    │     Vite module graph / component import analysis
+    │     → Identify affected components/pages
+    │     → Minimize VRT snapshot targets (TurboSnap equivalent)
     │
-    ├─ 2. Intent 抽出 (低〜中コスト)
-    │     commit message / PR description を LLM でパース
-    │     → 「ボタンの色を青→緑に変更」等の期待変更を構造化
+    ├─ 2. Intent extraction (low-medium cost)
+    │     Parse commit message / PR description with LLM
+    │     → Structurize expectations like "change button color from blue to green"
     │
-    ├─ 3. VRT 実行 (中コスト)
-    │     最小化されたスナップショット対象のみ撮影・比較
+    ├─ 3. VRT execution (medium cost)
+    │     Capture and compare only minimized snapshot targets
     │
-    └─ 4. AI リーズニング (高コスト、条件付き)
-          Intent と一致する差分 → 自動承認
-          Intent と不一致 or 予期しない差分 → Vision LLM で分析
-          → 修復提案 or 人間レビューにエスカレート
+    └─ 4. AI reasoning (high cost, conditional)
+          Diffs matching intent → auto-approve
+          Diffs not matching intent or unexpected → analyze with Vision LLM
+          → Suggest repair or escalate to human review
 ```
 
-### コスト最適化のポイント
+### Cost Optimization Points
 
-1. **段階的フィルタリング**: 依存ツリー → Intent 照合 → AI 判定 の順で、安価なフィルタから先に適用
-2. **AI 呼び出しの最小化**: 全差分を LLM に送るのではなく、自動承認できないものだけを AI に渡す
-3. **キャッシュ**: 同一コンポーネントの類似差分パターンをキャッシュし、再判定を回避
+1. **Staged filtering**: Apply cheap filters first in order: dependency tree → intent matching → AI judgment
+2. **Minimize AI calls**: Don't send all diffs to LLM; only pass those that can't be auto-approved
+3. **Caching**: Cache similar diff patterns for the same component to avoid re-evaluation
 
-### 技術的課題
+### Technical Challenges
 
-- Vite モジュールグラフの取得方法 (TurboSnap は Webpack Stats API 依存)
-- Intent 抽出の精度 (自然言語→構造化された期待変更の変換)
-- Vision LLM のコスト vs 精度のトレードオフ
-- self-healing の信頼性 (自動修復が意図しない変更を入れるリスク)
+- How to obtain the Vite module graph (TurboSnap depends on Webpack Stats API)
+- Accuracy of intent extraction (converting natural language → structured expected changes)
+- Cost vs accuracy tradeoff of Vision LLM
+- Reliability of self-healing (risk of automated fixes introducing unintended changes)
 
 ---
 
-## 4. 次のステップ
+## 4. Next Steps
 
-- [ ] Vite プラグインとしての依存ツリー取得 PoC
-- [ ] Playwright VRT + LLM リーズニングの最小プロトタイプ
-- [ ] Intent 抽出プロンプトの設計
-- [ ] コスト試算 (スナップショット数 × LLM API コスト)
+- [ ] PoC for dependency tree retrieval as a Vite plugin
+- [ ] Minimal prototype of Playwright VRT + LLM reasoning
+- [ ] Design intent extraction prompts
+- [ ] Cost estimation (snapshot count × LLM API cost)

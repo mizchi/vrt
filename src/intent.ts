@@ -12,7 +12,7 @@ import type {
 const execFileAsync = promisify(execFile);
 
 /**
- * git diff を解析して構造化された変更情報を返す
+ * Parse git diff and return structured change information.
  */
 export async function extractDiffSemantics(
   repoDir: string,
@@ -37,7 +37,7 @@ export async function extractDiffSemantics(
 }
 
 /**
- * unified diff をパースして FileChange[] に変換
+ * Parse unified diff into FileChange[].
  */
 export function parseDiff(diffText: string): FileChange[] {
   const files: FileChange[] = [];
@@ -95,8 +95,8 @@ export function parseDiff(diffText: string): FileChange[] {
 }
 
 /**
- * 変更ファイルとコミットメッセージから変更意図を推測する
- * (LLM 不使用の軽量版。LLM 版は buildIntentWithLLM を使用)
+ * Infer change intent from files and commit message.
+ * Lightweight version without LLM. See buildIntentWithLLM for LLM version.
  */
 export function buildIntent(
   files: FileChange[],
@@ -140,7 +140,7 @@ function isComponentFile(path: string): boolean {
 }
 
 /**
- * 変更内容から期待される視覚的変化を推測する (ヒューリスティック版)
+ * Infer expected visual changes from file changes (heuristic version).
  */
 function inferVisualExpectations(
   files: FileChange[],
@@ -149,7 +149,7 @@ function inferVisualExpectations(
 ): VisualExpectation[] {
   const expectations: VisualExpectation[] = [];
 
-  // refactor/deps は視覚変化なしが期待される
+  // refactor/deps: no visual change expected
   if (changeType === "refactor" || changeType === "deps") {
     for (const file of files) {
       if (isComponentFile(file.path)) {
@@ -166,7 +166,7 @@ function inferVisualExpectations(
   for (const file of files) {
     if (!isComponentFile(file.path)) continue;
 
-    // CSS/スタイル変更の検出
+    // Detect CSS/style changes
     const styleChanges = file.hunks.some(
       (h) =>
         /(?:style|css|className|color|font|margin|padding|border|background)/i.test(
@@ -182,7 +182,7 @@ function inferVisualExpectations(
       });
     }
 
-    // レイアウト変更の検出
+    // Detect layout changes
     const layoutChanges = file.hunks.some(
       (h) =>
         /(?:flex|grid|display|position|width|height|overflow)/i.test(h.content)
@@ -196,7 +196,7 @@ function inferVisualExpectations(
       });
     }
 
-    // テキスト/コンテンツ変更の検出
+    // Detect text/content changes
     const contentChanges = file.hunks.some(
       (h) =>
         /(?:text|label|title|heading|<h[1-6]|<p|<span|innerText)/i.test(
@@ -223,7 +223,7 @@ export interface LLMProvider {
 }
 
 /**
- * LLM を使って diff とコミットメッセージから Intent を構築する
+ * Build Intent from diff and commit message using LLM.
  */
 export async function buildIntentWithLLM(
   files: FileChange[],
@@ -279,7 +279,7 @@ Respond in JSON:
 // ---- Verdict Construction ----
 
 /**
- * VRT diff と Intent を照合し、差分の妥当性を判定するプロンプトを構築
+ * Build a reasoning prompt that validates VRT diff against Intent.
  */
 export function buildReasoningPrompt(
   diff: VrtDiff,

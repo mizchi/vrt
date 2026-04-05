@@ -1,62 +1,62 @@
 # E3: Reset CSS Blind Test
 
-**日付**: 2026-04-04
+**Date**: 2026-04-04
 
-## 実験設計
+## Experiment Design
 
-normalize.css → modern-normalize への移行をエージェントに行わせる。
+Have an agent perform a normalize.css → modern-normalize migration.
 
 - **Baseline**: `normalize.html` (normalize.css + app CSS)
-- **Target**: `modern-normalize-blind.html` (modern-normalize + 同じ app CSS)
-- エージェントには VRT diff 結果と fix candidates のみ提供
-- normalize.css の中身を直接読んで答えを探すことは禁止
+- **Target**: `modern-normalize-blind.html` (modern-normalize + same app CSS)
+- Agent is provided only VRT diff results and fix candidates
+- Directly reading normalize.css source to find the answer is forbidden
 
-## 結果
+## Results
 
-| | 初期 diff | 修正後 |
+| | Initial diff | After fix |
 |---|---|---|
 | wide (1440) | 0.9% | **0.0%** |
 | desktop (1280) | 1.0% | **0.0%** |
 | mobile (375) | 2.6% | **0.0%** |
 
-**1 ラウンド、6 tool calls (54 秒) で全 viewport 0.0% 達成。**
+**Achieved 0.0% across all viewports in 1 round, 6 tool calls (54 seconds).**
 
-## エージェントの修正
+## Agent's Fix
 
 ```css
-/* 追加した 1 行 */
+/* Added 1 line */
 *, *::before, *::after { box-sizing: content-box; }
 ```
 
-### 根本原因の特定
+### Root Cause Identification
 
-modern-normalize は `*, ::before, ::after { box-sizing: border-box }` をグローバルに設定するが、normalize.css はこれを持たない。
+modern-normalize globally sets `*, ::before, ::after { box-sizing: border-box }`, but normalize.css doesn't.
 
-box-sizing の違いにより:
-- padding が width に含まれる (border-box) vs 含まれない (content-box)
-- flex container の子要素の幅計算が変わる
-- 特に mobile (375px) で顕著 — 狭い viewport では padding 分の差が大きい
+The box-sizing difference causes:
+- padding included in width (border-box) vs not included (content-box)
+- Width calculation of flex container children changes
+- Especially prominent on mobile (375px) — padding difference is larger on narrow viewports
 
-### VRT ヒントの有用性
+### Usefulness of VRT Hints
 
-fix candidates の `header nav { display }` はミスリード — 実際の原因は box-sizing。
-エージェントは fix candidates ではなく、**diff の spatial pattern (layout-shift) から box-sizing の差異を推測**した。
+Fix candidates' `header nav { display }` was misleading — the actual cause was box-sizing.
+The agent inferred the box-sizing difference **from the spatial pattern of the diff (layout-shift)**, not from fix candidates.
 
-## Tailwind blind test との比較
+## Comparison with Tailwind Blind Test
 
-| | Tailwind → vanilla | Reset CSS 切り替え |
+| | Tailwind → vanilla | Reset CSS switch |
 |---|---|---|
-| 初期 diff (desktop) | 1.7% | 1.0% |
-| 初期 diff (mobile) | 36.7% | 2.6% |
-| 修正ラウンド | 3 | **1** |
+| Initial diff (desktop) | 1.7% | 1.0% |
+| Initial diff (mobile) | 36.7% | 2.6% |
+| Fix rounds | 3 | **1** |
 | Tool calls | 58 | **6** |
-| 時間 | 632s | **54s** |
-| 修正の複雑度 | 14 の line-height + 構造変更 | **1 行** |
+| Time | 632s | **54s** |
+| Fix complexity | 14 line-height changes + structural changes | **1 line** |
 
-Reset CSS 切り替えは Tailwind 移行より遥かに単純 (差分が小さく、根本原因が 1 つ)。
+Reset CSS switching is far simpler than Tailwind migration (smaller diff, single root cause).
 
-## E3 成功基準
+## E3 Success Criteria
 
-> 3 ラウンド以内に diff < 1%
+> diff < 1% within 3 rounds
 
-✅ **1 ラウンドで diff 0.0% — 基準を大幅に上回る。**
+✅ **0.0% diff in 1 round — far exceeding the criteria.**

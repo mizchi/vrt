@@ -111,7 +111,7 @@ function getParser(filePath: string): ImportParser | undefined {
 // ---- Graph Construction ----
 
 /**
- * 指定ディレクトリからソースファイルを走査し、依存グラフを構築する
+ * Scan source files in the given directory and build a dependency graph.
  */
 export async function buildDepGraph(
   rootDir: string,
@@ -234,8 +234,8 @@ function resolveImport(
 // ---- Affected Component Analysis ----
 
 /**
- * 変更されたファイルから、影響を受けるコンポーネントを特定する
- * BFS で依存グラフを逆方向に辿り、変更の波及先を検出
+ * Identify components affected by changed files.
+ * BFS traverses the dependency graph in reverse to detect propagation.
  */
 export function findAffectedComponents(
   graph: DepGraph,
@@ -298,7 +298,7 @@ export function findAffectedComponents(
 }
 
 /**
- * グラフの統計を返す
+ * Return graph statistics.
  */
 export function graphStats(graph: DepGraph) {
   const components = [...graph.nodes.values()].filter((n) => n.isComponent);

@@ -1,26 +1,26 @@
 /**
- * Playwright テストヘルパ: onlyOnFailure NL assertion
+ * Playwright test helper: onlyOnFailure NL assertion
  *
- * 通常のアサーションが失敗した場合のみ、Vision LLM を使って
- * スクリーンショット + a11y ツリーから修正ヒントを生成する。
+ * Uses Vision LLM to generate fix hints from screenshots + a11y tree
+ * only when regular assertions fail.
  *
- * コスト最適化:
- * - onlyOnFailure: true → テスト失敗時のみ発火
- * - dependsOn → dep graph で影響がなければスキップ
- * - キャッシュ → 同じアサーションを再実行しない
+ * Cost optimization:
+ * - onlyOnFailure: true -> fires only on test failure
+ * - dependsOn -> skip if unaffected via dep graph
+ * - cache -> don't re-run the same assertion
  */
 import type { Page } from "@playwright/test";
 import type { NlAssertion } from "./types.ts";
 import type { LLMProvider } from "./intent.ts";
 
 export interface NlAssertOptions {
-  /** テスト失敗時のみ発火 (default: true) */
+  /** Fire only on test failure (default: true) */
   onlyOnFailure?: boolean;
-  /** このアサーションが依存するソースファイル */
+  /** Source files this assertion depends on */
   dependsOn?: string[];
-  /** LLM プロバイダ */
+  /** LLM provider */
   llm?: LLMProvider;
-  /** 前回の結果をキャッシュするか */
+  /** Cache previous results */
   cache?: boolean;
 }
 
@@ -32,22 +32,22 @@ interface NlAssertResult {
   skipReason?: string;
 }
 
-// アサーション結果のキャッシュ
+// Assertion result cache
 const assertionCache = new Map<string, NlAssertResult>();
 
 /**
- * 自然言語でUIの状態をアサートする
+ * Assert UI state via natural language.
  *
  * @example
  * ```ts
  * test("home page", async ({ page }) => {
  *   await page.goto("/");
  *
- *   // 通常のアサーション
+ *   // Regular assertion
  *   await expect(page.getByRole("heading")).toBeVisible();
  *
- *   // NL assertion: テスト失敗時のみ発火
- *   await nlAssert(page, "ナビゲーションバーに5つ以上のリンクがある", {
+ *   // NL assertion: fires only on test failure
+ *   await nlAssert(page, "Navigation bar has 5+ links", {
  *     dependsOn: ["src/Header.tsx"],
  *   });
  * });
@@ -60,41 +60,41 @@ export async function nlAssert(
 ): Promise<NlAssertResult> {
   const { onlyOnFailure = true, dependsOn, llm, cache = true } = opts;
 
-  // キャッシュチェック
+  // Cache check
   const cacheKey = `${page.url()}:${assertion}`;
   if (cache && assertionCache.has(cacheKey)) {
     return assertionCache.get(cacheKey)!;
   }
 
-  // onlyOnFailure: テストが失敗していなければスキップ
+  // onlyOnFailure: skip if test hasn't failed
   if (onlyOnFailure) {
-    // Playwright のテスト状態を確認する方法がないため、
-    // 呼び出し元が try-catch で制御する前提
-    // このフラグは呼び出しパターンのガイドとして機能
+    // No way to check Playwright test state directly,
+    // caller controls via try-catch.
+    // This flag serves as a usage pattern guide.
   }
 
-  // LLM が利用できない場合はヒューリスティクスにフォールバック
+  // Fall back to heuristics if LLM is unavailable
   if (!llm) {
     const result = await heuristicAssert(page, assertion);
     if (cache) assertionCache.set(cacheKey, result);
     return result;
   }
 
-  // Vision LLM でアサーション
+  // Vision LLM assertion
   const result = await llmAssert(page, assertion, llm);
   if (cache) assertionCache.set(cacheKey, result);
   return result;
 }
 
 /**
- * ヒューリスティクスベースの NL assertion (LLM なし)
- * a11y ツリーのテキストマッチで簡易判定
+ * Heuristic-based NL assertion (no LLM).
+ * Simple text matching against a11y tree.
  */
 async function heuristicAssert(
   page: Page,
   assertion: string
 ): Promise<NlAssertResult> {
-  // a11y ツリーを取得
+  // Get a11y tree
   let a11yYaml: string;
   try {
     a11yYaml = await page.locator(":root").ariaSnapshot();
@@ -102,7 +102,7 @@ async function heuristicAssert(
     return { passed: false, reasoning: "Failed to get a11y snapshot" };
   }
 
-  // キーワード抽出
+  // Keyword extraction
   const keywords = assertion
     .toLowerCase()
     .split(/[\s、。が]+/)
@@ -112,13 +112,13 @@ async function heuristicAssert(
   const matched = keywords.filter((k) => a11yLower.includes(k));
   const ratio = matched.length / Math.max(keywords.length, 1);
 
-  // 数値チェック (「5つ以上」「3個」等)
+  // Numeric check (e.g. "5+ items", "3 elements")
   const numMatch = assertion.match(/(\d+)[つ個以上以下]/);
   let numCheckPassed = true;
   if (numMatch) {
     const expected = parseInt(numMatch[1], 10);
     const isAtLeast = assertion.includes("以上");
-    // a11y ツリー内の要素数を概算
+    // Approximate element count in a11y tree
     const elementCount = (a11yYaml.match(/- /g) || []).length;
     if (isAtLeast && elementCount < expected) numCheckPassed = false;
   }
@@ -135,18 +135,18 @@ async function heuristicAssert(
 }
 
 /**
- * Vision LLM でスクリーンショット + a11y ツリーからアサーション判定
+ * Vision LLM assertion from screenshot + a11y tree.
  */
 async function llmAssert(
   page: Page,
   assertion: string,
   llm: LLMProvider
 ): Promise<NlAssertResult> {
-  // スクリーンショット取得
+  // Capture screenshot
   const screenshot = await page.screenshot({ type: "png" });
   const base64 = screenshot.toString("base64");
 
-  // a11y ツリー取得
+  // Get a11y tree
   let a11yYaml = "";
   try {
     a11yYaml = await page.locator(":root").ariaSnapshot();
@@ -190,7 +190,7 @@ Respond in JSON:
 }
 
 /**
- * テスト失敗時のみ NL assertion を発火するラッパー
+ * Wrapper that fires NL assertions only on test failure.
  *
  * @example
  * ```ts
@@ -201,14 +201,14 @@ Respond in JSON:
  *     await expect(page.getByRole("form")).toBeVisible();
  *     await expect(page.getByLabel("Email")).toBeVisible();
  *   } catch (e) {
- *     // テスト失敗時のみ NL assertion で修正ヒントを取得
+ *     // Get fix hints via NL assertion only on failure
  *     const hint = await nlAssertOnFailure(page, [
- *       "フォームが表示されている",
- *       "全てのフィールドにラベルがある",
- *       "送信ボタンが有効である",
+ *       "Form is displayed",
+ *       "All fields have labels",
+ *       "Submit button is enabled",
  *     ]);
  *     console.log("Fix hints:", hint);
- *     throw e; // 元のエラーを再 throw
+ *     throw e; // re-throw original error
  *   }
  * });
  * ```
@@ -229,8 +229,8 @@ export async function nlAssertOnFailure(
 }
 
 /**
- * dep graph チェック付き NL assertion
- * 変更されたファイルが dependsOn に影響しなければスキップ
+ * NL assertion with dep graph check.
+ * Skips if changed files don't affect dependsOn.
  */
 export async function nlAssertWithDepCheck(
   page: Page,

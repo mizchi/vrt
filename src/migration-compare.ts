@@ -2,8 +2,8 @@
 /**
  * Migration VRT Compare
  *
- * 2つの HTML ファイルを複数 viewport でレンダリングし、pixel diff を取得する。
- * Reset CSS 切り替え、Tailwind → vanilla CSS 等の移行検証用。
+ * Renders two HTML files at multiple viewports and computes pixel diff.
+ * For validating migrations like reset CSS switching, Tailwind -> vanilla CSS, etc.
  *
  * Usage:
  *   npx tsx src/migration-compare.ts before.html after.html
@@ -102,7 +102,7 @@ export interface MigrationCompareOptions {
   baselineUrl?: string;
   /** URL mode: variant URLs */
   variantUrls?: string[];
-  /** マスクするセレクタ (visibility: hidden) */
+  /** Selectors to mask (visibility: hidden) */
   maskSelectors?: string[];
 }
 

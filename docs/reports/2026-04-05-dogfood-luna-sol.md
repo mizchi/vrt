@@ -1,21 +1,21 @@
-# E1: luna.mbt / sol.mbt Dogfooding レポート
+# E1: luna.mbt / sol.mbt Dogfooding Report
 
-**日付**: 2026-04-05
-**テスト**: VRT snapshot (URL → 複数 viewport キャプチャ) の false positive 率
+**Date**: 2026-04-05
+**Test**: VRT snapshot (URL → multi-viewport capture) false positive rate
 
-## テスト環境
+## Test Environment
 
-- luna.mbt: `npx serve dist/ -p 4200` (6 デモページ × 2 viewport = 12 スクリーンショット)
-- sol.mbt: `npx serve website/dist-docs/ -p 3000` (5 ドキュメントページ × 2 viewport = 10 スクリーンショット)
+- luna.mbt: `npx serve dist/ -p 4200` (6 demo pages × 2 viewports = 12 screenshots)
+- sol.mbt: `npx serve website/dist-docs/ -p 3000` (5 doc pages × 2 viewports = 10 screenshots)
 - Viewport: desktop (1280x900), mobile (375x812)
-- 方式: 1 回目 baseline 作成 → 2 回目 diff 計測
+- Method: 1st run creates baseline → 2nd run measures diff
 
-## False Positive 結果
+## False Positive Results
 
-### luna.mbt (静的デモページ)
+### luna.mbt (static demo pages)
 
-| ページ | Desktop | Mobile |
-|--------|---------|--------|
+| Page | Desktop | Mobile |
+|------|---------|--------|
 | todomvc | 0.0% | 0.0% |
 | spa | 0.0% | 0.0% |
 | wc | 0.0% | 0.0% |
@@ -23,61 +23,61 @@
 | browser_router | 0.0% | 0.0% |
 | css_split_test | 0.0% | 0.0% |
 
-**False positive 率: 0/12 (0.0%)**
+**False positive rate: 0/12 (0.0%)**
 
-### sol.mbt (静的ドキュメントサイト)
+### sol.mbt (static documentation site)
 
-**マスクなし:**
+**Without masking:**
 
-| ページ | Desktop | Mobile |
-|--------|---------|--------|
+| Page | Desktop | Mobile |
+|------|---------|--------|
 | / (root) | **0.32%** | **0.04%** |
 | /luna/ | 0.0% | 0.0% |
 | /luna/tutorial-js/islands/ | 0.0% | 0.0% |
 | /sol/ | 0.0% | 0.0% |
 | /benchmark/ | 0.0% | 0.0% |
 
-False positive 率: 2/10 (20.0%)
+False positive rate: 2/10 (20.0%)
 
-**`--mask ".marquee-container,.hero-badge"` 適用後:**
+**After applying `--mask ".marquee-container,.hero-badge"`:**
 
-| ページ | Desktop | Mobile |
-|--------|---------|--------|
+| Page | Desktop | Mobile |
+|------|---------|--------|
 | / (root) | 0.0% | 0.0% |
 
-**False positive 率: 0/10 (0.0%)**
+**False positive rate: 0/10 (0.0%)**
 
-### sol.mbt root ページの false positive 原因分析
+### sol.mbt root page false positive cause analysis
 
-Heatmap の diff ピクセル Y 座標分布:
-- y=1150-1400 に 96% 集中 → **`.marquee-container` (ツイートカードの横スクロールアニメーション)**
-- y=150-250 に残り 4% → **`.hero-badge` (アニメーション付きバッジ)**
+Heatmap diff pixel Y-coordinate distribution:
+- 96% concentrated at y=1150-1400 → **`.marquee-container` (tweet card horizontal scroll animation)**
+- Remaining 4% at y=150-250 → **`.hero-badge` (animated badge)**
 
-`.marquee-container` は CSS `@keyframes` で常時横スクロールしているため、キャプチャタイミングで位置が変わる。
-`--mask` で `visibility: hidden` にすることでレイアウトを維持しつつ描画を消し、diff 0.0% を達成。
+`.marquee-container` continuously scrolls horizontally via CSS `@keyframes`, so its position varies depending on capture timing.
+Using `--mask` to set `visibility: hidden` preserves layout while hiding the rendering, achieving 0.0% diff.
 
-## `--mask` 機能
+## `--mask` Feature
 
-`vrt snapshot` と `vrt compare` の両方に `--mask` オプションを追加:
+Added `--mask` option to both `vrt snapshot` and `vrt compare`:
 
 ```bash
-# セレクタをカンマ区切りで指定
+# Specify selectors comma-separated
 vrt snapshot http://localhost:3000/ --mask ".marquee-container,.hero-badge"
 
-# 複数 --mask フラグも可
+# Multiple --mask flags also supported
 vrt compare --url http://example.com --current-url http://example.com \
   --mask ".marquee-container" --mask ".hero-badge"
 ```
 
-仕組み: `page.addStyleTag()` で `visibility: hidden !important` を注入。
-レイアウトは維持されるため、周囲の要素に影響しない。
+Mechanism: inject `visibility: hidden !important` via `page.addStyleTag()`.
+Layout is preserved, so surrounding elements are unaffected.
 
-## 結論
+## Conclusion
 
-| プロジェクト | ページ数 | FP (素) | FP (マスク後) | マスク対象 |
-|-------------|---------|---------|-------------|-----------|
-| luna.mbt | 6 | 0% | 0% | なし |
+| Project | Pages | FP (raw) | FP (after mask) | Mask targets |
+|---------|-------|----------|-----------------|--------------|
+| luna.mbt | 6 | 0% | 0% | None |
 | sol.mbt | 5 | 20% | **0%** | `.marquee-container`, `.hero-badge` |
 
-**全 22 スクリーンショットで false positive 0%** (マスク適用後)。
-動的コンテンツのマスクはセレクタ指定で対応可能。
+**0% false positives across all 22 screenshots** (after masking).
+Dynamic content masking is handled via selector specification.

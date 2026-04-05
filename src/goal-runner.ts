@@ -17,17 +17,17 @@ import type { A11yNode } from "./types.ts";
 export interface Goal {
   description: string;
   steps: GoalStep[];
-  /** ゴール達成の判定条件 (自然言語) */
+  /** Goal success criteria (NL) */
   successCriteria: string;
-  /** ゴール達成を判定する不変条件 */
+  /** Invariants for goal verification */
   finalInvariants?: PageExpectation[];
 }
 
 export interface GoalStep {
   description: string;
-  /** この step の expectation */
+  /** Expectation for this step */
   expectation: PageExpectation;
-  /** この step で使う snapshot ファイル名 (fixture テスト用) */
+  /** Snapshot filename for this step (for fixture tests) */
   snapshotFile?: string;
 }
 
@@ -65,10 +65,10 @@ export interface RunStepFn {
 }
 
 /**
- * Goal Runner: マルチステップのゴールを逐次実行・検証する
+ * Goal Runner: execute and verify multi-step goals sequentially.
  *
- * fixture テスト用: loadSnapshot で各 step の snapshot を提供
- * 実際のエージェント用: runStep でコード変更 → capture → snapshot 取得
+ * For fixture tests: loadSnapshot provides each step's snapshot.
+ * For real agents: runStep does code change -> capture -> get snapshot.
  */
 export async function runGoal(
   goal: Goal,
@@ -126,7 +126,7 @@ export async function runGoal(
       const pageData = new Map([["page", { a11yTree: lastSnapshot, screenshotExists: true }]]);
       specResult = verifySpec(spec, pageData);
 
-      // 判定: reasoning が realized or unexpected-side-effects なら OK
+      // Verdict: pass if reasoning is realized or unexpected-side-effects
       passed = reasoning.verdict === "realized" || reasoning.verdict === "unexpected-side-effects";
 
       if (!passed) {
@@ -148,12 +148,12 @@ export async function runGoal(
       break;
     }
 
-    // 次の step のベースラインはキャッシュ済み snapshot (double-call 回避)
+    // Next step baseline is the cached snapshot (avoid double-call)
     currentBaseline = lastSnapshot;
   }
 
   if (state.status === "running") {
-    // 全 step 通過 → ゴール判定
+    // All steps passed -> goal verification
     if (goal.finalInvariants) {
       const lastStep = goal.steps[goal.steps.length - 1];
       const finalSnapshot = await loadSnapshot(lastStep, 0);
@@ -186,7 +186,7 @@ function computeGoalScore(state: GoalRunnerState): GoalScore {
   const stepSuccessRate = total > 0 ? passed / total : 0;
   const goalRealized = state.status === "completed";
 
-  // Step ごとのスコア: passed = 100, retried = 60, failed = 0
+  // Per-step score: passed = 100, retried = 60, failed = 0
   const stepScores = state.stepResults.map((r) =>
     r.passed ? (r.retries === 0 ? 100 : Math.max(40, 100 - r.retries * 20)) : 0
   );
@@ -204,7 +204,7 @@ function computeGoalScore(state: GoalRunnerState): GoalScore {
 }
 
 /**
- * 簡易 introspect (テスト用。full introspect は fs 依存)
+ * Quick introspect (for tests; full introspect depends on fs).
  */
 function quickIntrospect(tree: A11yNode) {
   const LANDMARK = new Set(["banner", "main", "navigation", "contentinfo", "form", "region", "search"]);
@@ -235,7 +235,7 @@ function quickIntrospect(tree: A11yNode) {
 }
 
 /**
- * GoalRunnerState から人間可読なレポートを生成する
+ * Generate a human-readable report from GoalRunnerState.
  */
 export function formatGoalReport(state: GoalRunnerState): string {
   const lines: string[] = [];

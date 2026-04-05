@@ -1,11 +1,11 @@
 /**
- * VLM (Vision Language Model) クライアント
+ * VLM (Vision Language Model) client
  *
- * 複数プロバイダ対応:
+ * Multi-provider support:
  * - OpenRouter (100+ vision models)
- * - Google AI (Gemini 直接)
+ * - Google AI (Gemini direct)
  *
- * モデル一覧は API から動的に取得。
+ * Model list is fetched dynamically from the API.
  */
 import { readFile } from "node:fs/promises";
 

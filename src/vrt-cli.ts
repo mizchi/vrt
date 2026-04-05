@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * VRT ワークフロー CLI
+ * VRT Workflow CLI
  *
- * コーディングエージェントが VRT + Semantic 検証ループを回すための CLI。
+ * CLI for coding agents to run VRT + Semantic verification loops.
  *
- * コマンド:
- *   init      — ベースラインを作成 (初回 or リセット時)
- *   capture   — 現在の状態をスナップショットとして取得
- *   verify    — ベースライン vs スナップショットを検証
- *   approve   — 現在のスナップショットをベースラインに昇格
- *   report    — 直近の検証結果を表示
- *   graph     — 依存グラフを表示
- *   affected  — 変更の影響範囲を表示
+ * Commands:
+ *   init      -- create baseline (first run or reset)
+ *   capture   -- take current state snapshot
+ *   verify    -- verify baseline vs snapshot
+ *   approve   -- promote current snapshot to baseline
+ *   report    -- show latest verification results
+ *   graph     -- show dependency graph
+ *   affected  -- show change impact scope
  */
 
 import { execSync, type ExecSyncOptions } from "node:child_process";
@@ -40,7 +40,7 @@ import { introspect, introspectToSpec, verifySpec } from "./introspect.ts";
 import type { VrtDiff, A11yDiff, VisualSemanticDiff, UnifiedAgentContext, VrtExpectation, PageExpectation, UiSpec, A11yNode } from "./types.ts";
 
 // ---- Paths ----
-// baselines/ と snapshots/ は test-results/ の外に配置 (Playwright が test-results をクリアするため)
+// baselines/ and snapshots/ are placed outside test-results/ (Playwright clears test-results)
 
 const VRT_ROOT = resolve(import.meta.dirname!, "..");
 const PROJECT_ROOT = resolve(process.env.VRT_PROJECT_ROOT ?? process.cwd());
@@ -254,7 +254,7 @@ async function verify() {
     console.log(`\n[Expectations] Loaded: "${expectations.description}"`);
     console.log(`  ${expectations.pages.length} page(s) with expectations`);
     if (expectations.intent) {
-      // partial intent をマージ (description → summary のフォールバック含む)
+      // Merge partial intent (includes description -> summary fallback)
       intent = {
         ...intent,
         ...expectations.intent,
@@ -300,13 +300,13 @@ async function verify() {
   console.log("\n[Verdict] Final verification...");
   const snapshots = vrtDiffs.map((d) => d.snapshot);
 
-  // Expectations で approved された regression は quality error から除外
+  // Exclude approved regressions from quality errors
   const approvedTestIds = new Set(
     crossValidations.filter((cv) => cv.recommendation === "approve").map((cv) => cv.testId)
   );
   const filteredCrossValidations = crossValidations.map((cv) => {
     if (approvedTestIds.has(cv.testId) && cv.a11yDiff?.hasRegression) {
-      // Expected regression が承認された → hasRegression を無効化してチェックに渡す
+      // Expected regression approved -> disable hasRegression for checks
       return { ...cv, a11yDiff: { ...cv.a11yDiff, hasRegression: false } };
     }
     return cv;
@@ -319,7 +319,7 @@ async function verify() {
     ...crossValidationToQualityChecks(filteredCrossValidations),
   ];
 
-  // Expectation で approved 済みの diff は agent loop から除外
+  // Exclude approved diffs from agent loop
   const unresolved = vrtDiffs.filter((d) => !approvedTestIds.has(d.snapshot.testId));
   const agentResult = await runVerificationLoop(unresolved, intent, qualityChecks);
 
@@ -604,7 +604,7 @@ async function expectCmd() {
     process.exit(1);
   }
 
-  // 1. git diff から intent を推測
+  // 1. Infer intent from git diff
   let intentSummary = "unknown change";
   let changeType: string = "unknown";
   try {
@@ -616,7 +616,7 @@ async function expectCmd() {
     console.log("(no git diff available)");
   }
 
-  // 2. baseline vs snapshot の a11y diff を取る
+  // 2. Compute a11y diff between baseline and snapshot
   const baseA11yFiles = await listFiles(BASELINES_DIR, ".a11y.json");
   const pages: Array<{
     testId: string;
@@ -650,7 +650,7 @@ async function expectCmd() {
     }
   }
 
-  // 3. expectation.json を構築
+  // 3. Build expectation.json
   const expectation: Record<string, unknown> = {
     description: intentSummary,
     intent: {

@@ -128,9 +128,9 @@ export interface A11yExpectation {
 }
 
 export interface ExpectedA11yChange {
-  /** 自然言語の説明 (正)。これだけでも機能する */
+  /** NL description (primary). Works standalone */
   description: string;
-  /** 構造化ヒント (optional)。ヒューリスティックマッチに使う。モデル改善で不要になる */
+  /** Structured hint (optional). Used for heuristic matching */
   type?: A11yChangeType;
   path?: string;
   role?: string;
@@ -139,24 +139,23 @@ export interface ExpectedA11yChange {
 
 // ---- Expectation Manifest (test-first) ----
 //
-// 設計原則: description が正、構造化フィールドはヒント
-// - 最小形式: { description, pages: [{ testId, expect }] }
-// - 構造化フィールドは精度向上のためのオプション
-// - モデルが自然言語から直接判定できるようになれば構造化は不要
+// Design: description is primary, structured fields are hints
+// - Minimal form: { description, pages: [{ testId, expect }] }
+// - Structured fields are optional for improved accuracy
 
 export interface VrtExpectation {
-  /** 変更の意図を自然言語で記述。これが最も重要 */
+  /** NL description of the change intent (primary) */
   description: string;
-  /** 構造化 intent (optional)。省略時は description から推測 */
+  /** Structured intent (optional). Inferred from description if omitted */
   intent?: Partial<ChangeIntent>;
   pages: PageExpectation[];
 }
 
 export interface PageExpectation {
   testId: string;
-  /** 期待する状態を自然言語で (構造化フィールドの代替) */
+  /** Expected state in NL (alternative to structured fields) */
   expect?: string;
-  /** 構造化ヒント (optional) */
+  /** Structured hint (optional) */
   visual?: "no-change" | "changed" | "any";
   a11y?: "no-change" | "changed" | "regression-expected" | "any";
   expectedA11yChanges?: ExpectedA11yChange[];
@@ -165,50 +164,50 @@ export interface PageExpectation {
 
 // ---- Long-cycle Spec (invariants) ----
 //
-// short-cycle: expectation.json — per-commit、このコミットで何が変わるか
-// long-cycle:  spec.json — 複数コミットにまたがる不変条件
+// short-cycle: expectation.json -- per-commit, what changes in this commit
+// long-cycle:  spec.json -- invariants across multiple commits
 //
-// spec は「常に成り立つべきこと」を宣言する。
-// expectation はそれを一時的に上書きできる (regression-expected)。
+// spec declares "what must always hold".
+// expectation can temporarily override it (regression-expected).
 
 export interface UiSpec {
-  /** この spec 全体の説明 */
+  /** Description of this spec */
   description: string;
-  /** ページごとの不変条件 */
+  /** Per-page invariants */
   pages: PageSpec[];
-  /** グローバル不変条件 (全ページに適用) */
+  /** Global invariants (applied to all pages) */
   global?: SpecInvariant[];
 }
 
 export interface PageSpec {
   testId: string;
-  /** この画面の目的 */
+  /** Purpose of this page */
   purpose?: string;
-  /** 不変条件リスト */
+  /** Invariant list */
   invariants: SpecInvariant[];
 }
 
 export interface SpecInvariant {
-  /** 自然言語で不変条件を記述 (正) */
+  /** NL description of the invariant (primary) */
   description: string;
-  /** 構造化ヒント (optional) */
+  /** Structured hint (optional) */
   check?: SpecCheckType;
-  /** NL assertion (将来用)。dep graph でスキップ可能 */
+  /** NL assertion (future). Can be skipped via dep graph */
   assert?: string;
-  /** この invariant を検証するのに必要な依存 (dep graph 連携でスキップ判定に使う) */
+  /** Dependencies needed to verify this invariant (for dep graph skip decisions) */
   dependsOn?: string[];
-  /** 検証コスト。"low" はヒューリスティクス、"high" は LLM/Vision を使う */
+  /** Verification cost. "low" = heuristics, "high" = LLM/Vision */
   cost?: "low" | "high";
 }
 
 export type SpecCheckType =
-  | "landmark-exists"     // 特定のランドマークが存在する
-  | "label-present"       // インタラクティブ要素にラベルがある
-  | "no-whiteout"         // 白飛びしていない
-  | "no-error-state"      // エラー表示がない
-  | "text-visible"        // 特定テキストが表示されている
-  | "element-count"       // 要素数が範囲内
-  | "nl-assertion";       // 自然言語アサーション (高コスト)
+  | "landmark-exists"
+  | "label-present"
+  | "no-whiteout"
+  | "no-error-state"
+  | "text-visible"
+  | "element-count"
+  | "nl-assertion";
 
 // ---- Introspect Output ----
 
@@ -219,13 +218,13 @@ export interface IntrospectResult {
 
 export interface PageIntrospection {
   testId: string;
-  /** 画面の自動生成された説明 */
+  /** Auto-generated page description */
   description: string;
-  /** 検出されたランドマーク */
+  /** Detected landmarks */
   landmarks: { role: string; name: string }[];
-  /** インタラクティブ要素 */
+  /** Interactive elements */
   interactiveElements: { role: string; name: string; hasLabel: boolean }[];
-  /** 画面の統計 */
+  /** Page statistics */
   stats: {
     totalNodes: number;
     landmarkCount: number;
@@ -233,38 +232,34 @@ export interface PageIntrospection {
     unlabeledCount: number;
     headingLevels: number[];
   };
-  /** 自動推測された不変条件 */
+  /** Auto-inferred invariants */
   suggestedInvariants: SpecInvariant[];
 }
 
-// ---- NL Assertion (将来用) ----
+// ---- NL Assertion (future) ----
 //
-// 自然言語でUIの状態をアサートする。
-// コスト: 高 (Vision LLM 呼び出し)。dep graph で影響がないページはスキップ。
-//
-// 例: "ナビゲーションバーに5つ以上のリンクがある"
-//     "フォームの送信ボタンが緑色である"
-//     "エラーメッセージが赤字で表示されている"
+// Assert UI state via natural language.
+// Cost: high (Vision LLM call). Pages unaffected by dep graph are skipped.
 
 export interface NlAssertion {
-  /** アサーション本文 */
+  /** Assertion text */
   assert: string;
-  /** 対象ページ */
+  /** Target page */
   testId: string;
-  /** このアサーションが依存するソースファイル (dep graph でスキップ判定) */
+  /** Source files this assertion depends on (for dep graph skip decisions) */
   dependsOn?: string[];
-  /** 最後に検証した結果のキャッシュ */
+  /** Cached result of last verification */
   lastResult?: { passed: boolean; reasoning: string; checkedAt: string };
 }
 
 // ---- Scoring ----
 
 export interface LoopScore {
-  usability: number;       // 0-100: CLI が使いやすいか、出力が明瞭か
-  practicality: number;    // 0-100: 実際の問題を検出/承認できたか
-  fixSteps: number;        // 修正に要したステップ数 (少ないほど良い)
-  finalQuality: number;    // 0-100: 最終成果物の品質
-  tokenUsage: number;      // LLM トークン消費量
+  usability: number;       // 0-100
+  practicality: number;    // 0-100
+  fixSteps: number;        // fewer is better
+  finalQuality: number;    // 0-100
+  tokenUsage: number;
   summary: string;
   details: ScoreDetail[];
 }
@@ -422,12 +417,12 @@ export interface QualityCheckResult {
 }
 
 export type QualityCheckType =
-  | "whiteout" // 白飛び検出
-  | "error-state" // エラー表示検出
-  | "coverage" // VRT カバレッジ
-  | "layout-shift" // レイアウト崩れ
-  | "empty-content" // 空コンテンツ
-  | "a11y-regression" // A11y リグレッション
-  | "a11y-coverage" // A11y カバレッジ
-  | "landmark-missing" // ランドマーク欠損
-  | "label-missing"; // ラベル欠損
+  | "whiteout"
+  | "error-state"
+  | "coverage"
+  | "layout-shift"
+  | "empty-content"
+  | "a11y-regression"
+  | "a11y-coverage"
+  | "landmark-missing"
+  | "label-missing";

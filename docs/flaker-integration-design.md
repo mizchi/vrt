@@ -1,59 +1,59 @@
-# flaker / vrt 統合設計
+# flaker / vrt Integration Design
 
-## 背景
+## Background
 
-`flaker` は test selection / flaky 判定 / quarantine / 履歴蓄積に強い。  
-`vrt` は VRT 実行、approval、migration fix loop、renderer 差分解析に強い。
+`flaker` excels at test selection / flaky detection / quarantine / history accumulation.
+`vrt` excels at VRT execution, approval, migration fix loop, and renderer diff analysis.
 
-この 2 つを組み合わせると、VRT を単発の比較ツールではなく、CI 上で再試行・隔離・傾向分析できる test suite として運用できる。
+Combining these two allows VRT to operate not as a one-off comparison tool but as a test suite with retry, quarantine, and trend analysis capabilities in CI.
 
-対象リポジトリ:
+Target repositories:
 
 - `flaker`: [/Users/mz/ghq/github.com/mizchi/metric-ci](/Users/mz/ghq/github.com/mizchi/metric-ci)
 - `vrt`: [/Users/mz/ghq/github.com/mizchi/vrt](/Users/mz/ghq/github.com/mizchi/vrt)
 
-## ゴール
+## Goal
 
-- Migration VRT を `flaker` の custom runner 経由で実行できる
-- `variant x viewport x backend` 単位で安定した test identity を持てる
-- `flaker flaky --by-variant` で renderer / viewport ごとの不安定さを見られる
-- `approval` と `quarantine` の責務を分離したまま併用できる
+- Run Migration VRT via `flaker`'s custom runner
+- Have stable test identity per `variant x viewport x backend`
+- View per-renderer / per-viewport instability via `flaker flaky --by-variant`
+- Use `approval` and `quarantine` together while keeping responsibilities separate
 
-## 非ゴール
+## Non-Goal
 
-- `css-challenge-bench` の seed ベース trial をそのまま `flaker` の test として扱うこと
-- `approval.json` を `flaker.quarantine.json` に統合すること
-- 最初から `flaker` 本体に組み込み runner を追加すること
+- Treating `css-challenge-bench` seed-based trials as `flaker` tests directly
+- Merging `approval.json` into `flaker.quarantine.json`
+- Adding a built-in runner to `flaker` itself from the start
 
-初期実装では `vrt` 側に custom runner を置き、`flaker` から外部コマンドとして呼ぶ。
-2026-04-02 時点ではこの custom runner に加えて、`metric-ci` 側の built-in `vrt-migration` / `vrt-bench` adapter と、artifact 収集用 workflow まで実装済み。
+Initial implementation places the custom runner on the `vrt` side, called from `flaker` as an external command.
+As of 2026-04-02, in addition to this custom runner, built-in `vrt-migration` / `vrt-bench` adapters on the `metric-ci` side and artifact collection workflows are implemented.
 
-## 責務境界
+## Responsibility Boundary
 
-### flaker が持つ責務
+### flaker's responsibilities
 
 - test listing / sampling / execution orchestration
-- 実行履歴の蓄積
-- flaky 判定
-- quarantine
-- variant 別の傾向分析
+- Execution history accumulation
+- Flaky detection
+- Quarantine
+- Per-variant trend analysis
 
-根拠: [docs/why-flaker.ja.md](/Users/mz/ghq/github.com/mizchi/metric-ci/docs/why-flaker.ja.md), [types.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/types.ts), [quarantine-manifest.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/quarantine-manifest.ts)
+References: [docs/why-flaker.ja.md](/Users/mz/ghq/github.com/mizchi/metric-ci/docs/why-flaker.ja.md), [types.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/types.ts), [quarantine-manifest.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/quarantine-manifest.ts)
 
-### vrt が持つ責務
+### vrt's responsibilities
 
-- HTML/URL のレンダリング比較
+- HTML/URL rendering comparison
 - pixel diff / paint tree diff / computed style diff
-- approval による known diff フィルタ
-- migration compare report と fix loop
+- Known diff filtering via approval
+- migration compare report and fix loop
 
-根拠: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-compare.ts), [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/approval.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-fix-loop-core.ts)
+References: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-compare.ts), [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/approval.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-fix-loop-core.ts)
 
-## 基本方針
+## Core Policy
 
-`flaker` から見た VRT は「特殊な test runner」ではなく、「custom runner で実行可能な test suite」である。
+From `flaker`'s perspective, VRT is not a "special test runner" but a "test suite executable via custom runner".
 
-そのため統合の中心は import adapter ではなく runner protocol に置く。
+Therefore, the integration centers on the runner protocol, not an import adapter.
 
 ```text
 flaker sample/run/quarantine
@@ -63,41 +63,41 @@ flaker sample/run/quarantine
         -> flaker DuckDB
 ```
 
-## 統合対象の優先順
+## Integration Priority
 
 ### Phase 1: Migration VRT custom runner
 
-最優先。`migration-compare` はすでに機械可読 report を出せるため、最小コストで接続できる。
+Top priority. `migration-compare` already outputs machine-readable reports, enabling minimum-cost connection.
 
 ### Phase 2: Playwright VRT import
 
-既存の `playwright test` ベースの `vrt` を `flaker import --adapter playwright` または `collect` で分析する。
+Analyze existing `playwright test`-based `vrt` via `flaker import --adapter playwright` or `collect`.
 
 ### Phase 3: report import
 
-`migration-report.json` や `bench-report.json` を直接 `flaker` に流し込む adapter を追加する。
+Add adapters to directly feed `migration-report.json` and `bench-report.json` into `flaker`.
 
-2026-04-02 時点では `metric-ci` 側に built-in の `vrt-migration` adapter と `vrt-bench` adapter が入り、`import / collect / report summarize` で `migration-report.json` と `bench-report.json` を直接扱える。`vrt` 側の `src/flaker-vrt-report-adapter.ts` は custom adapter 経路や legacy report 補完用として残す。
-`vrt` 側には `.github/workflows/migration-report.yml` を置き、`workflow_dispatch` で 1 scenario を実行して artifact 名 `migration-report` を出す。`metric-ci collect` の既定設定と衝突しないよう、初期運用では 1 run = 1 scenario に固定する。
-同様に `.github/workflows/bench-report.yml` を置き、1 fixture の `css-challenge-bench` を Chromium backend で実行して artifact 名 `bench-report` を出す。`vrt-bench` adapter は artifact 内に単一の `bench-report.json` がある前提なので、ここも 1 run = 1 fixture に固定する。
+As of 2026-04-02, built-in `vrt-migration` and `vrt-bench` adapters exist on the `metric-ci` side, handling `migration-report.json` and `bench-report.json` directly via `import / collect / report summarize`. The `vrt`-side `src/flaker-vrt-report-adapter.ts` remains for custom adapter paths and legacy report supplementation.
+The `vrt` side has `.github/workflows/migration-report.yml`, running 1 scenario via `workflow_dispatch` and producing artifact name `migration-report`. To avoid conflicts with `metric-ci collect` defaults, initial operation fixes 1 run = 1 scenario.
+Similarly, `.github/workflows/bench-report.yml` runs 1 fixture of `css-challenge-bench` with Chromium backend, producing artifact name `bench-report`. Since the `vrt-bench` adapter expects a single `bench-report.json` in the artifact, this also fixes 1 run = 1 fixture.
 
-## なぜ Migration VRT から始めるか
+## Why Start with Migration VRT
 
-- `runMigrationCompare()` が export 済みで、CLI ではなく関数として呼べる
-- `fixedViewports` を渡せるので、`flaker` から指定された test subset だけ実行しやすい
-- `clean / approved / remaining` の収束概念がすでにある
+- `runMigrationCompare()` is already exported and callable as a function, not just CLI
+- `fixedViewports` can be passed, making it easy to run only the test subset specified by `flaker`
+- Convergence concepts of `clean / approved / remaining` already exist
 
-根拠: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-compare.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-fix-loop-core.ts)
+References: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-compare.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-fix-loop-core.ts)
 
-## 安定した test identity
+## Stable Test Identity
 
-`flaker` では test identity が安定していることが重要。`auto-discover` された viewport を毎回その場で使うと、HTML 変更で test 集合が揺れて flaky 判定が歪む。
+In `flaker`, stable test identity is important. Using `auto-discover`ed viewports ad hoc means test sets fluctuate with HTML changes, skewing flaky detection.
 
-このため、`flaker` 統合では scenario manifest に固定 viewport を持たせる。
+For this reason, `flaker` integration uses scenario manifests with fixed viewports.
 
 ## Scenario Manifest
 
-ファイル名は `flaker.vrt.json` とする。
+Filename: `flaker.vrt.json`.
 
 ```json
 {
@@ -122,28 +122,28 @@ flaker sample/run/quarantine
 }
 ```
 
-### 設計上の決定
+### Design Decisions
 
-- `viewports` は必須
-- `approval` は任意。未指定なら `migration-compare` の既存自動探索に従う
-- `backend` は scenario の既定値。個別 test から override はしない
-- `kind` は将来 `page-compare` や `component-compare` を足すために残す
+- `viewports` is required
+- `approval` is optional. If unspecified, follows `migration-compare`'s existing auto-discovery
+- `backend` is the scenario default. No per-test override
+- `kind` is reserved for future `page-compare` or `component-compare`
 
-## TestId への写像
+## TestId Mapping
 
-`flaker` の `quarantine manifest` は `spec` が実在パスであることを期待するため、`suite` には variant HTML への相対パスを使う。
+Since `flaker`'s `quarantine manifest` expects `spec` to be a real path, `suite` uses the relative path to the variant HTML.
 
-| flaker field | 値 |
+| flaker field | Value |
 | --- | --- |
 | `suite` | `fixtures/migration/<scenario>/<variant>.html` |
 | `testName` | `viewport:<label>` |
 | `taskId` | scenario id (`migration/tailwind-to-vanilla`) |
 | `variant.backend` | `chromium` / `crater` / `prescanner` |
-| `variant.viewport` | `wide` / `desktop` / `mobile` など |
+| `variant.viewport` | `wide` / `desktop` / `mobile` etc. |
 | `variant.width` | viewport width |
 | `variant.height` | viewport height |
 
-例:
+Example:
 
 ```json
 {
@@ -159,92 +159,92 @@ flaker sample/run/quarantine
 }
 ```
 
-この形なら `flaker quarantine` が file path を指せるし、`flaker flaky --by-variant` で viewport / backend ごとの傾向も見える。
+This format allows `flaker quarantine` to point to file paths, and `flaker flaky --by-variant` to show trends by viewport / backend.
 
-## Runner プロトコル
+## Runner Protocol
 
-`flaker` 側は既存の custom runner をそのまま使う。
+The `flaker` side uses the existing custom runner as-is.
 
-根拠: [runner-adapters.md](/Users/mz/ghq/github.com/mizchi/metric-ci/docs/runner-adapters.md), [custom-runner.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/custom-runner.ts)
+References: [runner-adapters.md](/Users/mz/ghq/github.com/mizchi/metric-ci/docs/runner-adapters.md), [custom-runner.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/custom-runner.ts)
 
 ### list
 
-`flaker-vrt-runner.ts list` は `flaker.vrt.json` を読み、`scenario x variant x viewport` を列挙して `TestId[]` を返す。
+`flaker-vrt-runner.ts list` reads `flaker.vrt.json` and enumerates `scenario x variant x viewport`, returning `TestId[]`.
 
 ### execute
 
-`flaker-vrt-runner.ts execute` は指定された `TestId[]` を scenario ごとに束ね、各 scenario について 1 回だけ `runMigrationCompare()` を呼ぶ。
+`flaker-vrt-runner.ts execute` bundles the specified `TestId[]` by scenario and calls `runMigrationCompare()` once per scenario.
 
-呼び出し時のルール:
+Calling rules:
 
-- `variants` は要求された `suite` から逆算
-- `fixedViewports` は要求された `testName` / `variant.viewport` から復元
-- `autoDiscover` は `false`
-- `outputDir` は `test-results/flaker-vrt/<timestamp-or-runid>/...`
+- `variants` derived from the requested `suite`
+- `fixedViewports` restored from requested `testName` / `variant.viewport`
+- `autoDiscover` is `false`
+- `outputDir` is `test-results/flaker-vrt/<timestamp-or-runid>/...`
 
-## Result Status の写像
+## Result Status Mapping
 
-`migration-compare` の result を `flaker` の `TestCaseResult.status` へ落とす。
+Map `migration-compare` results to `flaker`'s `TestCaseResult.status`.
 
-| migration result | flaker status | 理由 |
+| migration result | flaker status | Reason |
 | --- | --- | --- |
-| `diffPixels === 0` | `passed` | 完全一致 |
-| `approved === true` | `passed` | known diff は VRT 上は許容済み |
-| `partiallyApproved === true` かつ残差分あり | `failed` | approval しても差分が残っている |
-| `remaining` | `failed` | 未解決差分 |
-| browser launch / crater 接続失敗 / timeout | `flaky` | 一時的な infra failure とみなす |
-| manifest により skip | `skipped` | quarantine runtime が上書き |
+| `diffPixels === 0` | `passed` | Exact match |
+| `approved === true` | `passed` | Known diff is accepted in VRT |
+| `partiallyApproved === true` with remaining diff | `failed` | Diff remains even after approval |
+| `remaining` | `failed` | Unresolved diff |
+| browser launch / crater connection failure / timeout | `flaky` | Treated as temporary infra failure |
+| skip by manifest | `skipped` | Quarantine runtime overrides |
 
-### 重要な決定
+### Important decision
 
-`clean` と `approved` はどちらも `passed` として扱う。
+Both `clean` and `approved` are treated as `passed`.
 
-`approved` を別 status にしない理由:
+Reasons for not making `approved` a separate status:
 
-- `flaker` の現在の status モデルは `passed/failed/skipped/flaky`
-- `approved` は identity ではなく run metadata
-- `approved` を identity に入れると履歴が分断される
+- `flaker`'s current status model is `passed/failed/skipped/flaky`
+- `approved` is run metadata, not identity
+- Including `approved` in identity would fragment history
 
-`approved` の詳細は `vrt` 側の report artifact に残す。
+`approved` details are preserved in `vrt`-side report artifacts.
 
-## Approval と Quarantine の分離
+## Approval and Quarantine Separation
 
 ### approval
 
-`approval.json` は「視覚差分としてはあるが、プロダクト上は許容する既知差分」。
+`approval.json` represents "known diffs that exist visually but are acceptable product-wise".
 
-例:
+Examples:
 
 - renderer gap
-- reset CSS 差分
+- reset CSS diff
 - tiny spacing drift
 
-根拠: [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/approval.ts)
+Reference: [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/approval.ts)
 
 ### quarantine
 
-`flaker.quarantine.json` は「CI 運用上、いまは block しない test」。
+`flaker.quarantine.json` represents "tests that shouldn't block CI right now".
 
-例:
+Examples:
 
-- crater server がたまに落ちる
-- mobile viewport だけ非決定的
-- 特定の backend だけ timeout が出る
+- crater server occasionally goes down
+- mobile viewport only is non-deterministic
+- specific backend only times out
 
-根拠: [quarantine-manifest.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/quarantine-manifest.ts), [quarantine-runtime.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/quarantine-runtime.ts)
+References: [quarantine-manifest.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/quarantine-manifest.ts), [quarantine-runtime.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/quarantine-runtime.ts)
 
-### 運用ルール
+### Operational rules
 
-- 既知の正当差分は `approval`
-- 非決定的な落ち方は `quarantine`
-- `approval` を増やして flaky を隠さない
-- `quarantine` を増やして known diff を隠さない
+- Known legitimate diffs → `approval`
+- Non-deterministic failures → `quarantine`
+- Don't increase `approval` to hide flaky tests
+- Don't increase `quarantine` to hide known diffs
 
-## 出力 artifacts
+## Output artifacts
 
-custom runner は `stdout` に summary を返すだけでなく、元の report を保存する。
+The custom runner saves the original report in addition to returning a summary on `stdout`.
 
-想定パス:
+Expected path:
 
 ```text
 test-results/flaker-vrt/
@@ -253,9 +253,9 @@ test-results/flaker-vrt/
     migration-reset-css-report.json
 ```
 
-`stdout` には report path を出しておく。深掘りは `vrt` の artifact を見る。
+`stdout` outputs the report path. Deep-dive by examining `vrt`'s artifacts.
 
-## flaker.toml 例
+## flaker.toml example
 
 ```toml
 [repo]
@@ -284,26 +284,26 @@ flaky_rate_threshold = 30.0
 min_runs = 5
 ```
 
-`vrt` 単体リポジトリで運用するなら runner はこの repo に置き、artifact 収集は `metric-ci` built-in の `vrt-migration` adapter を使う。
+When operating in the `vrt` standalone repository, the runner lives in this repo, and artifact collection uses `metric-ci`'s built-in `vrt-migration` adapter.
 
-## 実装フェーズ
+## Implementation Phases
 
-### Phase 1: 最小接続
+### Phase 1: Minimum connection
 
 - `src/flaker-vrt-config.ts`
-  - `flaker.vrt.json` の型定義とパーサー
+  - Type definitions and parser for `flaker.vrt.json`
 - `src/flaker-vrt-runner.ts`
   - `list`
   - `execute`
-  - `migration-compare` 専用
-- `fixtures/migration/*` を scenario manifest に登録
+  - `migration-compare` only
+- Register `fixtures/migration/*` in scenario manifest
 
-完了条件:
+Completion criteria:
 
-- `flaker run --runner custom` で migration VRT が動く
-- `flaker flaky --by-variant` に `viewport` と `backend` が出る
+- Migration VRT runs with `flaker run --runner custom`
+- `viewport` and `backend` appear in `flaker flaky --by-variant`
 
-### Phase 2: 運用導線
+### Phase 2: Operational pipeline
 
 - `examples/flaker.toml`
 - `examples/flaker.vrt.json`
@@ -311,42 +311,42 @@ min_runs = 5
 - `node --experimental-strip-types ./src/flaker-vrt-runner.ts execute --config ./examples/flaker.vrt.json`
 - `just flaker-vrt-adapt`
 
-完了条件:
+Completion criteria:
 
-- 新規 repo で copy して最短導入できる
+- Fastest onboarding by copying to a new repo
 
-### Phase 3: 追加統合
+### Phase 3: Additional integration
 
 - `migration-report.json` import adapter
-- Playwright VRT import の README 導線
+- Playwright VRT import README pipeline
 - `css-bench` summary import
 
-2026-04-02 時点では上記 3 件とも完了している。残りは built-in runner 化ではなく、artifact 運用の実例を積むフェーズ。
+As of 2026-04-02, all 3 items above are complete. What remains is not built-in runner-ization but accumulating real-world artifact operation examples.
 
 ## Open Questions
 
-### 1. runner の配置場所
+### 1. Runner placement
 
-初期実装は `vrt` 側でよい。理由:
+Initial implementation on the `vrt` side is fine. Reasons:
 
-- `runMigrationCompare()` などの内部 API に直接触れる
-- `metric-ci` 側は現在 rename/開発中で dirty worktree がある
-- built-in runner 化は protocol が固まった後でよい
+- Direct access to internal APIs like `runMigrationCompare()`
+- `metric-ci` side is currently rename/development in progress with a dirty worktree
+- Built-in runner-ization is fine after the protocol is settled
 
-### 2. crater backend の扱い
+### 2. crater backend handling
 
-`backend = crater` / `prescanner` は Phase 1 の対象に含めるが、`flaky` 判定との相性を考えてまず `chromium` を既定値にする。
+`backend = crater` / `prescanner` is included in Phase 1 scope, but start with `chromium` as default considering compatibility with `flaky` detection.
 
 ### 3. dynamic viewport discovery
 
-`flaker` 用 test identity では使わない。authoring 支援としてだけ残す。
+Not used for `flaker` test identities. Kept only as an authoring aid.
 
-## 受け入れ条件
+## Acceptance Criteria
 
-この設計が実装された状態とは、次を満たすこと:
+This design being implemented means the following are satisfied:
 
-1. `flaker-vrt-runner.ts list` が安定した `TestId[]` を返す
-2. `flaker-vrt-runner.ts execute` が `migration-compare` を subset 実行できる
-3. `approved` は `passed` に写像される
-4. `crater` / browser の一時 failure は `flaky` に写像される
-5. `flaker quarantine` と `approval.json` を同時に使っても責務が衝突しない
+1. `flaker-vrt-runner.ts list` returns stable `TestId[]`
+2. `flaker-vrt-runner.ts execute` can subset-execute `migration-compare`
+3. `approved` maps to `passed`
+4. Temporary `crater` / browser failures map to `flaky`
+5. `flaker quarantine` and `approval.json` can be used simultaneously without responsibility conflicts

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * vrt ベンチマーク
+ * vrt benchmark
  *
- * LLM を通さない決定的な API のパフォーマンスを計測する。
- * 結果をベースラインとして記録し、改善の追跡に使う。
+ * Measure performance of deterministic APIs (no LLM).
+ * Record results as baselines for tracking improvements.
  *
  * Usage: npx tsx src/benchmark.ts
  */

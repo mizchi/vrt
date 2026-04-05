@@ -2,8 +2,8 @@
 /**
  * VRT Demo Script
  *
- * kitty graphics protocol で画像をインライン表示しながら、
- * fixture シナリオを順に実行して VRT パイプラインをデモする。
+ * Displays images inline via kitty graphics protocol while
+ * running fixture scenarios to demonstrate the VRT pipeline.
  *
  * Usage: npx tsx vrt/src/demo.ts
  */
@@ -69,7 +69,7 @@ function createPng(width: number, height: number, regions: Rect[], bg = { r: 245
   return { width, height, data };
 }
 
-// UI パーツ
+// UI parts
 const HEADER = (hasNav: boolean): Rect[] => [
   { x: 0, y: 0, w: 320, h: 32, r: 36, g: 41, b: 46 },         // header bg
   { x: 8, y: 8, w: 60, h: 16, r: 88, g: 166, b: 255 },        // logo

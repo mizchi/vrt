@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * VRT Snapshot — URL を複数 viewport でキャプチャし、前回と自動比較
+ * VRT Snapshot -- capture URLs at multiple viewports, auto-compare with previous
  *
  * Usage:
  *   vrt snapshot http://localhost:4156/todomvc --output snapshots/luna/

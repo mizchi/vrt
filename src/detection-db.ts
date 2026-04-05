@@ -1,7 +1,7 @@
 /**
- * 検出パターンデータベース
+ * Detection pattern database
  *
- * JSONL 形式 (1行1レコード) で data/detection-patterns.jsonl に追記。
+ * Appends to data/detection-patterns.jsonl in JSONL format (one record per line).
  */
 import { readFile, appendFile, mkdir } from "node:fs/promises";
 import { join, dirname } from "node:path";

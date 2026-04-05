@@ -7,14 +7,14 @@ import type {
 } from "./types.ts";
 
 /**
- * VRT ピクセル差分を視覚的セマンティクスに変換する
+ * Convert VRT pixel diff into visual semantics.
  *
- * ピクセル差分の各領域を分析し、「何が変わったか」を推測する:
- * - text-change: テキスト領域の変化 (横長、小さい領域)
- * - color-change: 色のみの変化 (形状は同一)
- * - layout-shift: 要素の位置移動 (大きな領域、連動する差分)
- * - element-added/removed: 新しい要素の出現/消失
- * - icon-change: 小さい正方形の領域
+ * Analyzes each diff region to infer what changed:
+ * - text-change: text area change (wide, small region)
+ * - color-change: color-only change (same shape)
+ * - layout-shift: element repositioning (large region, correlated diffs)
+ * - element-added/removed: new/removed element
+ * - icon-change: small square region
  */
 export function classifyVisualDiff(diff: VrtDiff): VisualSemanticDiff {
   const changes: VisualSemanticChange[] = [];
@@ -24,7 +24,7 @@ export function classifyVisualDiff(diff: VrtDiff): VisualSemanticDiff {
     changes.push(classified);
   }
 
-  // 連動する layout-shift をグループ化
+  // Group correlated layout-shifts
   const grouped = groupLayoutShifts(changes);
 
   return {
@@ -43,9 +43,9 @@ function classifyRegion(
   const density = region.diffPixelCount / area;
   const globalRatio = region.diffPixelCount / diff.totalPixels;
 
-  // 小さい正方形 → アイコン変更
+  // Small square -> icon change
   if (
-    area < 4096 && // 64x64 以下
+    area < 4096 && // <= 64x64
     aspectRatio > 0.5 &&
     aspectRatio < 2.0
   ) {
@@ -57,7 +57,7 @@ function classifyRegion(
     };
   }
 
-  // 横長で薄い密度 → テキスト変更
+  // Wide and sparse -> text change
   if (aspectRatio > 3.0 && density < 0.5) {
     return {
       type: "text-change",
@@ -67,7 +67,7 @@ function classifyRegion(
     };
   }
 
-  // 高密度で小〜中領域 → 色変更
+  // High density, small-medium area -> color change
   if (density > 0.7 && area < diff.totalPixels * 0.3) {
     return {
       type: "color-change",
@@ -77,7 +77,7 @@ function classifyRegion(
     };
   }
 
-  // 大きな領域 → レイアウトシフト
+  // Large area -> layout shift
   if (globalRatio > 0.05) {
     return {
       type: "layout-shift",
@@ -87,7 +87,7 @@ function classifyRegion(
     };
   }
 
-  // 新規要素の出現 (高密度 + 中程度のサイズ)
+  // New element (high density + medium size)
   if (density > 0.5 && area > 1024) {
     return {
       type: "element-added",
@@ -97,7 +97,7 @@ function classifyRegion(
     };
   }
 
-  // デフォルト: element-added
+  // Default: element-added
   return {
     type: "element-added",
     region,
@@ -107,8 +107,8 @@ function classifyRegion(
 }
 
 /**
- * Y座標が近い layout-shift をグループ化する
- * (同じ行で複数領域が同時にずれた場合 = 1つのレイアウトシフト)
+ * Group layout-shifts with close Y coordinates.
+ * Multiple regions shifting on the same row = one layout shift.
  */
 function groupLayoutShifts(
   changes: VisualSemanticChange[]
@@ -118,7 +118,7 @@ function groupLayoutShifts(
 
   if (layoutShifts.length <= 1) return changes;
 
-  // Y座標でソートし、近いものをグループ化
+  // Sort by Y coordinate and group nearby ones
   layoutShifts.sort((a, b) => a.region.y - b.region.y);
 
   const groups: VisualSemanticChange[][] = [];
@@ -127,7 +127,7 @@ function groupLayoutShifts(
   for (let i = 1; i < layoutShifts.length; i++) {
     const prev = currentGroup[currentGroup.length - 1];
     const curr = layoutShifts[i];
-    // Y座標が64px以内なら同じグループ
+    // Within 64px Y distance -> same group
     if (Math.abs(curr.region.y - prev.region.y) < 64) {
       currentGroup.push(curr);
     } else {
@@ -137,7 +137,7 @@ function groupLayoutShifts(
   }
   groups.push(currentGroup);
 
-  // 各グループを1つのchangeにマージ
+  // Merge each group into a single change
   const merged = groups.map((group): VisualSemanticChange => {
     if (group.length === 1) return group[0];
 

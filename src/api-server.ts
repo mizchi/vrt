@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * vrt API サーバー
+ * vrt API server
  *
- * Hono で構築。Node.js ローカル実行用。
- * Cloudflare Workers にもそのまま移植可能な構造。
+ * Built with Hono. For local Node.js execution.
+ * Structured to be directly portable to Cloudflare Workers.
  *
  * Usage: node --experimental-strip-types src/api-server.ts [--port 3456]
  */

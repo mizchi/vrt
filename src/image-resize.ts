@@ -1,23 +1,23 @@
 /**
- * 画像リサイズ + VLM 用最適化
+ * Image resize + VLM optimization
  *
- * VLM に送る前に画像を縮小してトークンコストを削減。
- * 解像度が足りない場合に自動エスカレーションする機能付き。
+ * Downscale images before sending to VLM to reduce token cost.
+ * Supports auto-escalation when resolution is insufficient.
  */
 import { PNG } from "pngjs";
 
 export type ResolutionPreset = "low" | "medium" | "high" | "full";
 
 export const RESOLUTION_PRESETS: Record<ResolutionPreset, { maxWidth: number; maxHeight: number }> = {
-  low: { maxWidth: 375, maxHeight: 320 },      // mobile viewport 幅を維持。~130 tokens
-  medium: { maxWidth: 640, maxHeight: 480 },    // breakpoint 境界を維持。~200 tokens
-  high: { maxWidth: 1280, maxHeight: 900 },     // desktop viewport そのまま。~500 tokens
+  low: { maxWidth: 375, maxHeight: 320 },      // mobile viewport width. ~130 tokens
+  medium: { maxWidth: 640, maxHeight: 480 },    // breakpoint boundary. ~200 tokens
+  high: { maxWidth: 1280, maxHeight: 900 },     // desktop viewport. ~500 tokens
   full: { maxWidth: 4096, maxHeight: 4096 },    // original size
 };
 
 /**
- * viewport サイズから最適な解像度プリセットを選択。
- * viewport 幅の半分以上の解像度を持つ最小のプリセットを返す。
+ * Select the optimal resolution preset for a given viewport width.
+ * Returns the smallest preset with at least half the viewport width.
  */
 export function resolveResolutionForViewport(
   viewportWidth: number,
@@ -28,7 +28,7 @@ export function resolveResolutionForViewport(
 
   for (let i = 0; i <= maxIdx; i++) {
     const preset = RESOLUTION_PRESETS[order[i]];
-    // 画像幅が viewport の半分以上あれば十分
+    // Sufficient if image width >= half of viewport
     if (preset.maxWidth >= viewportWidth / 2) return order[i];
   }
 
@@ -36,11 +36,11 @@ export function resolveResolutionForViewport(
 }
 
 export interface ResizeOptions {
-  /** プリセット or カスタムサイズ */
+  /** Preset or custom size */
   resolution?: ResolutionPreset | { maxWidth: number; maxHeight: number };
 }
 
-/** PNG Buffer を指定サイズ以下にリサイズ。アスペクト比維持。 */
+/** Resize PNG buffer to fit within the given size. Preserves aspect ratio. */
 export function resizePngBuffer(pngBuffer: Buffer, options: ResizeOptions = {}): Buffer {
   const preset = typeof options.resolution === "string"
     ? RESOLUTION_PRESETS[options.resolution]
@@ -76,7 +76,7 @@ export function resizePngBuffer(pngBuffer: Buffer, options: ResizeOptions = {}):
   return Buffer.from(PNG.sync.write(dst));
 }
 
-/** PNG IHDR チャンクからサイズを読み取る (フルデコード不要) */
+/** Read dimensions from PNG IHDR chunk (no full decode needed) */
 function readPngDimensions(buf: Buffer): { width: number; height: number } {
   // PNG header: 8-byte signature, then IHDR chunk: 4-byte length, 4-byte type, 4-byte width, 4-byte height
   if (buf.length >= 24 && buf[0] === 0x89 && buf[1] === 0x50) {
@@ -87,7 +87,7 @@ function readPngDimensions(buf: Buffer): { width: number; height: number } {
   return { width: png.width, height: png.height };
 }
 
-/** base64 PNG を指定解像度にリサイズして base64 で返す */
+/** Resize a base64 PNG to the specified resolution. Returns base64. */
 export function resizeBase64Png(base64: string, options: ResizeOptions = {}): string {
   const preset = typeof options.resolution === "string"
     ? RESOLUTION_PRESETS[options.resolution]
@@ -105,7 +105,7 @@ export function resizeBase64Png(base64: string, options: ResizeOptions = {}): st
   return resized.toString("base64");
 }
 
-/** 画像の解像度を取得 */
+/** Get image dimensions */
 export function getImageDimensions(base64: string): { width: number; height: number } {
   const buf = Buffer.from(base64, "base64");
   return readPngDimensions(buf);

@@ -22,8 +22,7 @@ function cropImage(img: PngData, w: number, h: number): PngData {
 }
 
 /**
- * PNG ファイルを読み込み、RGBA ピクセルデータを返す
- * pngjs がない環境では raw バイトを返す (テスト用)
+ * Read a PNG file and return RGBA pixel data.
  */
 export async function decodePng(path: string): Promise<PngData> {
   const { PNG } = await import("pngjs");
@@ -37,7 +36,7 @@ export async function decodePng(path: string): Promise<PngData> {
 }
 
 /**
- * RGBA ピクセルデータを PNG ファイルに書き出す
+ * Write RGBA pixel data to a PNG file.
  */
 export async function encodePng(
   path: string,
@@ -51,7 +50,7 @@ export async function encodePng(
 }
 
 /**
- * 2つのスクリーンショットをピクセル比較し、差分ヒートマップを生成する
+ * Compare two screenshots pixel-by-pixel and generate a diff heatmap.
  */
 export async function compareScreenshots(
   snapshot: VrtSnapshot,
@@ -67,7 +66,7 @@ export async function compareScreenshots(
   const baseline = await decodePng(snapshot.baselinePath);
   const current = await decodePng(snapshot.screenshotPath);
 
-  // サイズが異なる場合: 共通領域で比較 + 余剰領域を追加 diff として計上
+  // Different sizes: compare common region + count overflow as diff
   let resizedBaseline = baseline;
   let resizedCurrent = current;
   let overflowPixels = 0;
@@ -99,7 +98,7 @@ export async function compareScreenshots(
     { threshold }
   );
 
-  // ヒートマップ出力 (skip PNG encode if skipHeatmap is set)
+  // Heatmap output (skip PNG encode if skipHeatmap is set)
   let heatmapPath: string | undefined;
   if (opts.outputDir && diffPixels > 0 && !opts.skipHeatmap) {
     const safeName = snapshot.testId.replace(/[/\\:]/g, "_");
@@ -107,7 +106,7 @@ export async function compareScreenshots(
     await encodePng(heatmapPath, { width, height, data: diffOutput });
   }
 
-  // 差分領域を検出 (連結成分解析の簡易版: グリッドベース)
+  // Detect diff regions (simplified connected-component analysis: grid-based)
   const regions = detectDiffRegions(diffOutput, width, height);
 
   return {
@@ -121,8 +120,8 @@ export async function compareScreenshots(
 }
 
 /**
- * グリッドベースの差分領域検出
- * 画像をセルに分割し、差分ピクセルが閾値を超えるセルをクラスタリング
+ * Grid-based diff region detection.
+ * Splits image into cells and clusters cells exceeding the diff threshold.
  */
 function detectDiffRegions(
   diffData: Uint8Array,
@@ -134,11 +133,11 @@ function detectDiffRegions(
   const rows = Math.ceil(height / cellSize);
   const grid = new Uint32Array(cols * rows);
 
-  // 各セルの差分ピクセル数をカウント
+  // Count diff pixels per cell
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      // pixelmatch の diff 出力で赤チャネルが非ゼロ = 差分
+      // Non-zero red channel in pixelmatch diff output = changed pixel
       if (diffData[idx] > 0) {
         const col = Math.floor(x / cellSize);
         const row = Math.floor(y / cellSize);
@@ -147,17 +146,17 @@ function detectDiffRegions(
     }
   }
 
-  // 隣接する差分セルをマージして矩形領域にする
+  // Merge adjacent diff cells into bounding rectangles
   const visited = new Uint8Array(cols * rows);
   const regions: DiffRegion[] = [];
-  const minPixels = 4; // ノイズ除去: 最低差分ピクセル数
+  const minPixels = 4; // noise threshold
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const i = r * cols + c;
       if (visited[i] || grid[i] < minPixels) continue;
 
-      // BFS でクラスタを検出
+      // BFS cluster detection
       let minC = c,
         maxC = c,
         minR = r,
@@ -208,7 +207,7 @@ function detectDiffRegions(
 }
 
 /**
- * 白飛び検出: 画像の大部分が白 (または単一色) かどうかを判定
+ * Whiteout detection: checks if most of the image is white (or a single color).
  */
 export function detectWhiteout(
   data: PngData,
@@ -224,7 +223,7 @@ export function detectWhiteout(
     const r = pixels[offset];
     const g = pixels[offset + 1];
     const b = pixels[offset + 2];
-    // 白 (250+, 250+, 250+) とみなす
+    // Treat (250+, 250+, 250+) as white
     if (r >= 250 && g >= 250 && b >= 250) {
       whiteCount++;
     }
@@ -235,7 +234,7 @@ export function detectWhiteout(
 }
 
 /**
- * 空コンテンツ検出: 画像のエントロピーが低いかを判定
+ * Empty content detection: checks if the image has low entropy.
  */
 export function detectEmptyContent(
   data: PngData,
@@ -246,7 +245,7 @@ export function detectEmptyContent(
   const { width, height, data: pixels } = data;
   const total = width * height;
 
-  // サンプリング (全ピクセルは重いのでストライド)
+  // Sampling with stride (full scan is too expensive)
   const stride = Math.max(1, Math.floor(total / 10000));
   for (let i = 0; i < total; i += stride) {
     const offset = i * 4;

@@ -9,30 +9,30 @@ import type { LLMProvider } from "./intent.ts";
 import { buildReasoningPrompt } from "./intent.ts";
 
 export interface AgentConfig {
-  /** 自動承認の diffRatio 閾値。これ以下は自動承認 */
+  /** Auto-approve diffRatio threshold. Below this = auto-approve */
   autoApproveThreshold: number;
-  /** 自動拒否の diffRatio 閾値。これ以上は自動拒否 (品質チェック失敗時) */
+  /** Auto-reject diffRatio threshold. Above this = auto-reject (on quality check failure) */
   autoRejectThreshold: number;
-  /** LLM リーズニングを行う diffRatio の範囲 [min, max] */
+  /** diffRatio range [min, max] for LLM reasoning */
   llmReasoningRange: [number, number];
-  /** LLM プロバイダ (オプション。なければヒューリスティクスのみ) */
+  /** LLM provider (optional; heuristics-only without it) */
   llm?: LLMProvider;
 }
 
 const DEFAULT_CONFIG: AgentConfig = {
-  autoApproveThreshold: 0.001, // 0.1% 以下は自動承認
-  autoRejectThreshold: 0.8, // 80% 以上は自動拒否
+  autoApproveThreshold: 0.001, // auto-approve below 0.1%
+  autoRejectThreshold: 0.8, // auto-reject above 80%
   llmReasoningRange: [0.001, 0.8],
 };
 
 /**
- * VRT 検証エージェントのメインループ
+ * VRT verification agent main loop.
  *
- * 段階的フィルタリング:
- * 1. diffRatio が極小 → 自動承認 (レンダリングノイズ)
- * 2. Intent と一致する変更 → 自動承認
- * 3. 品質チェック失敗 + 大きな diff → 自動拒否
- * 4. 中間領域 → LLM リーズニング or エスカレート
+ * Graduated filtering:
+ * 1. Tiny diffRatio -> auto-approve (rendering noise)
+ * 2. Intent-matching change -> auto-approve
+ * 3. Quality check failure + large diff -> auto-reject
+ * 4. Middle range -> LLM reasoning or escalate
  */
 export async function runVerificationLoop(
   diffs: VrtDiff[],
@@ -64,7 +64,7 @@ async function evaluateDiff(
 ): Promise<VrtVerdict> {
   const snapshotId = diff.snapshot.testId;
 
-  // Stage 1: ノイズフィルタ — 極小の差分は自動承認
+  // Stage 1: Noise filter -- auto-approve tiny diffs
   if (diff.diffRatio <= config.autoApproveThreshold) {
     return {
       snapshotId,
@@ -74,7 +74,7 @@ async function evaluateDiff(
     };
   }
 
-  // Stage 2: Intent マッチング
+  // Stage 2: Intent matching
   const matchedExpectation = matchIntent(diff, intent);
   if (matchedExpectation && matchedExpectation.confidence > 0.7) {
     return {
@@ -86,7 +86,7 @@ async function evaluateDiff(
     };
   }
 
-  // Stage 3: 品質チェック失敗 + 大きな diff → 拒否
+  // Stage 3: Quality check failure + large diff -> reject
   const failedChecks = qualityChecks.filter(
     (c) => !c.passed && c.severity === "error"
   );
@@ -99,7 +99,7 @@ async function evaluateDiff(
     };
   }
 
-  // Stage 4: LLM リーズニング (利用可能な場合)
+  // Stage 4: LLM reasoning (if available)
   if (
     config.llm &&
     diff.diffRatio >= config.llmReasoningRange[0] &&
@@ -108,7 +108,7 @@ async function evaluateDiff(
     return await llmReasoning(diff, intent, config.llm);
   }
 
-  // Stage 5: エスカレート (人間レビュー)
+  // Stage 5: Escalate (human review)
   return {
     snapshotId,
     decision: "escalate",
@@ -121,7 +121,7 @@ function matchIntent(diff: VrtDiff, intent: ChangeIntent) {
   const testTitle = diff.snapshot.testTitle.toLowerCase();
   const testId = diff.snapshot.testId.toLowerCase();
 
-  // コンポーネントパスとテスト名の照合
+  // Match component path against test name
   for (const expectation of intent.expectedVisualChanges) {
     const component = expectation.component.toLowerCase();
     const componentName = component
@@ -138,7 +138,7 @@ function matchIntent(diff: VrtDiff, intent: ChangeIntent) {
     }
   }
 
-  // refactor/deps で視覚変化がある場合は低信頼度で報告
+  // Report visual changes during refactor/deps with low confidence
   if (
     (intent.changeType === "refactor" || intent.changeType === "deps") &&
     diff.diffRatio > 0.01
@@ -183,7 +183,7 @@ async function llmReasoning(
 // ---- Report Generation ----
 
 /**
- * エージェントコンテキストから人間可読なレポートを生成する
+ * Generate a human-readable report from agent context.
  */
 export function generateReport(ctx: AgentContext): string {
   const lines: string[] = [];

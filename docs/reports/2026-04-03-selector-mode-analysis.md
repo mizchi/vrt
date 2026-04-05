@@ -1,57 +1,57 @@
-# セレクタブロック削除モードの分析
+# Selector Block Deletion Mode Analysis
 
-## 調査結果
+## Investigation Results
 
-`diffComputedStyles` を直接呼ぶと 54 diffs が出るが、bench ランナー経由だと 0。
-原因は `captureComputedStyleSnapshotInDom` (bench 用のリファクタ版) と
-直接の `page.evaluate` でスナップショット形式が異なる可能性がある。
+Calling `diffComputedStyles` directly yields 54 diffs, but 0 through the bench runner.
+The cause may be different snapshot formats between `captureComputedStyleSnapshotInDom` (refactored version for bench)
+and direct `page.evaluate`.
 
-**次のアクション**: `captureComputedStyleSnapshotInDom` のスナップショットが baseline/broken で
-同一キーを返しているか、フォーマット変換のロスがないかを確認する。
+**Next action**: Verify whether `captureComputedStyleSnapshotInDom` snapshots return
+the same keys for baseline/broken and check for format conversion loss.
 
-## 現状 (page fixture, 15 trial)
+## Current Status (page fixture, 15 trials)
 
-| 信号 | property モード | selector モード | 備考 |
-|------|----------------|----------------|------|
-| Visual diff (pixel) | 76.7% | 93.3% | セレクタ全体削除は pixel 変化が大きい |
-| Computed style diff | 73.3% | 0% | **バグ: tracked targets のフィルタが不完全** |
-| Hover diff | 6.7% | 0% | 同上 |
-| A11y diff | 16.7% | 46.7% | セレクタ全体削除で要素の表示が変わる |
-| Any signal | 93.3% | 93.3% | pixel diff だけで拾えている |
+| Signal | property mode | selector mode | Notes |
+|--------|--------------|---------------|-------|
+| Visual diff (pixel) | 76.7% | 93.3% | Full selector deletion creates large pixel changes |
+| Computed style diff | 73.3% | 0% | **Bug: tracked targets filter is incomplete** |
+| Hover diff | 6.7% | 0% | Same as above |
+| A11y diff | 16.7% | 46.7% | Full selector deletion changes element visibility |
+| Any signal | 93.3% | 93.3% | Pixel diff alone catches these |
 
-## 検出精度を上げる方向性
+## Directions for Improving Detection Accuracy
 
-### 1. Computed style diff を selector モードで正しく動かす
+### 1. Make computed style diff work correctly in selector mode
 
-現在のバグ: selector モードで `removed` が block の最初の宣言 1 つだけなので、
-`findExpectedComputedStyleTargets` が 1 プロパティ分しか追跡しない。
-→ ブロック内の全宣言を渡すよう修正済みだが、フィルタロジック (`filterComputedStyleDiffsByTargets`) が
-セレクタ名のマッチで取りこぼしている可能性がある。
+Current bug: In selector mode, `removed` is only the first declaration of the block,
+so `findExpectedComputedStyleTargets` only tracks 1 property.
+→ Fixed to pass all declarations in the block, but the filter logic (`filterComputedStyleDiffsByTargets`)
+may be missing matches on selector names.
 
-**修正案**: selector モードでは tracked targets フィルタをバイパスし、全 computed style diff を検出として扱う。
+**Fix proposal**: In selector mode, bypass the tracked targets filter and treat all computed style diffs as detections.
 
-### 2. 削除前後の computed style snapshot をブロック単位で比較
+### 2. Compare computed style snapshots per block before/after deletion
 
-現在: 全要素の computed style を取得 → 全体で diff
-改善: 削除されたセレクタに該当する要素だけの computed style を重点的に比較
+Current: Get computed styles for all elements → diff the whole thing
+Improvement: Focus comparison on computed styles of elements matching the deleted selector
 
 ```typescript
-// セレクタ ".header" のブロックを削除した場合:
-// 1. document.querySelectorAll(".header") で対象要素を取得
-// 2. baseline と broken の computed style を比較
-// 3. 差分があれば検出
+// When the ".header" block is deleted:
+// 1. Get target elements with document.querySelectorAll(".header")
+// 2. Compare computed styles between baseline and broken
+// 3. If different → detected
 ```
 
-### 3. CSS セレクタ → 影響要素のマッピング
+### 3. CSS selector → affected element mapping
 
-CSS セレクタからどの DOM 要素に影響するかを Playwright の `page.locator()` で特定し、
-その要素だけの computed style/bounding box を比較する。
+Identify which DOM elements a CSS selector affects using Playwright's `page.locator()`,
+then compare only those elements' computed style/bounding box.
 
 ```typescript
 const elements = await page.locator(removedBlock.selector).all();
 for (const el of elements) {
   const before = await el.evaluate(getComputedStyle);
-  // ... CSS 削除後 ...
+  // ... after CSS deletion ...
   const after = await el.evaluate(getComputedStyle);
   // diff
 }
@@ -59,41 +59,41 @@ for (const el of elements) {
 
 ### 4. DOM bounding box diff
 
-computed style ではなく、要素の bounding box (`getBoundingClientRect`) を比較する。
-CSS セレクタを消せばレイアウトが変わるので、bounding box の変化で検出できる。
+Compare element bounding boxes (`getBoundingClientRect`) instead of computed styles.
+Deleting a CSS selector changes layout, so bounding box changes detect it.
 
-pixel diff より高速で、computed style より簡潔。
+Faster than pixel diff and simpler than computed style.
 
-### 5. Crater paint tree diff の活用
+### 5. Leveraging Crater paint tree diff
 
-selector モードでは crater の paint tree diff が最も効果的:
-- paint tree には CSS プロパティの計算結果が含まれる
-- セレクタを消せば paint tree の bg, color, fs, bounds が全て変わる
-- pixel diff よりもプロパティレベルで「何が変わったか」がわかる
+For selector mode, crater paint tree diff is most effective:
+- Paint tree contains CSS property computation results
+- Deleting a selector changes bg, color, fs, bounds in the paint tree
+- Tells "what changed" at the property level, unlike pixel diff
 
-### 6. 復旧精度の向上 (LLM ベース)
+### 6. Improving recovery accuracy (LLM-based)
 
-検出だけでなく復旧の精度を上げるには:
+To improve recovery accuracy, not just detection:
 
-1. **diff レポートの情報量を増やす**
-   - 「この要素の padding が 12px 24px → 0 に変わった」(computed style diff)
-   - 「この要素が flex → block に変わった」(paint tree diff)
-   - 「この要素の高さが 64px → 48px に変わった」(bounding box diff)
+1. **Increase information in diff reports**
+   - "This element's padding changed from 12px 24px → 0" (computed style diff)
+   - "This element changed from flex → block" (paint tree diff)
+   - "This element's height changed from 64px → 48px" (bounding box diff)
 
-2. **残存 CSS からの推論**
-   - 削除されたセレクタと同名の `:hover` ルールが残っているなら、元のセレクタがあったはず
-   - 同じ要素に適用される他のルールとの一貫性チェック
+2. **Inference from remaining CSS**
+   - If a `:hover` rule with the same name as the deleted selector remains, the original selector existed
+   - Consistency check with other rules applying to the same element
 
-3. **HTML 構造からの推論**
-   - `.header` クラスを持つ要素の HTML 構造を見れば、必要なスタイルを推測できる
-   - 周囲の要素との一貫性 (同じ親の他の子のスタイルを参考に)
+3. **Inference from HTML structure**
+   - Viewing HTML structure of elements with `.header` class suggests needed styles
+   - Consistency with surrounding elements (referencing styles of other children of the same parent)
 
-## 優先度
+## Priority
 
-| アプローチ | 効果 | コスト | 優先度 |
-|-----------|------|--------|--------|
-| Computed style diff のバグ修正 | 高 (0% → 70%+) | 低 | **即対応** |
-| Crater paint tree diff | 高 | 低 (既存) | **高** |
-| CSS セレクタ → 影響要素マッピング | 中 | 中 | 中 |
-| DOM bounding box diff | 中 | 低 | 中 |
-| LLM 復旧精度 | 高 | 高 | 後回し |
+| Approach | Impact | Cost | Priority |
+|----------|--------|------|----------|
+| Computed style diff bug fix | High (0% → 70%+) | Low | **Immediate** |
+| Crater paint tree diff | High | Low (existing) | **High** |
+| CSS selector → affected element mapping | Medium | Medium | Medium |
+| DOM bounding box diff | Medium | Low | Medium |
+| LLM recovery accuracy | High | High | Defer |

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * VLM Model Benchmark — VRT diff 画像でモデルの reasoning 品質を比較
+ * VLM Model Benchmark -- compare model reasoning quality on VRT diff images
  *
  * Usage:
- *   node --experimental-strip-types src/vlm-bench.ts --list                    # モデル一覧
- *   node --experimental-strip-types src/vlm-bench.ts --list --max-cost 0       # 無料モデルのみ
- *   node --experimental-strip-types src/vlm-bench.ts gemma-3-27b              # 特定モデルで実行
- *   node --experimental-strip-types src/vlm-bench.ts gemma-3-27b llama-3.2    # 複数モデル比較
+ *   node --experimental-strip-types src/vlm-bench.ts --list                    # list models
+ *   node --experimental-strip-types src/vlm-bench.ts --list --max-cost 0       # free models only
+ *   node --experimental-strip-types src/vlm-bench.ts gemma-3-27b              # run specific model
+ *   node --experimental-strip-types src/vlm-bench.ts gemma-3-27b llama-3.2    # compare models
  *   node --experimental-strip-types src/vlm-bench.ts --image heatmap.png gemma-3-27b
  *
  * Environment: OPENROUTER_API_KEY required for execution (not for --list)

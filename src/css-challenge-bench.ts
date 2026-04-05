@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * CSS Recovery Challenge — Benchmark Runner
+ * CSS Recovery Challenge -- Benchmark Runner
  *
- * 複数 seed でチャレンジを実行し、検出率・復元率を計測する。
- * multi-viewport (desktop + mobile) 対応。結果を JSONL に蓄積。
+ * Runs challenges across multiple seeds, measuring detection and recovery rates.
+ * Multi-viewport (desktop + mobile) support. Results accumulated in JSONL.
  *
  * Usage:
  *   npx tsx src/css-challenge-bench.ts [--fixture page] [--trials 20] [--start-seed 1]

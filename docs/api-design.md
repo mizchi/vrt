@@ -1,31 +1,31 @@
-# vrt — CLI / ライブラリ API 設計
+# vrt — CLI / Library API Design
 
-## 現状の問題
+## Current Problems
 
-- CLI が 8 本あるが命名に統一性がない (`css-challenge`, `migration-compare`, `demo`, `vrt-demo-fix` ...)
-- ライブラリモジュールが 15+ あるが public API が不明確
-- `css-challenge-core.ts` に Playwright 依存・crater 依存・CSS パーサー・LLM クライアントが混在
-- 型定義が `types.ts` と各モジュールに散在
+- 8 CLIs exist but naming is inconsistent (`css-challenge`, `migration-compare`, `demo`, `vrt-demo-fix` ...)
+- 15+ library modules exist but public API is unclear
+- `css-challenge-core.ts` mixes Playwright dependency, crater dependency, CSS parser, and LLM client
+- Type definitions scattered across `types.ts` and individual modules
 
-## 設計方針
+## Design Policy
 
-### CLI: `vrt` サブコマンド体系
+### CLI: `vrt` Subcommand System
 
-1 つのエントリポイント (`vrt`) にサブコマンドをぶら下げる。
+Hang subcommands off a single entry point (`vrt`).
 
 ```
-vrt compare <before> <after>         # 2 ファイルの VRT 比較
-vrt compare --url <url> --current-url <url>  # URL モード
-vrt snapshot <url1> [url2] ...       # URL → multi-viewport キャプチャ + baseline diff
-vrt bench [options]                   # CSS challenge ベンチマーク
-vrt report                           # 蓄積データのレポート
-vrt discover <file>                  # breakpoint 発見 + viewport 提案
-vrt smoke <file-or-url>              # A11y-driven ランダム操作テスト
-vrt serve [--port 3456]              # API サーバー
-vrt status [--url ...]               # サーバーヘルスチェック
+vrt compare <before> <after>         # VRT comparison of 2 files
+vrt compare --url <url> --current-url <url>  # URL mode
+vrt snapshot <url1> [url2] ...       # URL → multi-viewport capture + baseline diff
+vrt bench [options]                   # CSS challenge benchmark
+vrt report                           # Report on accumulated data
+vrt discover <file>                  # Breakpoint discovery + viewport suggestions
+vrt smoke <file-or-url>              # A11y-driven random operation test
+vrt serve [--port 3456]              # API server
+vrt status [--url ...]               # Server health check
 ```
 
-### ライブラリ: 3 層構造
+### Library: 3-Layer Structure
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -35,93 +35,93 @@ vrt status [--url ...]               # サーバーヘルスチェック
               │
 ┌─────────────▼───────────────────────────────┐
 │  Core Layer (src/core/)                     │
-│  純粋なロジック。ブラウザ依存なし            │
+│  Pure logic. No browser dependency          │
 │                                             │
-│  ├── css-parser.ts      CSS パース/変換     │
+│  ├── css-parser.ts      CSS parse/transform │
 │  ├── diff.ts            pixel diff, paint tree diff │
-│  ├── classify.ts        プロパティ分類      │
-│  ├── viewport.ts        breakpoint 発見     │
-│  ├── approval.ts        差分承認ルール      │
-│  ├── a11y.ts            a11y ツリー diff     │
-│  └── types.ts           全型定義            │
+│  ├── classify.ts        Property classification │
+│  ├── viewport.ts        Breakpoint discovery │
+│  ├── approval.ts        Diff approval rules │
+│  ├── a11y.ts            A11y tree diff      │
+│  └── types.ts           All type definitions │
 └─────────────┬───────────────────────────────┘
               │
 ┌─────────────▼───────────────────────────────┐
 │  Backend Layer (src/backend/)               │
-│  ブラウザ/レンダラー依存                    │
+│  Browser/renderer dependent                 │
 │                                             │
 │  ├── chromium.ts        Playwright wrapper  │
 │  ├── crater.ts          Crater BiDi client  │
-│  └── interface.ts       共通インターフェース │
+│  └── interface.ts       Common interface    │
 └─────────────────────────────────────────────┘
 ```
 
-## CLI 詳細
+## CLI Details
 
 ### `vrt compare`
 
-2 つの HTML (または URL) を比較。breakpoint 自動発見 + multi-viewport。
+Compare 2 HTML files (or URLs). Auto breakpoint discovery + multi-viewport.
 
 ```bash
-# ファイル比較
+# File comparison
 vrt compare before.html after.html
 
-# ディレクトリ比較 (baseline + variants)
+# Directory comparison (baseline + variants)
 vrt compare --baseline normalize.html --variants modern.html destyle.html
 
-# URL 比較
+# URL comparison
 vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/
 
-# オプション
+# Options
 vrt compare before.html after.html \
   --backend chromium           # chromium | crater | both
-  --max-viewports 10           # viewport 上限
-  --random-samples 2           # breakpoint 間のランダムサンプル数
-  --no-discover                # breakpoint 自動発見を無効化
-  --approval approval.json     # 承認ルールファイル
-  --output-dir path            # 結果出力先ディレクトリ
-  --mask ".ads,.carousel"      # セレクタマスキング (visibility: hidden)
+  --max-viewports 10           # Viewport limit
+  --random-samples 2           # Random samples between breakpoints
+  --no-discover                # Disable auto breakpoint discovery
+  --approval approval.json     # Approval rules file
+  --output-dir path            # Output directory
+  --mask ".ads,.carousel"      # Selector masking (visibility: hidden)
 ```
 
 ### `vrt snapshot`
 
-URL を複数 viewport でキャプチャし、前回 baseline と自動比較。
+Capture URL at multiple viewports and auto-compare with previous baseline.
 
 ```bash
-# 初回: baseline 作成。2回目以降: diff 計測
+# First run: create baseline. Subsequent runs: measure diff
 vrt snapshot http://localhost:3000/ http://localhost:3000/about/
 
-# オプション
+# Options
 vrt snapshot <url1> [url2] ... \
-  --output snapshots/          # 出力ディレクトリ
-  --mask ".marquee,.badge"     # 動的コンテンツのマスキング
+  --output snapshots/          # Output directory
+  --mask ".marquee,.badge"     # Mask dynamic content
 ```
 
 ### `vrt bench`
 
-CSS challenge ベンチマーク。CSS 1行削除 → 検出率計測。
+CSS challenge benchmark. Delete 1 CSS line → measure detection rate.
 
 ```bash
-vrt bench                                    # デフォルト (page fixture, 20 trial)
-vrt bench --fixture dashboard --trials 50    # fixture + trial 数指定
-vrt bench --backend crater                   # crater バックエンド
-vrt bench --all                              # 全 fixture 一括
-vrt bench --no-db                            # DB に保存しない
+vrt bench                                    # Default (page fixture, 20 trials)
+vrt bench --fixture dashboard --trials 50    # Specify fixture + trial count
+vrt bench --backend crater                   # Crater backend
+vrt bench --all                              # All fixtures at once
+vrt bench --no-db                            # Don't save to DB
 ```
 
 ### `vrt report`
 
-蓄積データの分析。
+Analysis of accumulated data.
 
 ```bash
-vrt report                     # 全データ
-vrt report --fixture page      # fixture 別
-vrt report --backend crater    # backend 別
+vrt report                     # All data
+vrt report --fixture page      # By fixture
+vrt report --backend crater    # By backend
 ```
 
 ### `vrt discover`
 
-HTML/CSS から breakpoint を発見し、テスト用 viewport を提案。
+Discover breakpoints from HTML/CSS and suggest test viewports.
 
 ```bash
 vrt discover page.html
@@ -136,18 +136,18 @@ vrt discover page.html
 
 ### `vrt demo`
 
-デモ実行。
+Demo execution.
 
 ```bash
-vrt demo              # 基本デモ
-vrt demo fix          # fix ループ
-vrt demo multi        # マルチシナリオ
-vrt demo multistep    # マルチステップ
+vrt demo              # Basic demo
+vrt demo fix          # Fix loop
+vrt demo multi        # Multi-scenario
+vrt demo multistep    # Multi-step
 ```
 
-## ライブラリ API
+## Library API
 
-### Core Layer (ブラウザ非依存)
+### Core Layer (Browser-independent)
 
 ```typescript
 // --- css-parser ---
@@ -170,10 +170,10 @@ import { diffA11yTrees, checkA11yTree } from "vrt/core/a11y";
 import type { CssDeclaration, ViewportSpec, Breakpoint, DetectionRecord, ... } from "vrt/core/types";
 ```
 
-### Backend Layer (ブラウザ依存)
+### Backend Layer (Browser-dependent)
 
 ```typescript
-// --- 共通インターフェース ---
+// --- Common interface ---
 import type { RenderBackend, CapturedState } from "vrt/backend/interface";
 
 // --- Chromium ---
@@ -191,7 +191,7 @@ const state = await backend.capture(html, viewport);
 await backend.close();
 ```
 
-### Backend インターフェース
+### Backend Interface
 
 ```typescript
 interface RenderBackend {
@@ -200,19 +200,19 @@ interface RenderBackend {
   init(): Promise<void>;
   close(): Promise<void>;
   
-  /** HTML をレンダリングしてスクリーンショット + メタデータを取得 */
+  /** Render HTML and capture screenshot + metadata */
   capture(html: string, viewport: ViewportSpec, options?: CaptureOptions): Promise<CapturedState>;
   
-  /** 利用可能か確認 */
+  /** Check availability */
   isAvailable(): Promise<boolean>;
 }
 
 interface CaptureOptions {
-  captureHover?: boolean;        // hover 状態もキャプチャ
-  capturePaintTree?: boolean;    // paint tree (crater only)
-  captureA11y?: boolean;         // a11y tree
-  captureComputedStyles?: boolean; // computed style
-  screenshotPath?: string;       // PNG 保存先
+  captureHover?: boolean;        // Also capture hover state
+  capturePaintTree?: boolean;    // Paint tree (crater only)
+  captureA11y?: boolean;         // A11y tree
+  captureComputedStyles?: boolean; // Computed style
+  screenshotPath?: string;       // PNG save path
 }
 
 interface CapturedState {
@@ -224,30 +224,30 @@ interface CapturedState {
 }
 ```
 
-## 移行パス
+## Migration Path
 
-現状のファイルから新構造への対応:
+Mapping from current files to new structure:
 
-| 現在 | 新構造 | 備考 |
-|------|--------|------|
-| `src/css-challenge-core.ts` | 分割: `core/css-parser.ts` + `core/diff.ts` + `backend/chromium.ts` + `backend/crater.ts` | 最大のリファクタリング対象 |
-| `src/detection-classify.ts` | `core/classify.ts` | ほぼそのまま |
-| `src/detection-db.ts` | `core/db.ts` | ほぼそのまま |
-| `src/viewport-discovery.ts` | `core/viewport.ts` | ほぼそのまま |
-| `src/heatmap.ts` | `core/diff.ts` | pixel diff 部分 |
-| `src/a11y-semantic.ts` | `core/a11y.ts` | ほぼそのまま |
-| `src/crater-client.ts` | `backend/crater.ts` | PaintNode/diff は `core/diff.ts` へ |
-| `src/types.ts` | `core/types.ts` | 統合 |
-| `src/css-challenge.ts` | `cli/challenge.ts` | CLI エントリ |
-| `src/css-challenge-bench.ts` | `cli/bench.ts` | CLI エントリ |
-| `src/detection-report.ts` | `cli/report.ts` | CLI エントリ |
-| `src/migration-compare.ts` | `cli/compare.ts` | CLI エントリ |
-| `src/demo*.ts` | `cli/demo.ts` | 統合 |
+| Current | New Structure | Notes |
+|---------|--------------|-------|
+| `src/css-challenge-core.ts` | Split: `core/css-parser.ts` + `core/diff.ts` + `backend/chromium.ts` + `backend/crater.ts` | Largest refactoring target |
+| `src/detection-classify.ts` | `core/classify.ts` | Nearly as-is |
+| `src/detection-db.ts` | `core/db.ts` | Nearly as-is |
+| `src/viewport-discovery.ts` | `core/viewport.ts` | Nearly as-is |
+| `src/heatmap.ts` | `core/diff.ts` | Pixel diff portion |
+| `src/a11y-semantic.ts` | `core/a11y.ts` | Nearly as-is |
+| `src/crater-client.ts` | `backend/crater.ts` | PaintNode/diff moves to `core/diff.ts` |
+| `src/types.ts` | `core/types.ts` | Consolidate |
+| `src/css-challenge.ts` | `cli/challenge.ts` | CLI entry |
+| `src/css-challenge-bench.ts` | `cli/bench.ts` | CLI entry |
+| `src/detection-report.ts` | `cli/report.ts` | CLI entry |
+| `src/migration-compare.ts` | `cli/compare.ts` | CLI entry |
+| `src/demo*.ts` | `cli/demo.ts` | Consolidate |
 
-## 現時点では
+## For Now
 
-リファクタリングは後回し。まず:
-1. この設計ドキュメントを正とする
-2. 新機能は新構造に合わせて追加
-3. 既存コードは動いているのでそのまま
-4. npm パッケージ化するタイミングで一括リファクタ
+Refactoring is deferred. First:
+1. Treat this design document as the source of truth
+2. Add new features following the new structure
+3. Leave existing code as-is since it works
+4. Batch refactor when packaging as npm

@@ -2,11 +2,11 @@
 /**
  * CSS Recovery Challenge
  *
- * 1. GitHub 風 HTML ページを Playwright で表示
- * 2. CSS の 1 行 (プロパティ宣言) をランダムに削除
- * 3. VRT パイプラインで差分を検出
- * 4. 差分情報から LLM に元の CSS を復元させる
- * 5. 復元結果を再度 VRT で検証
+ * 1. Render a GitHub-style HTML page with Playwright
+ * 2. Randomly remove one CSS property declaration
+ * 3. Detect diff via VRT pipeline
+ * 4. Have LLM restore the original CSS from diff info
+ * 5. Verify the restoration with VRT
  *
  * Usage: npx tsx src/css-challenge.ts [--fixture <name>] [--seed <number>] [--max-attempts <number>] [--approval <path>] [--strict]
  */

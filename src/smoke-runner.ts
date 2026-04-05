@@ -2,8 +2,8 @@
 /**
  * A11y-Driven Smoke Test Runner
  *
- * アクセシビリティツリーからインタラクティブ要素を列挙し、
- * サイト内に留まる範囲でランダム操作を行い、クラッシュを検出する。
+ * Enumerates interactive elements from the a11y tree,
+ * performs random actions within the site, and detects crashes.
  *
  * Usage:
  *   node --experimental-strip-types src/smoke-runner.ts <url-or-file>

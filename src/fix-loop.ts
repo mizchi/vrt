@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * VRT Fix Loop — CSS 破壊 → VLM 分析 → LLM 修正 → VRT 検証 のループ
+ * VRT Fix Loop -- CSS break -> VLM analyze -> LLM fix -> VRT verify loop
  *
- * 実際の HTML を Playwright でレンダリングし、CSS を1プロパティ削除して壊し、
- * 2段階パイプラインで修正して VRT で検証する。
+ * Renders real HTML with Playwright, removes one CSS property to break it,
+ * then uses a two-stage pipeline to fix and verify via VRT.
  *
  * Usage:
  *   node --experimental-strip-types src/fix-loop.ts --fixture page --seed 42

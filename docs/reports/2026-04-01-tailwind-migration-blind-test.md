@@ -1,53 +1,53 @@
-# 実験: Tailwind → vanilla CSS ブラインド移行テスト
+# Experiment: Tailwind → vanilla CSS Blind Migration Test
 
-**日付**: 2026-04-01
-**目的**: after.html を見せずに、before.html (Tailwind) + VRT diff だけから vanilla CSS を書けるか？
+**Date**: 2026-04-01
+**Objective**: Can vanilla CSS be written from only before.html (Tailwind) + VRT diff, without seeing after.html?
 
-## 実験設計
+## Experiment Design
 
-1. Tailwind CDN で構築されたダッシュボード (`before.html`) を用意
-2. HTML 構造のみ・CSS ゼロの `after-blank.html` を用意
-3. subagent に以下だけを渡す:
-   - `before.html` のソース (Tailwind utility classes が見える)
-   - `after-blank.html` (CSS を書く対象)
-   - VRT diff 結果 (pixel diff % と heatmap)
-4. **after.html (既存の vanilla CSS 版) は見せない**
-5. VRT ループで diff を下げさせる
+1. Prepare a dashboard built with Tailwind CDN (`before.html`)
+2. Prepare `after-blank.html` with HTML structure only, zero CSS
+3. Provide only the following to the subagent:
+   - `before.html` source (Tailwind utility classes visible)
+   - `after-blank.html` (target for writing CSS)
+   - VRT diff results (pixel diff % and heatmap)
+4. **Do not show after.html (existing vanilla CSS version)**
+5. Have the agent reduce diff via VRT loop
 
-## 結果
+## Results
 
-### diff 推移
+### Diff Progression
 
-| Iteration | wide (1440) | desktop (1280) | bp-above (769) | mobile (375) | 操作 |
-|-----------|-------------|----------------|----------------|--------------|------|
-| 0 (CSS なし) | 1.6% | 1.7% | 4.1% | 36.7% | — |
-| 1 (初回 CSS) | 0.3% | 0.3% | 1.2% | 0.6% | Tailwind クラスの CSS 変換 |
-| 2 (微調整) | 0.3% | 0.3% | 1.2% | 0.7% | font-smoothing 調整 |
-| 3 (最終) | **0.0%** | **0.0%** | **0.0%** | **0.0%** | td:last-child の font-size 修正 |
+| Iteration | wide (1440) | desktop (1280) | bp-above (769) | mobile (375) | Action |
+|-----------|-------------|----------------|----------------|--------------|--------|
+| 0 (no CSS) | 1.6% | 1.7% | 4.1% | 36.7% | — |
+| 1 (initial CSS) | 0.3% | 0.3% | 1.2% | 0.6% | Tailwind class → CSS conversion |
+| 2 (fine-tuning) | 0.3% | 0.3% | 1.2% | 0.7% | font-smoothing adjustment |
+| 3 (final) | **0.0%** | **0.0%** | **0.0%** | **0.0%** | td:last-child font-size fix |
 
-**3 ラウンドで全 7 viewport pixel-perfect (0.0%) 達成。**
+**Achieved pixel-perfect (0.0%) across all 7 viewports in 3 rounds.**
 
-### エージェントの行動
+### Agent Behavior
 
-- **58 回のツール呼び出し** (632 秒)
-- 4 回の VRT 実行 (migration-compare)
-- before.html を読んで Tailwind クラスを CSS に変換
-- VRT heatmap を読んで差分の原因を特定
-- 反復的に CSS を修正
+- **58 tool calls** (632 seconds)
+- 4 VRT runs (migration-compare)
+- Read before.html and converted Tailwind classes to CSS
+- Read VRT heatmap to identify diff causes
+- Iteratively fixed CSS
 
-### 発見された知見
+### Findings
 
-#### 1. Tailwind Preflight の再現が最大の課題
+#### 1. Reproducing Tailwind Preflight Was the Biggest Challenge
 
-Tailwind CDN v3.4.17 の Preflight は公式ドキュメントと微妙に異なる:
-- `-webkit-font-smoothing: antialiased` が CDN 版では**適用されない** (公式 Preflight にはある)
-- font-family が短い: `ui-sans-serif, system-ui, sans-serif` (Roboto 等なし)
+Tailwind CDN v3.4.17's Preflight subtly differs from official docs:
+- `-webkit-font-smoothing: antialiased` is **not applied** in CDN version (present in official Preflight)
+- font-family is shorter: `ui-sans-serif, system-ui, sans-serif` (no Roboto etc.)
 
-**教訓**: Tailwind のバージョンと配布形式 (CDN vs PostCSS) で Preflight が異なる。DevTools の computed style を見るのが正確。
+**Lesson**: Preflight varies by Tailwind version and distribution format (CDN vs PostCSS). Checking DevTools computed style is the accurate approach.
 
-#### 2. line-height が最も重要な変換ルール
+#### 2. line-height Is the Most Important Conversion Rule
 
-Tailwind の `text-*` クラスは font-size **と** line-height をセットで指定する:
+Tailwind's `text-*` classes specify font-size **and** line-height as a set:
 
 | Tailwind class | font-size | line-height |
 |---------------|-----------|-------------|
@@ -58,46 +58,46 @@ Tailwind の `text-*` クラスは font-size **と** line-height をセットで
 | `text-xl` | 1.25rem | 1.75rem |
 | `text-2xl` | 1.5rem | 2rem |
 
-vanilla CSS で font-size だけ指定すると line-height が body の `1.5` を継承し、1 行あたり数 px の差が累積する。
+Specifying only font-size in vanilla CSS causes line-height to inherit body's `1.5`, accumulating several px difference per line.
 
-**教訓**: Tailwind 脱却で最初にやるべきは line-height マッピングテーブルの作成。
+**Lesson**: First thing to do when leaving Tailwind is creating a line-height mapping table.
 
-#### 3. 部分適用の罠 (td:last-child)
+#### 3. Partial Application Trap (td:last-child)
 
-最後まで残った diff の原因:
-- before.html: `<td class="px-6 py-4 text-sm">` が最初の 3 列だけ。最後の列 (Status) には `text-sm` がない
-- 初回の CSS: `td { font-size: 0.875rem }` で全列に適用 → Status 列が 2px 短くなる
-- 修正: `td:not(:last-child) { font-size: 0.875rem; line-height: 1.25rem; }`
+Cause of the last remaining diff:
+- before.html: `<td class="px-6 py-4 text-sm">` on first 3 columns only. Last column (Status) has no `text-sm`
+- Initial CSS: `td { font-size: 0.875rem }` applied to all columns → Status column became 2px shorter
+- Fix: `td:not(:last-child) { font-size: 0.875rem; line-height: 1.25rem; }`
 
-**教訓**: Tailwind のクラスは要素ごとに異なる。一括変換するとき「適用されていない要素」に注意。
+**Lesson**: Tailwind classes differ per element. Watch for "elements where the class is NOT applied" when doing bulk conversion.
 
-#### 4. VRT heatmap が差分原因の特定に有効
+#### 4. VRT Heatmap Was Effective for Identifying Diff Causes
 
-エージェントは heatmap 画像から:
-- テーブル行の高さ差 (2px/行 × 3 行 = 6px 累積) を特定
-- font-smoothing の有無による全面的な微小 diff を特定
-- breakpoint 境界での nav 表示/非表示の差異を特定
+The agent used heatmap images to identify:
+- Table row height differences (2px/row × 3 rows = 6px cumulative)
+- Whole-page subtle diff from font-smoothing presence/absence
+- Nav show/hide differences at breakpoint boundaries
 
-**教訓**: pixel diff の % だけでなく、heatmap の spatial pattern が原因特定の手がかりになる。
+**Lesson**: Not just diff %, but the spatial pattern of the heatmap provides clues for root cause identification.
 
-## vrt の評価
+## vrt Evaluation
 
-| 評価項目 | 結果 |
-|---------|------|
-| **after を見ずに CSS を書けるか** | ✓ 可能。before.html の Tailwind クラスから CSS を生成 |
-| **VRT ループで diff を下げられるか** | ✓ 3 ラウンドで 0.0% 到達 |
-| **何が難しいか** | line-height, 部分適用 (一部の要素にだけクラスが付いている), Preflight のバージョン差異 |
-| **何が簡単か** | レイアウト (flex, grid), 色, spacing (padding/margin), border |
-| **エージェントの効率** | 58 tool calls / 632s。人間なら数時間かかる作業を ~10 分 |
-| **再現性** | seed なし (LLM の判断)。同じ結果を得られるかは保証されない |
+| Criteria | Result |
+|----------|--------|
+| **Can CSS be written without seeing after?** | ✓ Possible. Generated CSS from Tailwind classes in before.html |
+| **Can VRT loop reduce diff?** | ✓ Reached 0.0% in 3 rounds |
+| **What's difficult?** | line-height, partial application (class on only some elements), Preflight version differences |
+| **What's easy?** | Layout (flex, grid), colors, spacing (padding/margin), border |
+| **Agent efficiency** | 58 tool calls / 632s. Work that would take a human several hours in ~10 min |
+| **Reproducibility** | No seed (LLM judgment). Same result not guaranteed |
 
-## 結論
+## Conclusion
 
-**vrt は「CSS 移行の自動化」に十分な精度の検証基盤を提供する。**
+**vrt provides a verification platform with sufficient accuracy for "automating CSS migration".**
 
-before (移行元) のソースコードと VRT diff だけがあれば、after (移行先) のコードをエージェントが生成し、pixel-perfect な移行を達成できることを実証した。
+Demonstrated that with only the source code of before (migration source) and VRT diff, an agent can generate after (migration target) code and achieve pixel-perfect migration.
 
-このアプローチが効く条件:
-- HTML 構造が類似している (クラス名は変わっても DOM 構造は同じ)
-- CSS-only の変更 (JavaScript の振る舞い変更は VRT では検証できない)
-- 静的なページ (animation, hover 等の状態は別途検証が必要)
+Conditions where this approach works:
+- HTML structure is similar (class names change but DOM structure stays the same)
+- CSS-only changes (JavaScript behavior changes cannot be verified by VRT)
+- Static pages (animations, hover states etc. need separate verification)

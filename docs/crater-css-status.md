@@ -1,89 +1,89 @@
-# Crater CSS レンダリング検証状況
+# Crater CSS Rendering Verification Status
 
-> CSS challenge ベンチマーク (page fixture, 30 trial) の結果から分類。
-> Crater BiDi サーバーで HTML をレンダリングし、CSS 1行削除の pixel diff で検出できるかを検証。
+> Classified from CSS challenge benchmark (page fixture, 30 trials) results.
+> Verifies whether pixel diff can detect single CSS line deletion when rendering HTML with Crater BiDi server.
 
-## サマリ
+## Summary
 
-| 状態 | 件数 | 割合 | 説明 |
-|------|------|------|------|
-| **検出済み (verified)** | 15 | 50% | Chromium と同等に pixel diff で検出可能 |
-| **未検出 (broken)** | 8 | 27% | Chromium では検出できるが crater では検出できない |
-| **共通の限界 (out-of-scope)** | 7 | 23% | Chromium でも検出できない (dead-code, hover-only 等) |
+| Status | Count | Ratio | Description |
+|--------|-------|-------|-------------|
+| **Detected (verified)** | 15 | 50% | Detectable via pixel diff same as Chromium |
+| **Undetected (broken)** | 8 | 27% | Detectable in Chromium but not in crater |
+| **Common limitations (out-of-scope)** | 7 | 23% | Not detectable in Chromium either (dead-code, hover-only, etc.) |
 
-## 検出済み (verified) — crater で正しくレンダリングされている CSS
+## Detected (verified) — CSS correctly rendered in crater
 
-| プロパティ | セレクタ例 | diff 率 | 備考 |
-|-----------|-----------|---------|------|
-| `padding` | `.readme-header` | 2-5% | spacing 正確 |
-| `font-size` | `.tab`, `.sidebar-desc`, `.header-nav a` | 1-4% | テキストサイズ差が検出可能 |
-| `color` | `.file-table .date`, `.tab` | <1% | 色変化を検出 |
-| `display` | `.badge`, `.file-table .file-icon`, `.repo-badges` | 0-2% | 要素の表示/非表示 |
-| `width` | `.file-table`, `.sidebar` | 1-2% | サイズ変化 |
-| `height` | `.file-table .file-icon` | <1% | サイズ変化 |
-| `border` | `.branch-btn` | <1% | ボーダー描画 |
-| `margin` | `.main` | 4% | wide viewport でのみ検出 |
-| `flex` | `.header-search` | <1% | flex レイアウト |
+| Property | Selector example | diff rate | Notes |
+|----------|-----------------|-----------|-------|
+| `padding` | `.readme-header` | 2-5% | Spacing accurate |
+| `font-size` | `.tab`, `.sidebar-desc`, `.header-nav a` | 1-4% | Text size difference detectable |
+| `color` | `.file-table .date`, `.tab` | <1% | Color changes detected |
+| `display` | `.badge`, `.file-table .file-icon`, `.repo-badges` | 0-2% | Element show/hide |
+| `width` | `.file-table`, `.sidebar` | 1-2% | Size changes |
+| `height` | `.file-table .file-icon` | <1% | Size changes |
+| `border` | `.branch-btn` | <1% | Border rendering |
+| `margin` | `.main` | 4% | Detected only at wide viewport |
+| `flex` | `.header-search` | <1% | Flex layout |
 
-## 未検出 (broken) — crater のレンダリング精度に問題がある CSS
+## Undetected (broken) — Issues with crater rendering accuracy
 
-> これらは **Chromium では検出できるが crater ではできない**。
-> crater 側の修正候補リスト。
+> These are **detectable in Chromium but not in crater**.
+> Candidate list for crater-side fixes.
 
-| プロパティ | セレクタ | Chromium での検出 | 推定原因 |
-|-----------|---------|-----------------|---------|
-| `border-radius` | `.branch-btn` | ✓ (computed) | **border-radius のレンダリングが不正確** — 削除前後で pixel 差が出ない |
-| `margin-bottom` | `.sidebar-desc` | ✓ (computed) | **margin のコラプシングまたは精度問題** |
-| `margin-left` | `.tab-count` | ✓ (computed) | 同上 |
-| `align-items` | `.branch-bar` | ✓ (computed) | **flexbox の align-items が正しくレンダリングされていない可能性** |
-| `font-weight` | `.repo-name` | ✓ (computed) | **font-weight のレンダリングが不完全** (既知の問題: README に記載) |
-| `text-decoration: none` | `.repo-name a`, `.header-nav a` | ✓ (computed) | **text-decoration の初期値が異なる** — crater ではデフォルトで underline なし? |
-| `color` | `.footer a` | ✓ (computed) | **一部の color 変更が検出されない** |
+| Property | Selector | Chromium detection | Estimated cause |
+|----------|----------|-------------------|----------------|
+| `border-radius` | `.branch-btn` | ✓ (computed) | **Inaccurate border-radius rendering** — no pixel diff before/after deletion |
+| `margin-bottom` | `.sidebar-desc` | ✓ (computed) | **Margin collapsing or precision issue** |
+| `margin-left` | `.tab-count` | ✓ (computed) | Same as above |
+| `align-items` | `.branch-bar` | ✓ (computed) | **Possible incorrect flexbox align-items rendering** |
+| `font-weight` | `.repo-name` | ✓ (computed) | **Incomplete font-weight rendering** (known issue: documented in README) |
+| `text-decoration: none` | `.repo-name a`, `.header-nav a` | ✓ (computed) | **Different text-decoration initial value** — crater defaults to no underline? |
+| `color` | `.footer a` | ✓ (computed) | **Some color changes not detected** |
 
-### broken の詳細分析
+### Detailed Analysis of broken items
 
-1. **border-radius**: crater の paint backend で border-radius が正確に描画されていない可能性。削除しても見た目が変わらない = 元々 border-radius が効いていない。
+1. **border-radius**: Likely not accurately drawn by crater's paint backend. Deleting it doesn't change appearance = border-radius wasn't applied in the first place.
 
-2. **margin / spacing 系**: `margin-bottom`, `margin-left` — computed style では差が出るが pixel では差が出ない。crater のレイアウトエンジンがこれらのプロパティを正確に反映していない。
+2. **margin / spacing**: `margin-bottom`, `margin-left` — computed style shows differences but pixel doesn't. Crater's layout engine doesn't accurately reflect these properties.
 
-3. **font-weight**: README.md に「Font-weight CSS compute incomplete for `<b>` and `<strong>` tags」と記載されている既知の問題。font-weight 変更の視覚的影響が crater では再現されない。
+3. **font-weight**: Known issue documented in README: "Font-weight CSS compute incomplete for `<b>` and `<strong>` tags". Visual impact of font-weight changes is not reproduced in crater.
 
-4. **text-decoration**: README.md に「Text-decoration underline not implemented」と記載。text-decoration: none を削除しても、crater ではそもそも underline が描画されないため差分が出ない。
+4. **text-decoration**: Documented in README as "Text-decoration underline not implemented". Deleting text-decoration: none produces no diff since crater doesn't draw underlines in the first place.
 
-5. **align-items**: flexbox の cross-axis alignment。layout テスト 89.2% なので一部の align-items ケースが未サポートの可能性。
+5. **align-items**: Flexbox cross-axis alignment. Layout tests pass at 89.2%, so some align-items cases may be unsupported.
 
-## 共通の限界 (out-of-scope)
+## Common Limitations (out-of-scope)
 
-| 理由 | 件数 | 例 |
-|------|------|---|
-| dead-code | 3 | `.readme-body code { background }` (pre code で上書き)、`.footer a { color }` |
+| Reason | Count | Example |
+|--------|-------|---------|
+| dead-code | 3 | `.readme-body code { background }` (overridden by pre code), `.footer a { color }` |
 | hover-only | 2 | `.footer a:hover { text-decoration }` |
 | same-as-default | 1 | `.file-table .file-name a { text-decoration: none }` |
 | same-as-parent | 1 | `.readme-header { background: #f6f8fa }` |
 | content-dependent | 2 | `white-space: nowrap`, `flex-wrap: wrap` |
 
-## CSS 機能別の対応状況
+## CSS Feature Support Status
 
-| CSS 機能 | Crater 状態 | 備考 |
-|---------|------------|------|
-| **display: flex** | ✓ verified | flexbox レイアウト全般は動作 |
-| **display: none** | ✓ verified | 要素の表示/非表示 |
-| **width / height** | ✓ verified | サイズ計算正確 |
-| **padding** | ✓ verified | spacing 正確 |
-| **color** | △ partial | 一部のセレクタで検出漏れ |
-| **font-size** | ✓ verified | テキストサイズ変化を検出 |
-| **flex** | ✓ verified | flex: 1 等の比率計算 |
-| **border** | ✓ verified | ボーダー描画 |
-| **margin** | △ partial | margin collapse / 小さい margin で不正確 |
-| **border-radius** | ✗ broken | pixel diff で差が出ない |
-| **font-weight** | ✗ broken | README に既知の問題として記載 |
-| **text-decoration** | ✗ broken | underline 未実装 (README 記載) |
-| **align-items** | ✗ broken | cross-axis alignment の一部で不正確 |
+| CSS Feature | Crater Status | Notes |
+|-------------|--------------|-------|
+| **display: flex** | ✓ verified | Flexbox layout generally works |
+| **display: none** | ✓ verified | Element show/hide |
+| **width / height** | ✓ verified | Accurate size calculation |
+| **padding** | ✓ verified | Accurate spacing |
+| **color** | △ partial | Detection gaps for some selectors |
+| **font-size** | ✓ verified | Text size changes detected |
+| **flex** | ✓ verified | flex: 1 ratio calculation |
+| **border** | ✓ verified | Border rendering |
+| **margin** | △ partial | Inaccurate for margin collapse / small margins |
+| **border-radius** | ✗ broken | No pixel diff |
+| **font-weight** | ✗ broken | Known issue documented in README |
+| **text-decoration** | ✗ broken | Underline not implemented (documented in README) |
+| **align-items** | ✗ broken | Inaccurate for some cross-axis alignment cases |
 
-## crater 改善の優先順位
+## Crater Improvement Priority
 
-1. **text-decoration** (高) — 未実装。CSS challenge で 5/30 が text-decoration 関連
-2. **border-radius** (高) — paint backend の修正が必要
-3. **font-weight** (中) — `<b>`/`<strong>` 以外の font-weight 変更も影響
-4. **margin 精度** (中) — margin-bottom/margin-left の小さい値で不正確
-5. **align-items** (低) — 影響範囲が限定的
+1. **text-decoration** (high) — Not implemented. 5/30 CSS challenges are text-decoration related
+2. **border-radius** (high) — Requires paint backend fix
+3. **font-weight** (medium) — Affects font-weight changes beyond `<b>`/`<strong>`
+4. **margin accuracy** (medium) — Inaccurate for small margin-bottom/margin-left values
+5. **align-items** (low) — Limited impact scope

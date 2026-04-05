@@ -1,25 +1,25 @@
 /**
- * 統合 LLM クライアント
+ * Unified LLM client
  *
- * テキスト + 画像の両方に対応。プロバイダ優先順:
- * 1. Anthropic (ANTHROPIC_API_KEY) — テキスト + vision
- * 2. Gemini (GEMINI_API_KEY) — テキスト + vision
- * 3. OpenRouter (OPENROUTER_API_KEY) — テキスト + vision
+ * Supports both text and image. Provider priority:
+ * 1. Anthropic (ANTHROPIC_API_KEY) -- text + vision
+ * 2. Gemini (GEMINI_API_KEY) -- text + vision
+ * 3. OpenRouter (OPENROUTER_API_KEY) -- text + vision
  *
- * 既存の LLMProvider インターフェースとの後方互換性あり。
+ * Backwards-compatible with the existing LLMProvider interface.
  */
 import type { LLMProvider } from "./intent.ts";
 
 // ---- Types ----
 
 export interface LLMClientOptions {
-  /** 画像対応が必要か */
+  /** Whether vision support is needed */
   vision?: boolean;
-  /** 最大トークン */
+  /** Max tokens */
   maxTokens?: number;
-  /** 特定のプロバイダを指定 */
+  /** Specific provider */
   provider?: "anthropic" | "gemini" | "openrouter";
-  /** 特定のモデルを指定 */
+  /** Specific model */
   model?: string;
 }
 
@@ -47,11 +47,11 @@ export interface LLMResponse {
 }
 
 export interface UnifiedLLMClient {
-  /** テキスト only (後方互換) */
+  /** Text only (backwards-compatible) */
   complete(prompt: string): Promise<string>;
-  /** テキスト + 画像 */
+  /** Text + images */
   completeWithImages(content: MessageContent, options?: { maxTokens?: number }): Promise<LLMResponse>;
-  /** VRT diff 分析特化: heatmap + テキストレポートを同時に渡す */
+  /** VRT diff analysis: pass heatmap + text report together */
   analyzeDiff(options: {
     heatmapBase64?: string;
     baselineBase64?: string;
@@ -284,10 +284,10 @@ function buildDiffContent(options: {
 export type LLMProviderName = "gemini" | "anthropic" | "openrouter";
 
 /**
- * 環境変数からプロバイダとキーを解決する。
+ * Resolve provider and key from environment variables.
  *
  * VRT_LLM_PROVIDER: gemini (default) | anthropic | openrouter
- * VRT_LLM_MODEL: モデル ID (省略時はプロバイダのデフォルト)
+ * VRT_LLM_MODEL: model ID (defaults to provider's default)
  */
 function resolveProviderConfig(options?: LLMClientOptions): {
   provider: LLMProviderName;
@@ -313,9 +313,9 @@ function resolveProviderConfig(options?: LLMClientOptions): {
 }
 
 /**
- * 統合 LLM クライアントを作成。
+ * Create a unified LLM client.
  *
- * プロバイダは VRT_LLM_PROVIDER 環境変数で指定 (デフォルト: gemini)。
+ * Provider is set via VRT_LLM_PROVIDER env var (default: gemini).
  */
 export function createUnifiedLLMClient(options?: LLMClientOptions): UnifiedLLMClient | null {
   const config = resolveProviderConfig(options);
@@ -332,16 +332,15 @@ export function createUnifiedLLMClient(options?: LLMClientOptions): UnifiedLLMCl
 }
 
 /**
- * 後方互換: 既存の LLMProvider インターフェースを返す。
- * VRT_LLM_PROVIDER で指定されたプロバイダを使う。
- * キーがない場合は他のプロバイダにフォールバック。
+ * Backwards-compatible: returns the existing LLMProvider interface.
+ * Uses the provider specified by VRT_LLM_PROVIDER.
+ * Falls back to other providers if key is missing.
  */
 export function createLLMProvider(): LLMProvider | null {
-  // まず設定通りに試みる
   const client = createUnifiedLLMClient();
   if (client) return { complete: (prompt: string) => client.complete(prompt) };
 
-  // フォールバック: 利用可能なキーがあれば使う
+  // Fallback: use any available key
   const fallbackOrder: LLMProviderName[] = ["gemini", "anthropic", "openrouter"];
   for (const provider of fallbackOrder) {
     const fb = createUnifiedLLMClient({ provider });

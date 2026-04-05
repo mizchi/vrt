@@ -1,54 +1,54 @@
-# VLM 画像トークン最適化
+# VLM Image Token Optimization
 
-**日付**: 2026-04-04
-**モデル**: qwen/qwen3-vl-8b-instruct (OpenRouter)
+**Date**: 2026-04-04
+**Model**: qwen/qwen3-vl-8b-instruct (OpenRouter)
 
-## 解像度 vs トークン数
+## Resolution vs Token Count
 
-| 解像度 | ファイルサイズ | Prompt tokens | コスト/call | 削減率 |
-|--------|-------------|--------------|-----------|--------|
-| **800x600** (原寸) | 16KB | 499 | $8.7e-8 | — |
-| **400x300** | 6KB | 132 | $6.1e-8 | **73% トークン減** |
-| **200x150** | 2KB | 94 | $5.8e-8 | **81% トークン減** |
-| **100x75** | 1KB | 94 | $2.7e-8 | **81% トークン減** |
+| Resolution | File size | Prompt tokens | Cost/call | Reduction |
+|------------|-----------|--------------|-----------|-----------|
+| **800x600** (original) | 16KB | 499 | $8.7e-8 | — |
+| **400x300** | 6KB | 132 | $6.1e-8 | **73% token reduction** |
+| **200x150** | 2KB | 94 | $5.8e-8 | **81% token reduction** |
+| **100x75** | 1KB | 94 | $2.7e-8 | **81% token reduction** |
 
-## 色 vs トークン数 (800x600 固定)
+## Color vs Token Count (800x600 fixed)
 
-| 色 | ファイルサイズ | Prompt tokens | 差異 |
-|----|-------------|--------------|------|
-| カラー | 16KB | 499 | — |
-| グレースケール | 19KB | 499 | **トークン同じ** |
-| 2値 (B/W) | 9KB | 499 | **トークン同じ** |
+| Color | File size | Prompt tokens | Difference |
+|-------|-----------|--------------|------------|
+| Color | 16KB | 499 | — |
+| Grayscale | 19KB | 499 | **Same tokens** |
+| Binary (B/W) | 9KB | 499 | **Same tokens** |
 
-## 知見
+## Findings
 
-1. **トークン数は解像度で決まり、色数は影響しない**
-   - VLM は画像をタイルに分割してエンコードする (e.g., 14x14 patches)
-   - タイル数 = 解像度に比例。色は各タイル内のベクトル表現に影響するがトークン数は同じ
+1. **Token count is determined by resolution, not color depth**
+   - VLMs split images into tiles for encoding (e.g., 14x14 patches)
+   - Tile count ∝ resolution. Color affects the vector representation within each tile but not token count
 
-2. **400x300 が最適ポイント**
-   - 800x600 → 400x300 で 73% トークン減 (499 → 132)
-   - 200x150 からは 94 で下限に達する (それ以下でも変わらない)
-   - VRT heatmap は diff の位置がわかればよいので 400x300 で十分
+2. **400x300 is the optimal point**
+   - 800x600 → 400x300 gives 73% token reduction (499 → 132)
+   - At 200x150, tokens bottom out at 94 (no further reduction below that)
+   - VRT heatmaps only need to show diff location, so 400x300 is sufficient
 
-3. **2値化の効果はファイルサイズのみ**
-   - トークンは減らないが PNG サイズは半減 (16KB → 9KB)
-   - API 転送時間の短縮には寄与
+3. **Binarization only reduces file size**
+   - Tokens don't decrease but PNG size halves (16KB → 9KB)
+   - Contributes to API transfer time reduction
 
-## 推奨
+## Recommendations
 
-| 用途 | 解像度 | 色 | トークン | 備考 |
-|------|--------|---|---------|------|
-| **大量 VRT (10K+/日)** | 400x300 | カラー | 132 | コスト最適 |
-| **詳細分析** | 800x600 | カラー | 499 | 微小な diff を見たい時 |
-| **デバッグ** | 原寸 | カラー | — | VLM には送らず人間が確認 |
+| Use case | Resolution | Color | Tokens | Notes |
+|----------|-----------|-------|--------|-------|
+| **High-volume VRT (10K+/day)** | 400x300 | Color | 132 | Cost optimal |
+| **Detailed analysis** | 800x600 | Color | 499 | When inspecting subtle diffs |
+| **Debugging** | Original | Color | — | For human review, not sent to VLM |
 
-## 改訂コスト試算 (400x300 縮小適用)
+## Revised Cost Estimation (with 400x300 downscaling)
 
-10,000 ページ/日, 21,000 VLM calls:
+10,000 pages/day, 21,000 VLM calls:
 
-| | 800x600 (現在) | 400x300 (最適化後) |
+| | 800x600 (current) | 400x300 (optimized) |
 |---|---|---|
 | tokens/call | 590 | 232 |
 | cost/call | $0.089e-7 | $0.035e-7 |
-| **月額** | **$0.06** | **$0.02** |
+| **Monthly** | **$0.06** | **$0.02** |

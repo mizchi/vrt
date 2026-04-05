@@ -1,27 +1,27 @@
-# E1: Dogfooding 評価レポート
+# E1: Dogfooding Evaluation Report
 
-**日付**: 2026-04-04
+**Date**: 2026-04-04
 
-## 実施内容
+## What Was Done
 
-vrt の全ツールチェーンを自プロジェクトの fixture で実行し、実用性を検証。
+Ran vrt's full toolchain on the project's own fixtures to verify practicality.
 
-## 結果
+## Results
 
 ### 1. Migration Compare
 
-| シナリオ | 状態 | 備考 |
-|---------|------|------|
-| **Tailwind → vanilla CSS** | ✅ clean (13/13 viewport) | 0.0% diff — pixel-perfect 達成済み |
-| **Reset CSS** (normalize → 3 variant) | ⚠️ remaining (7/7 unresolved) | Fix Candidates が自動生成された |
+| Scenario | Status | Notes |
+|----------|--------|-------|
+| **Tailwind → vanilla CSS** | ✅ clean (13/13 viewport) | 0.0% diff — pixel-perfect achieved |
+| **Reset CSS** (normalize → 3 variants) | ⚠️ remaining (7/7 unresolved) | Fix Candidates auto-generated |
 
-Reset CSS の Fix Candidates 出力:
+Reset CSS Fix Candidates output:
 ```
 modern-normalize   7x header nav { display }, 4x header nav { gap }, 4x label { display }
 destyle            7x header nav { display }, 4x header nav { gap }, 4x label { display }
 no-reset           7x header nav { display }, 4x header nav { gap }, 4x label { display }
 ```
-→ 具体的な修正候補が出ており、subagent に渡して修正可能。
+→ Specific fix candidates are produced, ready to pass to subagent for fixing.
 
 ### 2. Smoke Test
 
@@ -31,40 +31,40 @@ no-reset           7x header nav { display }, 4x header nav { gap }, 4x label { 
 | dashboard | 10 | 0 | PASS | ~2.5s |
 | form-app | 10 | 0 | PASS | ~2.5s |
 
-全 fixture でクラッシュなし。disabled 要素スキップが効いている。
+No crashes across all fixtures. Disabled element skipping works correctly.
 
 ### 3. CSS Bench (selector mode)
 
 - 10 trials, page fixture
-- **検出率: 100%** (全カテゴリ)
-- multi-viewport bonus: 3 件
-- 0 件の false positive
+- **Detection rate: 100%** (all categories)
+- multi-viewport bonus: 3 cases
+- 0 false positives
 
-### 4. CLI 操作性
+### 4. CLI Usability
 
-| コマンド | 動作 | 備考 |
-|---------|------|------|
-| `vrt compare` | ✅ | breakpoint 自動発見 + convergence 判定が便利 |
-| `vrt discover` | ✅ | breakpoint と viewport 候補が一覧で出る |
-| `vrt smoke` | ✅ | seed ベースで再現可能 |
-| `vrt bench` | ✅ | fixture/mode/backend の切り替えが柔軟 |
-| `vrt report` | ✅ | 蓄積データの集計 |
-| `vrt serve` | ✅ | Hono API サーバー |
+| Command | Status | Notes |
+|---------|--------|-------|
+| `vrt compare` | ✅ | Auto breakpoint discovery + convergence judgment is convenient |
+| `vrt discover` | ✅ | Breakpoint and viewport candidates listed |
+| `vrt smoke` | ✅ | Reproducible with seed |
+| `vrt bench` | ✅ | Flexible fixture/mode/backend switching |
+| `vrt report` | ✅ | Accumulated data aggregation |
+| `vrt serve` | ✅ | Hono API server |
 
-### 5. 課題
+### 5. Issues
 
-| 課題 | 深刻度 | 対策 |
-|------|--------|------|
-| WASM ベースアプリ (luna) は JS 実行なしで空ページ → smoke test 不能 | 中 | smoke test に JS 実行待ち (networkidle) 追加、または Playwright で WASM ビルドを serve |
-| crater BiDi がないと paint tree diff / prescanner が使えない | 低 | graceful fallback 実装済み |
-| `vrt compare` の出力が `migration-compare.ts` 経由で冗長 | 低 | シンプルな JSON 出力モード追加 |
+| Issue | Severity | Mitigation |
+|-------|----------|------------|
+| WASM-based apps (luna) render empty pages without JS execution → smoke test unusable | Medium | Add JS execution wait (networkidle) to smoke test, or serve WASM build via Playwright |
+| paint tree diff / prescanner unavailable without crater BiDi | Low | Graceful fallback implemented |
+| `vrt compare` output is verbose via `migration-compare.ts` | Low | Add simple JSON output mode |
 
-## 評価
+## Evaluation
 
-| 指標 | 評価 |
-|------|------|
-| **実用性** | 高 — migration compare + fix candidates が実際の CSS 移行に使える |
-| **false positive** | 0% — 10 trials のベンチで偽陽性なし |
-| **CLI UX** | 良好 — サブコマンドが直感的 |
-| **CI 適合性** | 高 — GitHub Actions workflow 付き、seed で再現可能 |
-| **WASM アプリ対応** | 未対応 — 静的 HTML のみ |
+| Metric | Rating |
+|--------|--------|
+| **Practicality** | High — migration compare + fix candidates usable for real CSS migration |
+| **False positives** | 0% — no false positives in 10 trial bench |
+| **CLI UX** | Good — subcommands are intuitive |
+| **CI compatibility** | High — GitHub Actions workflow included, reproducible with seed |
+| **WASM app support** | Not supported — static HTML only |

@@ -1,8 +1,8 @@
 /// <reference lib="dom" />
 /**
- * CSS Challenge コアロジック
+ * CSS Challenge core logic
  *
- * css-challenge.ts と css-challenge-bench.ts の共通基盤
+ * Shared foundation for css-challenge.ts and css-challenge-bench.ts
  */
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -251,7 +251,7 @@ export function parseCssDeclarations(css: string): CssDeclaration[] {
   return declarations;
 }
 
-/** CSS セレクタブロック (同一行の宣言をグループ化) */
+/** CSS selector block (groups declarations on the same line) */
 export interface CssSelectorBlock {
   selector: string;
   index: number;           // line index
@@ -260,7 +260,7 @@ export interface CssSelectorBlock {
   mediaCondition: string | null;
 }
 
-/** 宣言リストからセレクタブロック単位にグループ化 */
+/** Group declarations by selector block */
 export function groupBySelector(declarations: CssDeclaration[]): CssSelectorBlock[] {
   const map = new Map<string, CssSelectorBlock>();
   for (const d of declarations) {
@@ -275,7 +275,7 @@ export function groupBySelector(declarations: CssDeclaration[]): CssSelectorBloc
   return [...map.values()];
 }
 
-/** セレクタブロック全体を CSS から削除 */
+/** Remove an entire selector block from CSS */
 export function removeSelectorBlock(css: string, block: CssSelectorBlock): string {
   const lines = css.split("\n");
   lines[block.index] = "";
@@ -489,7 +489,7 @@ async function capturePlaywrightInteractionFallbackSnapshot(
   return mergeComputedStyleSnapshots(...snapshots);
 }
 
-/** Crater BiDi バックエンドでキャプチャ */
+/** Capture via Crater BiDi backend */
 export async function capturePageStateCrater(
   client: CraterClient,
   viewport: { width: number; height: number },
@@ -501,17 +501,17 @@ export async function capturePageStateCrater(
   await client.setContent(html);
   const trackedProperties = options?.trackedProperties ?? TRACKED_PROPERTIES;
 
-  // PNG スクリーンショット (capturePaintData → PNG 変換)
+  // PNG screenshot (capturePaintData -> PNG conversion)
   const { png } = await client.capturePng();
   await writeFile(screenshotPath, png);
 
-  // Paint tree — crater 固有の強み
+  // Paint tree -- crater-specific advantage
   let paintTree: PaintNode | undefined;
   try {
     paintTree = await client.capturePaintTree();
   } catch { /* ignore */ }
 
-  // a11y tree — crater は空で返す (将来的に対応)
+  // a11y tree -- crater returns empty (future support)
   const a11yTree: A11yNode = { role: "document", name: "", children: [] };
 
   let computedStyles = new Map<string, Record<string, string>>();

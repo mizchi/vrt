@@ -2,9 +2,9 @@
 /**
  * VRT Multi-Step Goal Demo
  *
- * 6ステップの Dashboard リビルドシナリオ。
- * 各ステップで問題を検出 → AI 診断 → 修正 → 次のステップ。
- * 途中の修正が別の問題を引き起こすカスケードを含む。
+ * 6-step Dashboard rebuild scenario.
+ * Each step: detect issue -> AI diagnose -> fix -> next step.
+ * Includes cascading issues where fixes cause new problems.
  *
  * Usage: ANTHROPIC_API_KEY=... npx tsx vrt/src/demo-multistep.ts
  */
@@ -143,7 +143,7 @@ interface Step {
   pngRects: Rect[];
   expectation: PageExpectation;
   intent: ChangeIntent;
-  /** この step で AI に聞くプロンプト (問題がある場合) */
+  /** AI prompt for this step (when issues exist) */
   diagnosisContext?: string;
 }
 

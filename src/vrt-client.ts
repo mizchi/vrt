@@ -1,8 +1,8 @@
 /**
  * vrt TypeScript Client SDK
  *
- * API サーバーの全エンドポイントに対応する型安全なクライアント。
- * Node.js / Deno / ブラウザで動作。
+ * Type-safe client for all API server endpoints.
+ * Works in Node.js / Deno / browsers.
  *
  * Usage:
  *   import { VrtClient } from "./vrt-client.ts";

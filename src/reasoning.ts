@@ -8,23 +8,23 @@ import type {
 import { STOP_WORDS, SYNONYMS } from "./expectation.ts";
 
 /**
- * 期待→変更→実現 の reasoning chain
+ * Expectation -> change -> realization reasoning chain
  *
- * 1. 期待: 何を変えるつもりか (intent + expectation)
- * 2. 変更: 実際に何が変わったか (a11y diff)
- * 3. 実現: 期待が a11y セマンティクスとして実現されたか
+ * 1. Expectation: what we intend to change (intent + expectation)
+ * 2. Change: what actually changed (a11y diff)
+ * 3. Realization: whether the expectation was realized in a11y semantics
  */
 export interface ReasoningChain {
   testId: string;
-  /** 期待の要約 */
+  /** Expectation summary */
   expectation: string;
-  /** 実際の変更 */
+  /** Actual changes */
   actualChanges: ActualChange[];
-  /** 期待と実際の対応付け */
+  /** Expectation-to-actual mappings */
   mappings: ExpectationMapping[];
-  /** 結論 */
+  /** Verdict */
   verdict: "realized" | "partially-realized" | "not-realized" | "unexpected-side-effects";
-  /** 人間可読な reasoning */
+  /** Human-readable reasoning */
   reasoning: string;
 }
 
@@ -43,7 +43,7 @@ export interface ExpectationMapping {
 }
 
 /**
- * 期待した変更が a11y ツリーの差分として実現されたかを reasoning する
+ * Reason about whether expected changes were realized in the a11y tree diff.
  */
 export function reasonAboutChanges(
   testId: string,
@@ -64,7 +64,7 @@ export function reasonAboutChanges(
 
   const expectedChanges = pageExp.expectedA11yChanges ?? [];
 
-  // 期待と実際の対応付け (consumed tracking で重複マッチを防止)
+  // Map expected to actual (consumed tracking prevents duplicate matches)
   const mappings: ExpectationMapping[] = [];
   const consumed = new Set<number>();
 
@@ -90,7 +90,7 @@ export function reasonAboutChanges(
     }
   }
 
-  // 期待にない変更 (side effects)
+  // Unexpected changes (side effects)
   const sideEffects = actualChanges.filter((_, i) => !consumed.has(i));
 
   // Verdict
@@ -131,7 +131,7 @@ function findBestMatchIdx(
   changes: A11yChange[],
   consumed: Set<number>
 ): number {
-  // 構造化フィールドで best-score マッチ (greedy findIndex ではなく最適を選ぶ)
+  // Best-score match on structured fields (optimal, not greedy)
   if (exp.type || exp.role || exp.name) {
     let bestIdx = -1;
     let bestFieldScore = 0;
@@ -169,13 +169,13 @@ function findBestMatchIdx(
     if (bestIdx >= 0) return bestIdx;
   }
 
-  // description fuzzy マッチ
-  // ストップワードを除去し、同義語を展開してから比較
+  // Description fuzzy match
+  // Remove stop words and expand synonyms before comparison
   const rawKeywords = exp.description
     .toLowerCase()
     .split(/\s+/)
     .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
-  // 同義語を展開
+  // Expand synonyms
   const keywords = rawKeywords.flatMap((k) => [k, ...(SYNONYMS[k] ?? [])]);
 
   let bestIdx = -1;
@@ -187,7 +187,7 @@ function findBestMatchIdx(
     const target = `${change.type} ${change.description} ${change.path}`.toLowerCase();
     const matched = keywords.filter((k) => target.includes(k)).length;
     const score = keywords.length > 0 ? matched / keywords.length : 0;
-    // 少なくとも2語一致で候補とする (false positive 防止)
+    // Require at least 2 keyword matches to be a candidate
     if (score > bestScore && matched >= 2) {
       bestScore = score;
       bestIdx = i;
@@ -204,7 +204,7 @@ function buildMappingReasoning(exp: ExpectedA11yChange, actual: A11yChange): str
   parts.push(`Actual: [${actual.type}] ${actual.description}`);
   parts.push(`Path: ${actual.path}`);
 
-  // セマンティクスの実現を説明
+  // Explain how the semantic was realized
   if (actual.type === "node-added") {
     parts.push("→ New element was added to the a11y tree, matching expectation");
   } else if (actual.type === "node-removed" || actual.type === "landmark-changed") {
