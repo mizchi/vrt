@@ -37,6 +37,7 @@ const baseIntent: ChangeIntent = {
       confidence: 0.8,
     },
   ],
+  expectedA11yChanges: [],
   affectedComponents: ["src/Button.tsx"],
 };
 

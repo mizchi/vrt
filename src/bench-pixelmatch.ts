@@ -9,6 +9,7 @@ import { performance } from "node:perf_hooks";
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { DIM, RESET, GREEN, YELLOW, CYAN, BOLD } from "./terminal-colors.ts";
 
 const MOONBIT_DIR = join(process.env.HOME!, "ghq/github.com/mizchi/pixelmatch");
 const TMP = join(import.meta.dirname!, "..", "test-results", "bench-pixelmatch");
@@ -66,13 +67,6 @@ async function bench(name: string, fn: () => number, iterations: number, size: s
 }
 
 // ---- Main ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
 
 async function main() {
   mkdirSync(TMP, { recursive: true });

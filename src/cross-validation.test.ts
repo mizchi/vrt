@@ -9,6 +9,7 @@ const styleIntent: ChangeIntent = {
   expectedVisualChanges: [
     { component: "Button", description: "color change", confidence: 0.8 },
   ],
+  expectedA11yChanges: [],
   affectedComponents: ["src/Button.tsx"],
 };
 
@@ -16,6 +17,7 @@ const refactorIntent: ChangeIntent = {
   summary: "refactor: extract utils",
   changeType: "refactor",
   expectedVisualChanges: [],
+  expectedA11yChanges: [],
   affectedComponents: ["src/utils.ts"],
 };
 
@@ -23,6 +25,7 @@ const a11yIntent: ChangeIntent = {
   summary: "a11y: add aria labels",
   changeType: "a11y",
   expectedVisualChanges: [],
+  expectedA11yChanges: [],
   affectedComponents: ["src/Button.tsx"],
 };
 

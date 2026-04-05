@@ -76,9 +76,31 @@ export function resizePngBuffer(pngBuffer: Buffer, options: ResizeOptions = {}):
   return Buffer.from(PNG.sync.write(dst));
 }
 
+/** PNG IHDR チャンクからサイズを読み取る (フルデコード不要) */
+function readPngDimensions(buf: Buffer): { width: number; height: number } {
+  // PNG header: 8-byte signature, then IHDR chunk: 4-byte length, 4-byte type, 4-byte width, 4-byte height
+  if (buf.length >= 24 && buf[0] === 0x89 && buf[1] === 0x50) {
+    return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+  }
+  // Fallback: full decode
+  const png = PNG.sync.read(buf);
+  return { width: png.width, height: png.height };
+}
+
 /** base64 PNG を指定解像度にリサイズして base64 で返す */
 export function resizeBase64Png(base64: string, options: ResizeOptions = {}): string {
+  const preset = typeof options.resolution === "string"
+    ? RESOLUTION_PRESETS[options.resolution]
+    : options.resolution ?? RESOLUTION_PRESETS.medium;
+
   const buf = Buffer.from(base64, "base64");
+  const { width, height } = readPngDimensions(buf);
+
+  // Skip round-trip if already small enough
+  if (width <= preset.maxWidth && height <= preset.maxHeight) {
+    return base64;
+  }
+
   const resized = resizePngBuffer(buf, options);
   return resized.toString("base64");
 }
@@ -86,6 +108,5 @@ export function resizeBase64Png(base64: string, options: ResizeOptions = {}): st
 /** 画像の解像度を取得 */
 export function getImageDimensions(base64: string): { width: number; height: number } {
   const buf = Buffer.from(base64, "base64");
-  const png = PNG.sync.read(buf);
-  return { width: png.width, height: png.height };
+  return readPngDimensions(buf);
 }

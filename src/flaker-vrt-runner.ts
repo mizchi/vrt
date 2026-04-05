@@ -146,6 +146,7 @@ export async function executeFlakerVrtTests(input: {
         outputDir,
         fixedViewports: group.viewports,
         autoDiscover: false,
+        discoverBackend: "auto",
         maxViewports: group.viewports.length,
         randomSamples: 0,
         approvalPath: group.scenario.approval ?? "",

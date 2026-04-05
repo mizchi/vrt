@@ -16,17 +16,7 @@ import {
   type MigrationFix,
   type SelectedMigrationFixTarget,
 } from "./migration-fix-loop-core.ts";
-
-const args = process.argv.slice(2);
-
-function getArg(name: string, fallback = ""): string {
-  const index = args.indexOf(`--${name}`);
-  return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
-}
-
-function hasFlag(name: string): boolean {
-  return args.includes(`--${name}`);
-}
+import { getArg, hasFlag } from "./cli-args.ts";
 
 const REPORT_PATH = resolve(getArg("report", join(process.cwd(), "test-results", "migration", "migration-report.json")));
 const VARIANT_FILTER = getArg("variant");
@@ -192,6 +182,7 @@ function buildRerunOptions(
     outputDir: join(process.cwd(), "test-results", "migration"),
     fixedViewports: report.viewports,
     autoDiscover: false,
+    discoverBackend: "auto",
     maxViewports: report.viewports.length,
     randomSamples: 0,
     approvalPath: report.approvalPath ? resolveSourcePath(report.dir, report.approvalPath) : "",

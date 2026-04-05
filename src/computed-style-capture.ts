@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 export type ComputedStyleSnapshot = Record<string, Record<string, string>>;
 export type InteractionType = "hover" | "focus";
 

@@ -21,23 +21,15 @@ import { runGoal, formatGoalReport, type Goal } from "./goal-runner.ts";
 import { createLLMProvider } from "./llm-client.ts";
 import type { LLMProvider } from "./intent.ts";
 import type { A11yNode, PageExpectation, ChangeIntent, VrtSnapshot } from "./types.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr as _hr } from "./terminal-colors.ts";
 
 const FIXTURES = join(import.meta.dirname!, "..", "fixtures", "react-sample");
 const TMP = join(import.meta.dirname!, "..", "test-results", "demo-fix");
 
-// ---- Terminal helpers ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
 const BG_RED = "\x1b[41m";
 const BG_GREEN = "\x1b[42m";
 
-function hr() { console.log(`${DIM}${"─".repeat(64)}${RESET}`); }
+function hr() { _hr(64); }
 function banner(text: string) {
   console.log(`\n${BOLD}${CYAN}▸ ${text}${RESET}\n`);
 }

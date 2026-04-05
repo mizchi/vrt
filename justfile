@@ -101,6 +101,40 @@ api-server *args:
 smoke-test *args:
   node --experimental-strip-types src/smoke-runner.ts {{args}}
 
+# VRT snapshot (URL → multi-viewport capture + diff)
+snapshot *args:
+  node --experimental-strip-types src/snapshot.ts {{args}}
+
+# ---- Dogfooding ----
+
+# luna.mbt snapshot (requires: npx serve ~/ghq/.../luna.mbt/dist -p 4200)
+dogfood-luna:
+  node --experimental-strip-types src/snapshot.ts \
+    http://localhost:4200/src/examples/todomvc/ \
+    http://localhost:4200/src/examples/spa/ \
+    http://localhost:4200/src/examples/wc/ \
+    http://localhost:4200/src/examples/apg-playground/ \
+    http://localhost:4200/src/examples/browser_router/ \
+    http://localhost:4200/src/examples/css_split_test/ \
+    --output test-results/snapshots/luna
+
+# sol.mbt snapshot (requires: npx serve ~/ghq/.../sol.mbt/website/dist-docs -p 3000)
+dogfood-sol:
+  node --experimental-strip-types src/snapshot.ts \
+    http://localhost:3000/ \
+    http://localhost:3000/luna/ \
+    http://localhost:3000/luna/tutorial-js/islands/ \
+    http://localhost:3000/sol/ \
+    http://localhost:3000/benchmark/ \
+    --output test-results/snapshots/sol \
+    --mask ".marquee-container,.hero-badge"
+
+# False positive test: same URL compared twice
+false-positive url:
+  node --experimental-strip-types src/migration-compare.ts \
+    --url {{url}} --current-url {{url}} \
+    --output-dir test-results/false-positive --no-paint-tree
+
 # Run Playwright VRT
 vrt:
   playwright test

@@ -89,7 +89,7 @@ function scoreMigrationFixCandidate(
   if (mediaMatch === false) return null;
 
   const category = categorizeProperty(declaration.property);
-  let score = categoryWeight(signal.dominantCategory, category);
+  let score = signal.dominantCategory !== "none" ? categoryWeight(signal.dominantCategory, category) : 0;
   const reasons: string[] = [];
   if (score > 0) {
     reasons.push(`${signal.dominantCategory} mismatch`);

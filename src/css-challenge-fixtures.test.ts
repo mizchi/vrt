@@ -16,8 +16,10 @@ describe("listCssChallengeFixtureNames", () => {
       "dashboard",
       "ecommerce-catalog",
       "form-app",
+      "grid-complex",
       "landing-product",
       "page",
+      "stacking-context",
     ]);
   });
 });

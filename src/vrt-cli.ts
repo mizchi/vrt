@@ -14,7 +14,7 @@
  *   affected  — 変更の影響範囲を表示
  */
 
-import { execSync, ExecSyncOptions } from "node:child_process";
+import { execSync, type ExecSyncOptions } from "node:child_process";
 import { resolve, join } from "node:path";
 import {
   readFile,

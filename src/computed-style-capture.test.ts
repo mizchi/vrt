@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
@@ -109,7 +110,7 @@ describe("captureComputedStyleSnapshotInDom", () => {
         ["#hero", { color: "rgb(255, 0, 0)" }],
         [".badge", { color: "rgb(0, 0, 255)" }],
       ]),
-      new Map([
+      new Map<string, FakeStyleMap>([
         ["#hero::before", { content: '"prefix"', color: "rgb(0, 128, 0)" }],
         ["#hero::after", { content: "none" }],
       ]),
@@ -281,7 +282,7 @@ describe("captureEmulatedInteractionStyleSnapshotInDom", () => {
 
     installFakeDom(
       [button, field],
-      new Map([
+      new Map<string, FakeStyleMap>([
         [".btn", { background: "rgb(0, 0, 255)" }],
         [".field", { "border-color": "rgb(255, 0, 0)" }],
       ]),

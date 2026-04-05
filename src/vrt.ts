@@ -32,6 +32,10 @@ async function main() {
     case "discover":
       await runDiscover(rest);
       break;
+    case "snapshot":
+      process.argv = [process.argv[0], "snapshot", ...rest];
+      await import("./snapshot.ts");
+      break;
     case "smoke":
       process.argv = [process.argv[0], "smoke-runner", ...rest];
       await import("./smoke-runner.ts");

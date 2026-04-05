@@ -18,17 +18,8 @@ import {
   type ApprovalHistoryEntry,
 } from "./approval-history.ts";
 import { getCssBenchApprovalSuggestionsPath } from "./css-challenge-fixtures.ts";
-
-const args = process.argv.slice(2);
-
-function getArg(name: string, fallback: string): string {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-
-function hasFlag(name: string): boolean {
-  return args.includes(`--${name}`);
-}
+import { getArg, hasFlag } from "./cli-args.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD } from "./terminal-colors.ts";
 
 const FIXTURE = getArg("fixture", "page");
 const INPUT_PATH = getArg("input", getCssBenchApprovalSuggestionsPath(FIXTURE));
@@ -36,14 +27,6 @@ const OUTPUT_PATH = getArg("output", join(process.cwd(), "approval.json"));
 const HISTORY_PATH = getArg("history", getDefaultApprovalHistoryPath(OUTPUT_PATH));
 const ACTOR = getArg("actor", env.GIT_AUTHOR_NAME ?? env.USER ?? env.LOGNAME ?? "unknown");
 const ALL_APPROVE = hasFlag("all-approve");
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
 
 async function main() {
   const suggestions = await loadManifest(INPUT_PATH);

@@ -14,25 +14,13 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { listModels, resolveModel, createVlmClient, type VlmModel, type VlmResponse } from "./vlm-client.ts";
+import { getArg, hasFlag, getPositionalArgs } from "./cli-args.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD } from "./terminal-colors.ts";
 
-const args = process.argv.slice(2);
-function getArg(name: string, fallback: string): string {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-function hasFlag(name: string): boolean { return args.includes(`--${name}`); }
-const modelArgs = args.filter((a) => !a.startsWith("--") && (args.indexOf(a) === 0 || !args[args.indexOf(a) - 1]?.startsWith("--")));
+const modelArgs = getPositionalArgs();
 
 const IMAGE_PATH = getArg("image", "");
 const TMP = join(process.cwd(), "test-results", "vlm-bench");
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
-const RED = "\x1b[31m";
 
 function formatCost(costPer1k: number): string {
   if (costPer1k === 0) return "FREE";
@@ -147,7 +135,7 @@ Be specific. One change per line. Format: "- [element] property: old → new (se
 
   for (const model of models) {
     process.stdout.write(`  ${model.id.padEnd(50)} `);
-    const client = createVlmClient(model);
+    const client = await createVlmClient(model);
     if (!client) { console.log(`${RED}no key${RESET}`); continue; }
 
     try {

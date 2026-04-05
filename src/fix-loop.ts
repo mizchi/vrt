@@ -15,24 +15,16 @@ import { chromium } from "playwright";
 import { compareScreenshots } from "./heatmap.ts";
 import {
   parseCssDeclarations, removeCssProperty, extractCss, replaceCss,
-  seededRandom, groupBySelector, removeSelectorBlock,
+  seededRandom, groupBySelector, removeSelectorBlock, escapeRegex,
   type CssDeclaration, type CssSelectorBlock,
 } from "./css-challenge-core.ts";
 import { createReasoningPipeline, type StructuredDiffReport, type FixSuggestion } from "./vrt-reasoning-pipeline.ts";
 import { resolveResolutionForViewport } from "./image-resize.ts";
 import { getCssChallengeFixturePath } from "./css-challenge-fixtures.ts";
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
+import { getArg } from "./cli-args.ts";
 
 // ---- Config ----
-
-const args = process.argv.slice(2);
-function getArg(name: string, fallback: string): string {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
 
 const FIXTURE = getArg("fixture", "page");
 const SEED = parseInt(getArg("seed", String(Date.now())), 10);
@@ -40,18 +32,6 @@ const MAX_ROUNDS = parseInt(getArg("max-rounds", "3"), 10);
 const MODE = getArg("mode", "property") as "property" | "selector";
 const VIEWPORT = { width: 1280, height: 900 };
 const TMP = join(process.cwd(), "test-results", "fix-loop");
-
-// ---- Terminal ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
-
-function hr() { console.log(`${DIM}${"─".repeat(72)}${RESET}`); }
 
 // ---- Main ----
 
@@ -103,12 +83,9 @@ async function main() {
   // ---- Capture baseline ----
   const browser = await chromium.launch();
   const baselinePath = join(TMP, "baseline.png");
-  {
-    const page = await browser.newPage({ viewport: VIEWPORT });
-    await page.setContent(htmlRaw, { waitUntil: "networkidle" });
-    await page.screenshot({ path: baselinePath, fullPage: true });
-    await page.close();
-  }
+  const loopPage = await browser.newPage({ viewport: VIEWPORT });
+  await loopPage.setContent(htmlRaw, { waitUntil: "networkidle" });
+  await loopPage.screenshot({ path: baselinePath, fullPage: true });
 
   // ---- Fix loop ----
   let currentCss = removed.brokenCss;
@@ -122,12 +99,8 @@ async function main() {
     // Render broken state
     const brokenHtml = replaceCss(htmlRaw, originalCss, currentCss);
     const brokenPath = join(TMP, `broken-r${round}.png`);
-    {
-      const page = await browser.newPage({ viewport: VIEWPORT });
-      await page.setContent(brokenHtml, { waitUntil: "networkidle" });
-      await page.screenshot({ path: brokenPath, fullPage: true });
-      await page.close();
-    }
+    await loopPage.setContent(brokenHtml, { waitUntil: "networkidle" });
+    await loopPage.screenshot({ path: brokenPath, fullPage: true });
 
     // VRT diff
     const diff = await compareScreenshots({
@@ -246,12 +219,8 @@ async function main() {
     // Dry run: verify fix doesn't make things worse
     const candidateHtml = replaceCss(htmlRaw, originalCss, candidateCss);
     const candidatePath = join(TMP, `candidate-r${round}.png`);
-    {
-      const page = await browser.newPage({ viewport: VIEWPORT });
-      await page.setContent(candidateHtml, { waitUntil: "networkidle" });
-      await page.screenshot({ path: candidatePath, fullPage: true });
-      await page.close();
-    }
+    await loopPage.setContent(candidateHtml, { waitUntil: "networkidle" });
+    await loopPage.screenshot({ path: candidatePath, fullPage: true });
     const candidateDiff = await compareScreenshots({
       testId: `candidate-r${round}`, testTitle: `candidate-r${round}`, projectName: "fix-loop",
       screenshotPath: candidatePath, baselinePath, status: "changed",
@@ -302,7 +271,6 @@ async function main() {
     }
   }
 
-  const totalCost = history.reduce((s, h) => s, 0); // costs tracked in pipeline
   console.log();
 
   await rm(TMP, { recursive: true, force: true }).catch(() => {});

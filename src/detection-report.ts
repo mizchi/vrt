@@ -9,18 +9,9 @@
 import { readAllRecords, getDbStats, type DetectionRecord } from "./detection-db.ts";
 import { isOutOfScope } from "./detection-classify.ts";
 import { getBenchHistoryStats, readBenchHistory } from "./bench-history.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr as _hr } from "./terminal-colors.ts";
 
-// ---- Terminal helpers ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
-
-function hr() { console.log(`${DIM}${"─".repeat(76)}${RESET}`); }
+function hr() { _hr(76); }
 
 function fmtRate(n: number, total: number): string {
   if (total === 0) return `${DIM}n/a${RESET}`;

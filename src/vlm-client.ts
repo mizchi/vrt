@@ -134,17 +134,17 @@ export function listGeminiModels(): VlmModel[] {
   return [...GOOGLE_MODELS];
 }
 
-function createGeminiClient(model: VlmModel, apiKey: string): VlmClient {
+async function createGeminiClient(model: VlmModel, apiKey: string): Promise<VlmClient> {
   const geminiModelId = model.id.replace("gemini:", "");
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const genModel = genAI.getGenerativeModel({ model: geminiModelId });
 
   async function callGemini(
     imageBase64: string,
     textPrompt: string,
     maxTokens: number,
   ): Promise<VlmResponse> {
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const genModel = genAI.getGenerativeModel({ model: geminiModelId });
 
     const start = Date.now();
     const result = await genModel.generateContent({
@@ -178,21 +178,16 @@ function createGeminiClient(model: VlmModel, apiKey: string): VlmClient {
     };
   }
 
-  return {
+  const client: VlmClient = {
     model,
     async analyzeImage(imageBase64, prompt, options) {
       return callGemini(imageBase64, prompt, options?.maxTokens ?? 1024);
     },
     async analyzeImageFile(imagePath, prompt, options) {
       const buf = await readFile(imagePath);
-      return this.analyzeImage(buf.toString("base64"), prompt, options);
+      return client.analyzeImage(buf.toString("base64"), prompt, options);
     },
     async analyzeDiff(baselineBase64, currentBase64, prompt, options) {
-      // Gemini supports multiple images in one request
-      const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const genModel = genAI.getGenerativeModel({ model: geminiModelId });
-
       const start = Date.now();
       const result = await genModel.generateContent({
         contents: [{
@@ -226,14 +221,15 @@ function createGeminiClient(model: VlmModel, apiKey: string): VlmClient {
       };
     },
   };
+  return client;
 }
 
 // ---- Client factory ----
 
-export function createVlmClient(
+export async function createVlmClient(
   model: VlmModel,
   apiKey?: string,
-): VlmClient | null {
+): Promise<VlmClient | null> {
   // Gemini direct
   if (isGeminiDirectModel(model.id)) {
     const key = apiKey ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY;
@@ -291,7 +287,7 @@ export function createVlmClient(
     };
   }
 
-  return {
+  const orClient: VlmClient = {
     model,
 
     async analyzeImage(imageBase64, prompt, options) {
@@ -306,7 +302,7 @@ export function createVlmClient(
 
     async analyzeImageFile(imagePath, prompt, options) {
       const buf = await readFile(imagePath);
-      return this.analyzeImage(buf.toString("base64"), prompt, options);
+      return orClient.analyzeImage(buf.toString("base64"), prompt, options);
     },
 
     async analyzeDiff(baselineBase64, currentBase64, prompt, options) {
@@ -322,4 +318,5 @@ export function createVlmClient(
       }], options?.maxTokens ?? 1024);
     },
   };
+  return orClient;
 }

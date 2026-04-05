@@ -10,6 +10,8 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { PNG } from "pngjs";
+import { DIM, RESET, GREEN, CYAN, BOLD } from "./terminal-colors.ts";
+import type { DetectionRecord } from "./detection-db.ts";
 
 const TMP = join(import.meta.dirname!, "..", "test-results", "benchmark");
 
@@ -73,14 +75,6 @@ async function bench(name: string, fn: () => Promise<void> | void, iterations: n
     opsPerSec: Math.round(iterations / (totalMs / 1000)),
   };
 }
-
-// ---- Terminal ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
 
 // ---- Main ----
 

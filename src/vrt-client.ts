@@ -143,7 +143,7 @@ export class VrtClient {
   private async get<T>(path: string): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
-    return res.json();
+    return res.json() as Promise<T>;
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
@@ -153,6 +153,6 @@ export class VrtClient {
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
-    return res.json();
+    return res.json() as Promise<T>;
   }
 }

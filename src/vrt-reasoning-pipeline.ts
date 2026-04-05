@@ -255,7 +255,7 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
       if (!vlmClient) {
         try {
           const model = await resolveModel(vlmModelId);
-          vlmClient = createVlmClient(model);
+          vlmClient = await createVlmClient(model);
         } catch {
           vlmClient = null;
         }

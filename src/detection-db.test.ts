@@ -17,7 +17,7 @@ function makeRecord(overrides: Partial<DetectionRecord> = {}): DetectionRecord {
     selectorType: "class",
     isInteractive: false,
     mediaCondition: null,
-    viewports: [{ width: 1280, height: 900, visualDiffDetected: true, visualDiffRatio: 0.05, a11yDiffDetected: false, a11yChangeCount: 0 }],
+    viewports: [{ width: 1280, height: 900, visualDiffDetected: true, visualDiffRatio: 0.05, a11yDiffDetected: false, a11yChangeCount: 0, computedStyleDiffCount: 0, hoverDiffDetected: false, paintTreeDiffCount: 0 }],
     detected: true,
     undetectedReason: null,
     ...overrides,

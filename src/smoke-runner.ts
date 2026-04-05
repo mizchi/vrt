@@ -17,14 +17,10 @@ import type {
   A11ySnapshot, A11yNodeCompact, SmokeTestMeta,
 } from "./api-types.ts";
 
-// ---- Config ----
+import { getArg, hasFlag, args } from "./cli-args.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD } from "./terminal-colors.ts";
 
-const args = process.argv.slice(2);
-function getArg(name: string, fallback: string): string {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-function hasFlag(name: string): boolean { return args.includes(`--${name}`); }
+// ---- Config ----
 
 const URL_ARG = getArg("url", "");
 const FILE_ARG = getArg("file", args[0] && !args[0].startsWith("--") ? args[0] : "");
@@ -32,16 +28,6 @@ const MAX_ACTIONS = parseInt(getArg("max-actions", "30"), 10);
 const SEED = parseInt(getArg("seed", String(Date.now())), 10);
 const MODE = getArg("mode", "random") as "random" | "reasoning";
 const VIEWPORT = { width: 1280, height: 900 };
-
-// ---- Terminal ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
 
 // ---- Random ----
 

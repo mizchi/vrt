@@ -16,43 +16,29 @@ import { chromium } from "playwright";
 import { formatPlaywrightLaunchError, isPlaywrightSandboxRestrictionError } from "./playwright-launch-error.ts";
 import { applyApprovalToVrtDiff, collectApprovalWarnings, inferApprovalChangeType, loadApprovalManifest } from "./approval.ts";
 import { getCssChallengeFixturePath } from "./css-challenge-fixtures.ts";
-import { categorizeProperty } from "./css-challenge-core.ts";
+import { categorizeProperty, escapeRegex } from "./css-challenge-core.ts";
 import { compareScreenshots, encodePng } from "./heatmap.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
 import { diffA11yTrees, checkA11yTree, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
 import { createLLMProvider } from "./llm-client.ts";
 import type { A11yNode, VrtSnapshot } from "./types.ts";
+import { getArg, hasFlag } from "./cli-args.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
 
 // ---- Config ----
 
 const TMP = join(import.meta.dirname!, "..", "test-results", "css-challenge");
 
-const args = process.argv.slice(2);
-function getArg(name: string, fallback: string): string {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
 const SEED = parseInt(getArg("seed", String(Date.now())), 10);
 const MAX_ATTEMPTS = parseInt(getArg("max-attempts", "3"), 10);
 const FIXTURE = getArg("fixture", "page");
 const HTML_PATH = getCssChallengeFixturePath(FIXTURE);
 const APPROVAL_PATH = getArg("approval", "");
-const STRICT = args.includes("--strict");
+const STRICT = hasFlag("strict");
 const VIEWPORT = { width: 1280, height: 900 };
 
-// ---- Terminal helpers ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
 const BG_RED = "\x1b[41m";
 const BG_GREEN = "\x1b[42m";
-
-function hr() { console.log(`${DIM}${"─".repeat(72)}${RESET}`); }
 function banner(text: string) { console.log(`\n${BOLD}${CYAN}▸ ${text}${RESET}\n`); }
 
 // Kitty graphics
@@ -145,10 +131,6 @@ function removeCssLine(css: string, declaration: CssLine): string {
   return lines.join("\n");
 }
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // ---- Playwright capture ----
 
 async function capturePageState(html: string, screenshotPath: string): Promise<{ a11yTree: A11yNode; screenshotPath: string }> {
@@ -183,9 +165,9 @@ async function capturePageState(html: string, screenshotPath: string): Promise<{
 function cdpNodesToTree(nodes: Array<{
   nodeId: string;
   parentId?: string;
-  role?: { value: string };
-  name?: { value: string };
-  properties?: Array<{ name: string; value: { value: unknown } }>;
+  role?: { value?: string };
+  name?: { value?: string };
+  properties?: Array<{ name: string; value: { value?: unknown } }>;
   childIds?: string[];
 }>): unknown {
   if (!nodes || nodes.length === 0) return { role: "document", name: "", children: [] };

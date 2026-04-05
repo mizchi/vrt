@@ -66,22 +66,10 @@ import {
   summarizePrescannerTrials,
   type PrescannerTrialResolution,
 } from "./prescanner.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
+import { args, getArg, getArgValues, hasFlag } from "./cli-args.ts";
 
 // ---- Config ----
-
-const args = process.argv.slice(2);
-function getArg(name: string, fallback: string): string {
-  const idx = args.indexOf(`--${name}`);
-  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-function getArgValues(name: string): string[] {
-  const values: string[] = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === `--${name}` && args[i + 1]) values.push(args[i + 1]);
-  }
-  return values;
-}
-function hasFlag(name: string): boolean { return args.includes(`--${name}`); }
 
 type BenchBackend = RenderBackend | "prescanner";
 export type ChallengeMode = "property" | "selector";
@@ -149,18 +137,6 @@ const BASE_VIEWPORTS = [
 
 // Dynamically expanded with breakpoint discovery (populated per fixture)
 let VIEWPORTS = [...BASE_VIEWPORTS];
-
-// ---- Terminal helpers ----
-
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
-
-function hr() { console.log(`${DIM}${"─".repeat(76)}${RESET}`); }
 
 interface ViewportAnalysisBundle {
   viewportResults: ViewportDetectionResult[];
@@ -643,11 +619,12 @@ async function runFixtureBenchmark(fixture: string) {
     await rm(trialDir, { recursive: true, force: true }).catch(() => {});
   }
 
-  if (craterClient) {
-    await craterClient.close();
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- TS narrows to never but craterClient may be set at runtime
+  if ((craterClient as CraterClient | null) != null) {
+    await (craterClient as unknown as CraterClient).close();
   }
-  if (browser) {
-    await browser.close();
+  if ((browser as Browser | null) != null) {
+    await (browser as unknown as Browser).close();
   }
   const elapsedMs = Date.now() - startTime;
   const elapsed = (elapsedMs / 1000).toFixed(1);

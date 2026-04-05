@@ -17,10 +17,13 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
+    "@types/node": "^25.5.2",
+    "@types/pngjs": "^6.0.5",
     "@types/ws": "^8.18.1",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.58.2",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "typescript": "^6.0.2"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

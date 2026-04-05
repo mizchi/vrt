@@ -175,16 +175,10 @@ const scenarios: DemoScenario[] = [
 
 // ---- Main ----
 
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
 
 function separator() {
-  console.log(`${DIM}${"─".repeat(60)}${RESET}`);
+  hr(60);
 }
 
 async function sleep(ms: number) {

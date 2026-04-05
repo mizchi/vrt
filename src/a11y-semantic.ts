@@ -366,10 +366,10 @@ function normalizeA11yNode(raw: Record<string, unknown>): A11yNode {
       pressed: raw.pressed as boolean | "mixed",
     }),
     ...(raw.selected !== undefined && { selected: raw.selected as boolean }),
-    ...(raw.children && {
+    ...(raw.children ? {
       children: (raw.children as Record<string, unknown>[]).map(
         normalizeA11yNode
       ),
-    }),
+    } : {}),
   };
 }

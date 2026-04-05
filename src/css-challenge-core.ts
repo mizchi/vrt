@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * CSS Challenge コアロジック
  *
@@ -41,7 +42,6 @@ import {
   mergeComputedStyleSnapshots,
   selectInteractionFallbackPlans,
   TRACKED_PROPERTIES,
-  type ComputedStyleSnapshot,
   type InteractionTargetPlan,
   waitForInteractionStylesInDom,
 } from "./computed-style-capture.ts";
@@ -310,7 +310,7 @@ export function applyCssFix(css: string, fix: { selector: string; property: stri
   return css;
 }
 
-function escapeRegex(s: string): string {
+export function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -384,7 +384,7 @@ export async function capturePageState(
   if (options?.captureHover) {
     try {
       const interactionPlansExpr = `(function(){ ${ESBUILD_NAME_POLYFILL} return (${collectInteractionTargetPlansInDom.toString()})(); })()`;
-      const interactionPlans = await page.evaluate(interactionPlansExpr);
+      const interactionPlans = await page.evaluate(interactionPlansExpr) as InteractionTargetPlan[];
       const expectedInteractionPlans = buildInteractionTargetPlans(options.interactionSelectors ?? []);
       const hoverExpr = `(function(){ ${ESBUILD_NAME_POLYFILL} return (${captureEmulatedInteractionStyleSnapshotInDom.toString()})(${JSON.stringify(trackedProperties)}); })()`;
       const emulatedHoverStyles = await page.evaluate(hoverExpr) as ComputedStyleSnapshot;
@@ -525,9 +525,9 @@ export async function capturePageStateCrater(
 
 function cdpNodesToTree(nodes: Array<{
   nodeId: string;
-  role?: { value: string };
-  name?: { value: string };
-  properties?: Array<{ name: string; value: { value: unknown } }>;
+  role?: { value?: string };
+  name?: { value?: string };
+  properties?: Array<{ name: string; value: { value?: unknown } }>;
   childIds?: string[];
 }>): unknown {
   if (!nodes || nodes.length === 0) return { role: "document", name: "", children: [] };

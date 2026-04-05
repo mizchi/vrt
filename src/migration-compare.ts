@@ -54,6 +54,8 @@ import {
 } from "./viewport-discovery.ts";
 import { formatPlaywrightLaunchError, isPlaywrightSandboxRestrictionError } from "./playwright-launch-error.ts";
 import type { VrtSnapshot } from "./types.ts";
+import { applyMask, parseMaskSelectors } from "./mask.ts";
+import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr as _hr } from "./terminal-colors.ts";
 
 // ---- Config ----
 
@@ -96,14 +98,24 @@ export interface MigrationCompareOptions {
   strict: boolean;
   paintTreeUrl: string;
   enablePaintTree: boolean;
+  /** URL mode: baseline URL (page.goto instead of setContent) */
+  baselineUrl?: string;
+  /** URL mode: variant URLs */
+  variantUrls?: string[];
+  /** マスクするセレクタ (visibility: hidden) */
+  maskSelectors?: string[];
 }
 
 export function parseMigrationCompareArgs(args: string[]): MigrationCompareOptions {
   const variants = getArgList(args, "variants");
+  const baselineUrl = getArg(args, "url", "");
+  const currentUrl = getArg(args, "current-url", "");
+  const variantUrls = getArgList(args, "variant-urls");
+
   return {
     dir: getArg(args, "dir", "."),
-    baseline: getArg(args, "baseline", args[0] ?? ""),
-    variants: variants.length > 0 ? variants : (args[1] ? [args[1]] : []),
+    baseline: getArg(args, "baseline", baselineUrl ? "" : (args[0] ?? "")),
+    variants: variants.length > 0 ? variants : (currentUrl ? [] : (args[1] ? [args[1]] : [])),
     outputDir: resolve(getArg(args, "output-dir", join(process.cwd(), "test-results", "migration"))),
     autoDiscover: !hasFlag(args, "no-discover"),
     discoverBackend: parseDiscoveryBackend(args),
@@ -113,6 +125,9 @@ export function parseMigrationCompareArgs(args: string[]): MigrationCompareOptio
     strict: hasFlag(args, "strict"),
     paintTreeUrl: getArg(args, "paint-tree-url", DEFAULT_BIDI_URL),
     enablePaintTree: !hasFlag(args, "no-paint-tree"),
+    baselineUrl: baselineUrl || undefined,
+    variantUrls: currentUrl ? [currentUrl] : (variantUrls.length > 0 ? variantUrls : undefined),
+    maskSelectors: parseMaskSelectors(args),
   };
 }
 
@@ -123,17 +138,16 @@ const STATIC_VIEWPORTS: ViewportSpec[] = [
   { width: 375, height: 812, label: "mobile", reason: "standard" },
 ];
 
-// ---- Terminal helpers ----
+function hr() { _hr(76); }
 
-const DIM = "\x1b[2m";
-const RESET = "\x1b[0m";
-const GREEN = "\x1b[32m";
-const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
-const CYAN = "\x1b[36m";
-const BOLD = "\x1b[1m";
-
-function hr() { console.log(`${DIM}${"─".repeat(76)}${RESET}`); }
+function urlToLabel(url: string): string {
+  try {
+    const u = new URL(url);
+    return (u.pathname.replace(/\//g, "_").replace(/^_|_$/g, "") || "root").replace(/\.html$/, "");
+  } catch {
+    return "page";
+  }
+}
 
 type PaintTreeChangeType = PaintTreeChange["type"];
 
@@ -228,9 +242,16 @@ export interface MigrationCompareReport {
 
 async function main(cliArgs = process.argv.slice(2)) {
   const options = parseMigrationCompareArgs(cliArgs);
-  if (!options.baseline || options.variants.length === 0) {
-    console.log(`Usage: npx tsx src/migration-compare.ts --dir <dir> --baseline <file> --variants <file1> <file2> ... [--output-dir path] [--approval approval.json] [--strict] [--discover-backend auto|regex|crater] [--no-paint-tree] [--paint-tree-url ws://127.0.0.1:9222]`);
-    console.log(`   or: npx tsx src/migration-compare.ts <before.html> <after.html>`);
+  const hasFileInput = options.baseline && options.variants.length > 0;
+  const hasUrlInput = options.baselineUrl && options.variantUrls && options.variantUrls.length > 0;
+  if (!hasFileInput && !hasUrlInput) {
+    console.log(`Usage: vrt compare <before.html> <after.html>`);
+    console.log(`       vrt compare --dir <dir> --baseline <file> --variants <file1> <file2> ...`);
+    console.log(`       vrt compare --url <baseline-url> --current-url <current-url>`);
+    console.log(`       vrt compare --url <baseline-url> --variant-urls <url1> <url2> ...`);
+    console.log();
+    console.log(`Options: [--output-dir path] [--approval approval.json] [--strict]`);
+    console.log(`         [--discover-backend auto|regex|crater] [--no-paint-tree] [--no-discover]`);
     process.exit(1);
   }
   await runMigrationCompare(options);
@@ -254,9 +275,19 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
 
   await mkdir(outputDir, { recursive: true });
 
-  const baselinePath = resolve(dir, baseline);
-  const baselineHtml = await readFile(baselinePath, "utf-8");
-  const baselineName = basename(baseline, ".html");
+  const isUrlMode = !!options.baselineUrl;
+  let baselineHtml: string;
+  let baselineName: string;
+
+  if (isUrlMode) {
+    // URL mode: defer HTML capture to after browser launch
+    baselineHtml = ""; // will be filled after page.goto()
+    baselineName = urlToLabel(options.baselineUrl!);
+  } else {
+    const baselinePath = resolve(dir, baseline);
+    baselineHtml = await readFile(baselinePath, "utf-8");
+    baselineName = basename(baseline, ".html");
+  }
   const resolvedApprovalPath = await resolveApprovalPath(dir, approvalPath);
   const approvalManifest = resolvedApprovalPath ? await loadApprovalManifest(resolvedApprovalPath) : null;
   const approvalWarnings = approvalManifest ? collectApprovalWarnings(approvalManifest) : [];
@@ -272,7 +303,7 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
   let VIEWPORTS: ViewportSpec[];
   if (options.fixedViewports && options.fixedViewports.length > 0) {
     VIEWPORTS = options.fixedViewports;
-  } else if (autoDiscover) {
+  } else if (autoDiscover && !isUrlMode) {
     const allHtmls: BreakpointDiscoveryDocumentInput[] = [
       { label: "baseline", html: baselineHtml },
     ];
@@ -309,14 +340,17 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
   console.log(`${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════════════════╗${RESET}`);
   console.log(`${BOLD}${CYAN}║  Migration VRT Compare                                                  ║${RESET}`);
   console.log(`${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════════════════╝${RESET}`);
-  console.log(`  ${DIM}Baseline: ${baseline}${RESET}`);
-  console.log(`  ${DIM}Variants: ${variants.join(", ")}${RESET}`);
+  console.log(`  ${DIM}Baseline: ${isUrlMode ? options.baselineUrl : baseline}${RESET}`);
+  console.log(`  ${DIM}Variants: ${isUrlMode ? (options.variantUrls ?? []).join(", ") : variants.join(", ")}${RESET}`);
   console.log(`  ${DIM}Viewports (${VIEWPORTS.length}): ${VIEWPORTS.map((v) => `${v.label}(${v.width})`).join(", ")}${RESET}`);
   if (resolvedApprovalPath) {
     console.log(`  ${DIM}Approval: ${resolvedApprovalPath}${strict ? " (strict mode: ignored)" : ""}${RESET}`);
     for (const warning of approvalWarnings) {
       console.log(`  ${YELLOW}! ${warning.message}${RESET}`);
     }
+  }
+  if (options.maskSelectors?.length) {
+    console.log(`  ${DIM}Mask: ${options.maskSelectors.join(", ")}${RESET}`);
   }
   if (!enablePaintTree) {
     console.log(`  ${DIM}Paint tree: disabled${RESET}`);
@@ -374,7 +408,15 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
     // Capture baseline at all viewports
     for (const vp of VIEWPORTS) {
       const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
-      await page.setContent(baselineHtml, { waitUntil: "networkidle" });
+      if (isUrlMode) {
+        await page.goto(options.baselineUrl!, { waitUntil: "networkidle", timeout: 30000 });
+        if (!baselineHtml) {
+          baselineHtml = await page.content();
+        }
+      } else {
+        await page.setContent(baselineHtml, { waitUntil: "networkidle" });
+      }
+      if (options.maskSelectors?.length) await applyMask(page, options.maskSelectors);
       const path = join(outputDir, `${baselineName}-${vp.label}.png`);
       await page.screenshot({ path, fullPage: true });
       baselineScreenshots.set(vp.label, path);
@@ -427,16 +469,32 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
       fixCandidates: MigrationFixCandidate[];
     }> = [];
 
-    for (const variantFile of variants) {
-      const variantPath = resolve(dir, variantFile);
-      const variantHtml = await readFile(variantPath, "utf-8");
-      const variantName = basename(variantFile, ".html");
+    const variantSources = isUrlMode
+      ? (options.variantUrls ?? []).map((url) => ({ label: urlToLabel(url), url, file: "" }))
+      : variants.map((f) => ({ label: basename(f, ".html"), url: "", file: f }));
+
+    for (const variant of variantSources) {
+      let variantHtml: string;
+      const variantName = variant.label;
+
+      if (variant.url) {
+        variantHtml = ""; // captured via goto
+      } else {
+        const variantPath = resolve(dir, variant.file);
+        variantHtml = await readFile(variantPath, "utf-8");
+      }
 
       console.log(`  ${BOLD}${variantName}${RESET} vs ${baselineName}`);
 
       for (const vp of VIEWPORTS) {
         const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
-        await page.setContent(variantHtml, { waitUntil: "networkidle" });
+        if (variant.url) {
+          await page.goto(variant.url, { waitUntil: "networkidle", timeout: 30000 });
+          if (!variantHtml) variantHtml = await page.content();
+        } else {
+          await page.setContent(variantHtml, { waitUntil: "networkidle" });
+        }
+        if (options.maskSelectors?.length) await applyMask(page, options.maskSelectors);
         const variantScreenshotPath = join(outputDir, `${variantName}-${vp.label}.png`);
         await page.screenshot({ path: variantScreenshotPath, fullPage: true });
         await page.close();
@@ -510,7 +568,7 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
 
         results.push({
           variant: variantName,
-          variantFile,
+          variantFile: variant.url || variant.file,
           viewport: vp.label,
           diffRatio,
           diffPixels,
