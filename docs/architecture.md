@@ -1,163 +1,131 @@
-# VRT + Semantic Verification — Architecture
+# vrt — Architecture
 
-## 2層サイクル設計
+## CLI コマンド体系
 
-```mermaid
-graph TB
-  subgraph LongCycle["Long Cycle (spec.json)"]
-    direction TB
-    INTROSPECT["introspect<br/>現在のUIからspec自動生成"]
-    SPEC["spec.json<br/>不変条件 (invariants)"]
-    INTROSPECT --> SPEC
-    SPEC --> VERIFY_SPEC["verifySpec()<br/>不変条件の検証"]
-  end
-
-  subgraph ShortCycle["Short Cycle (expectation.json)"]
-    direction TB
-    EXP["expectation.json<br/>このコミットで何が変わるか"]
-    EXP --> MATCH["matchA11yExpectation()<br/>期待と実際の照合"]
-    MATCH --> CV["crossValidateWithExpectation()<br/>Visual x A11y x Intent"]
-  end
-
-  subgraph Pipeline["Verification Pipeline"]
-    direction TB
-    CAPTURE["capture<br/>screenshots + a11y trees"]
-    DIFF["diff<br/>baseline vs snapshot"]
-    CAPTURE --> DIFF
-    DIFF --> CV
-    DIFF --> VERIFY_SPEC
-    CV --> VERDICT["Unified Verdict"]
-    VERIFY_SPEC --> VERDICT
-    VERDICT --> SCORE["Score<br/>usability / practicality / quality"]
-  end
-
-  subgraph DepGraph["Dep Graph (コスト最適化)"]
-    CHANGED["Changed Files"]
-    GRAPH["Module Dependency Graph"]
-    CHANGED --> GRAPH
-    GRAPH --> SKIP{"Skip?"}
-    SKIP -->|unaffected| SKIP_CHECK["Skip invariant check"]
-    SKIP -->|affected| RUN_CHECK["Run check"]
-    SKIP -->|high-cost + unaffected| SKIP_NL["Skip NL assertion"]
-  end
-
-  SKIP --> VERIFY_SPEC
-
-  style LongCycle fill:#e8f5e9,stroke:#4CAF50
-  style ShortCycle fill:#e8f4f8,stroke:#2196F3
-  style Pipeline fill:#fff3e0,stroke:#FF9800
-  style DepGraph fill:#f3e5f5,stroke:#9C27B0
-```
-
-## 2層の役割分担
-
-| | Short Cycle (expectation) | Long Cycle (spec) |
-|---|---|---|
-| **寿命** | 1コミット | 複数コミットにまたがる |
-| **内容** | 「何が変わるか」 | 「何が常に成り立つべきか」 |
-| **例** | "nav を消す" | "全ページに main ランドマークがある" |
-| **regression** | 期待された regression を approve | 不変条件の violation を reject |
-| **生成** | 人間 or エージェントが書く | introspect で自動生成 |
-| **上書き** | spec の不変条件を一時的に上書き | expectation で上書き可能 |
-
-## Introspect フロー
+エントリポイント: `src/vrt.ts`
 
 ```
-現在の a11y ツリー
-    ↓
-introspect()
-    ↓
-PageIntrospection
-  - landmarks: banner, main, nav, ...
-  - interactive: 3 buttons, 5 links, 2 inputs
-  - unlabeled: 0
-  - suggestedInvariants: [...]
-    ↓
-introspectToSpec()
-    ↓
-spec.json (UiSpec)
-  - pages:
-    - home: nav exists, all labeled, no whiteout
-    - about: main exists, heading h1
-  - global: no whiteout, all labeled
+vrt compare <before> <after>           # HTML/URL の VRT 比較
+vrt compare --url <url> --current-url <url>  # URL モード
+vrt snapshot <url1> [url2] ...         # URL → multi-viewport キャプチャ + baseline diff
+vrt bench [options]                    # CSS challenge ベンチマーク
+vrt report                             # 蓄積データのレポート
+vrt discover <file>                    # breakpoint 発見 + viewport 提案
+vrt smoke <file-or-url>                # A11y-driven ランダム操作テスト
+vrt serve [--port 3456]                # API サーバー
+vrt status [--url ...]                 # サーバーヘルスチェック
 ```
 
-## NL Assertion (将来)
-
-```typescript
-// Playwright テスト内での使い方 (将来)
-test("home page", async ({ page }) => {
-  await page.goto("/");
-
-  // 通常のアサーション (安価)
-  await expect(page.getByRole("heading")).toBeVisible();
-
-  // NL assertion (高価 — テスト失敗時のみ発火)
-  await nlAssert(page, "ナビゲーションバーに5つ以上のリンクがある", {
-    dependsOn: ["src/Header.tsx"],
-    onlyOnFailure: true,  // 他のアサーションが落ちた時のみ実行
-  });
-});
-```
-
-### onlyOnFailure パターン
-
-```mermaid
-graph LR
-  TEST["テスト実行"] --> PASS{"Pass?"}
-  PASS -->|Yes| DONE["完了"]
-  PASS -->|No| NL["NL Assertion 発火<br/>(Vision LLM)"]
-  NL --> REPORT["修正ヒント付きレポート"]
-  REPORT --> AGENT["エージェントに投げる"]
-  AGENT --> FIX["修正 → 再テスト"]
-```
-
-### dep graph でのスキップ
+## モジュール構成
 
 ```
-変更ファイル: src/Footer.tsx
-    ↓
-dep graph 解析
-    ↓
-src/Header.tsx は影響を受けない
-    ↓
-Header に依存する NL assertion はスキップ
-    ↓
-Footer に依存するアサーションのみ実行
+src/
+├── vrt.ts                      # CLI エントリポイント (サブコマンド分岐)
+│
+├── [検出パイプライン]
+│   ├── heatmap.ts              # pixelmatch v7 + heatmap 生成
+│   ├── computed-style-capture.ts # getComputedStyle キャプチャ (ブラウザ内実行)
+│   ├── a11y-semantic.ts        # a11y ツリー diff
+│   └── image-resize.ts         # VLM 用 PNG リサイズ (IHDR ヘッダ読み取り)
+│
+├── [CSS Challenge]
+│   ├── css-challenge-core.ts   # CSS パース, computed style, VRT 分析
+│   ├── css-challenge-bench.ts  # ベンチマークランナー
+│   ├── css-challenge.ts        # 単発 recovery challenge
+│   └── css-challenge-fixtures.ts # fixture パス解決
+│
+├── [AI Fix パイプライン]
+│   ├── vrt-reasoning-pipeline.ts # 2段階 VLM + LLM パイプライン
+│   ├── fix-loop.ts             # CSS 破壊 → 分析 → 修正 → 検証ループ
+│   ├── vlm-client.ts           # OpenRouter / Gemini VLM クライアント
+│   └── llm-client.ts           # マルチプロバイダ LLM クライアント
+│
+├── [Migration VRT]
+│   ├── migration-compare.ts    # HTML/URL 比較 (breakpoint 自動発見)
+│   ├── migration-fix-loop.ts   # migration diff の自動修正
+│   └── migration-fix-candidates.ts # 修正候補生成
+│
+├── [Snapshot]
+│   ├── snapshot.ts             # URL → multi-viewport キャプチャ + baseline diff
+│   └── mask.ts                 # セレクタベース visibility マスキング
+│
+├── [検出パターン分析]
+│   ├── detection-classify.ts   # CSS プロパティ/セレクタ分類
+│   ├── detection-db.ts         # JSONL 永続化
+│   └── detection-report.ts     # 蓄積データ集計
+│
+├── [Viewport]
+│   └── viewport-discovery.ts   # @media breakpoint 抽出 + viewport 生成
+│
+├── [Crater 統合]
+│   └── crater-client.ts        # Crater BiDi WebSocket クライアント
+│
+├── [API]
+│   ├── api-server.ts           # Hono API サーバー
+│   ├── api-types.ts            # API 型定義
+│   └── vrt-client.ts           # TypeScript クライアント SDK
+│
+├── [共通ユーティリティ]
+│   ├── terminal-colors.ts      # ANSI カラー定数 + hr()
+│   ├── cli-args.ts             # CLI 引数パーサ (getArg, hasFlag, getArgValues)
+│   └── types.ts                # 共通型定義
+│
+├── [Smoke Test]
+│   └── smoke-runner.ts         # A11y-driven ランダム操作
+│
+├── [Approval]
+│   ├── approval.ts             # 差分承認ルール
+│   └── vrt-approve.ts          # 対話的承認 CLI
+│
+└── [flaker 連携]
+    ├── flaker-vrt-runner.ts    # flaker custom runner protocol
+    └── flaker-vrt-report-adapter.ts # migration-report → flaker 変換
 ```
 
-## コスト構造
+## 検出シグナル
 
-| チェック種別 | コスト | 実行タイミング |
-|---|---|---|
-| ヒューリスティクス (whiteout, label) | 低 | 常に |
-| ピクセル比較 (pixelmatch) | 中 | 常に |
-| A11y ツリー diff | 低 | 常に |
-| dep graph 解析 | 低 | 常に |
-| Spec invariant 検証 | 低 | 影響ありの場合のみ |
-| Visual Semantic 分類 | 低 | diff がある場合のみ |
-| NL assertion (Vision LLM) | **高** | テスト失敗時 + 影響ありの場合のみ |
-| LLM リーズニング | **高** | escalate された場合のみ |
+| シグナル | 実装 | 検出率 (単体) | 備考 |
+|---------|------|-------------|------|
+| Pixel diff | pixelmatch v7 | 77% | 全プロパティ対象、色・サイズ・位置 |
+| Computed style diff | getComputedStyle | 73% | hover/focus 含む |
+| A11y tree diff | accessibility snapshot | 7% | 構造変更のみ |
+| Multi-viewport | breakpoint ±1px | +16% | media query 境界で検出 |
+| Hover emulation | :hover ルール常時有効化 | +6% | hover-only プロパティ |
+| Paint tree diff | Crater BiDi | 60% | レイアウトツリー比較 |
+| **Combined** | | **96.7%** | 9 fixtures, selector mode |
 
-## ファイル構成
+## AI Fix パイプライン
 
 ```
-vrt/
-├── expectation.json         # Short cycle: このコミットの期待
-├── spec.json                # Long cycle: 不変条件 (introspect で生成)
-├── src/
-│   ├── types.ts             # 全型定義 (UiSpec, NlAssertion 含む)
-│   ├── introspect.ts        # introspect + verifySpec
-│   ├── expectation.ts       # matchA11yExpectation + scoring
-│   ├── cross-validation.ts  # Visual x A11y x Intent
-│   ├── dep-graph.ts         # 依存ツリー (スキップ判定)
-│   └── ...
-├── fixtures/
-│   └── react-sample/        # 再現可能テスト fixtures
-│       ├── baseline.a11y.json
-│       ├── snapshot-nav-removed.a11y.json
-│       └── snapshot-label-broken.a11y.json
-└── docs/
-    ├── pipeline.md           # パイプライン図
-    └── architecture.md       # この文書
+Heatmap (PNG) + CSS text diff
+    │
+    ▼
+  Stage 1: VLM (安い — llama-4-scout $0.14e-7)
+    │  画像 → 構造化 CHANGE レポート
+    ▼
+  Stage 2: LLM (正確 — Gemini)
+    │  構造化レポート + CSS source + CSS diff → FIX 提案
+    ▼
+  セレクタ検証フィルタ (存在しないセレクタの fix を除外)
+    │
+    ▼
+  Dry-run 検証 (fix 適用 → VRT → 悪化なら rollback)
 ```
+
+## マスキング
+
+動的コンテンツ (アニメーション, カウンタ, 外部データ) の false positive を防ぐ。
+
+```bash
+vrt snapshot http://localhost:3000/ --mask ".marquee-container,.hero-badge"
+vrt compare --url http://a.com --current-url http://b.com --mask ".ads"
+```
+
+仕組み: `page.addStyleTag()` で `visibility: hidden !important` を注入。
+レイアウトは維持されるため、周囲の要素に影響しない。
+
+## TypeScript
+
+- `tsconfig.json`: `strict: true`, `verbatimModuleSyntax: true`
+- 実行: `node --experimental-strip-types` (esbuild/tsx 不使用)
+- ブラウザ内実行コード (`computed-style-capture.ts`): `/// <reference lib="dom" />`

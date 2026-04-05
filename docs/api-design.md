@@ -14,11 +14,15 @@
 1 つのエントリポイント (`vrt`) にサブコマンドをぶら下げる。
 
 ```
-vrt compare <before> <after>         # 2 ファイルの VRT 比較 (migration-compare の後継)
+vrt compare <before> <after>         # 2 ファイルの VRT 比較
+vrt compare --url <url> --current-url <url>  # URL モード
+vrt snapshot <url1> [url2] ...       # URL → multi-viewport キャプチャ + baseline diff
 vrt bench [options]                   # CSS challenge ベンチマーク
 vrt report                           # 蓄積データのレポート
 vrt discover <file>                  # breakpoint 発見 + viewport 提案
-vrt demo [scenario]                  # デモ実行
+vrt smoke <file-or-url>              # A11y-driven ランダム操作テスト
+vrt serve [--port 3456]              # API サーバー
+vrt status [--url ...]               # サーバーヘルスチェック
 ```
 
 ### ライブラリ: 3 層構造
@@ -65,6 +69,9 @@ vrt compare before.html after.html
 # ディレクトリ比較 (baseline + variants)
 vrt compare --baseline normalize.html --variants modern.html destyle.html
 
+# URL 比較
+vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/
+
 # オプション
 vrt compare before.html after.html \
   --backend chromium           # chromium | crater | both
@@ -72,8 +79,22 @@ vrt compare before.html after.html \
   --random-samples 2           # breakpoint 間のランダムサンプル数
   --no-discover                # breakpoint 自動発見を無効化
   --approval approval.json     # 承認ルールファイル
-  --output report.json         # 結果出力先
-  --threshold 0.1              # pixel diff しきい値
+  --output-dir path            # 結果出力先ディレクトリ
+  --mask ".ads,.carousel"      # セレクタマスキング (visibility: hidden)
+```
+
+### `vrt snapshot`
+
+URL を複数 viewport でキャプチャし、前回 baseline と自動比較。
+
+```bash
+# 初回: baseline 作成。2回目以降: diff 計測
+vrt snapshot http://localhost:3000/ http://localhost:3000/about/
+
+# オプション
+vrt snapshot <url1> [url2] ... \
+  --output snapshots/          # 出力ディレクトリ
+  --mask ".marquee,.badge"     # 動的コンテンツのマスキング
 ```
 
 ### `vrt bench`
