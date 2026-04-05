@@ -251,8 +251,8 @@ export async function createVlmClient(
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${key}`,
-        "HTTP-Referer": "https://github.com/mizchi/vrt-harness",
-        "X-Title": "vrt-harness",
+        "HTTP-Referer": "https://github.com/mizchi/vrt",
+        "X-Title": "vrt",
       },
       body: JSON.stringify({
         model: model.id,

@@ -1,5 +1,5 @@
 /**
- * vrt-harness API 型定義
+ * vrt API 型定義
  *
  * CLI, サーバー (Hono), Cloudflare Workers, Client SDK の共通型。
  * ここが全てのインターフェースの source of truth。

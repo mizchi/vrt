@@ -1,4 +1,4 @@
-# vrt-harness — Project Skills
+# vrt — Project Skills
 
 ## VLM モデルベンチマークの更新方法
 

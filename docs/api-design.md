@@ -1,4 +1,4 @@
-# vrt-harness — CLI / ライブラリ API 設計
+# vrt — CLI / ライブラリ API 設計
 
 ## 現状の問題
 
@@ -130,40 +130,40 @@ vrt demo multistep    # マルチステップ
 
 ```typescript
 // --- css-parser ---
-import { parseCssDeclarations, removeCssProperty, applyCssFix, extractCss } from "vrt-harness/core/css-parser";
+import { parseCssDeclarations, removeCssProperty, applyCssFix, extractCss } from "vrt/core/css-parser";
 
 // --- diff ---
-import { compareImages, diffComputedStyles } from "vrt-harness/core/diff";
-import { diffPaintTrees } from "vrt-harness/core/diff";
+import { compareImages, diffComputedStyles } from "vrt/core/diff";
+import { diffPaintTrees } from "vrt/core/diff";
 
 // --- classify ---
-import { categorizeProperty, classifySelectorType, classifyUndetectedReason, isOutOfScope } from "vrt-harness/core/classify";
+import { categorizeProperty, classifySelectorType, classifyUndetectedReason, isOutOfScope } from "vrt/core/classify";
 
 // --- viewport ---
-import { extractBreakpoints, generateViewports, discoverViewports } from "vrt-harness/core/viewport";
+import { extractBreakpoints, generateViewports, discoverViewports } from "vrt/core/viewport";
 
 // --- a11y ---
-import { diffA11yTrees, checkA11yTree } from "vrt-harness/core/a11y";
+import { diffA11yTrees, checkA11yTree } from "vrt/core/a11y";
 
 // --- types ---
-import type { CssDeclaration, ViewportSpec, Breakpoint, DetectionRecord, ... } from "vrt-harness/core/types";
+import type { CssDeclaration, ViewportSpec, Breakpoint, DetectionRecord, ... } from "vrt/core/types";
 ```
 
 ### Backend Layer (ブラウザ依存)
 
 ```typescript
 // --- 共通インターフェース ---
-import type { RenderBackend, CapturedState } from "vrt-harness/backend/interface";
+import type { RenderBackend, CapturedState } from "vrt/backend/interface";
 
 // --- Chromium ---
-import { ChromiumBackend } from "vrt-harness/backend/chromium";
+import { ChromiumBackend } from "vrt/backend/chromium";
 const backend = new ChromiumBackend();
 await backend.init();
 const state = await backend.capture(html, viewport);
 await backend.close();
 
 // --- Crater ---
-import { CraterBackend } from "vrt-harness/backend/crater";
+import { CraterBackend } from "vrt/backend/crater";
 const backend = new CraterBackend("ws://127.0.0.1:9222");
 await backend.init();
 const state = await backend.capture(html, viewport);

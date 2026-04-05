@@ -1,6 +1,6 @@
 [repo]
 owner = "mizchi"
-name = "vrt-harness"
+name = "vrt"
 
 [storage]
 path = ".flaker/data.duckdb"

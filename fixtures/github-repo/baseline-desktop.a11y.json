@@ -1,6 +1,6 @@
 {
   "role": "document",
-  "name": "mizchi/vrt-harness: VRT + Semantic Verification Harness",
+  "name": "mizchi/vrt: VRT + Semantic Verification Harness",
   "children": [
     {
       "role": "banner",
@@ -47,7 +47,7 @@
             { "role": "img", "name": "Owner avatar" },
             { "role": "link", "name": "mizchi" },
             { "role": "StaticText", "name": "/" },
-            { "role": "link", "name": "vrt-harness" },
+            { "role": "link", "name": "vrt" },
             { "role": "StaticText", "name": "Public" },
             { "role": "button", "name": "Notifications" },
             { "role": "button", "name": "Fork 3" },
@@ -173,7 +173,7 @@
               "role": "region",
               "name": "README",
               "children": [
-                { "role": "heading", "name": "vrt-harness", "level": 1 },
+                { "role": "heading", "name": "vrt", "level": 1 },
                 { "role": "paragraph", "name": "", "children": [{ "role": "StaticText", "name": "VRT + Semantic Verification Harness for coding agents." }] },
                 { "role": "heading", "name": "Features", "level": 2 },
                 {

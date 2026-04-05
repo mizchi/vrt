@@ -209,7 +209,7 @@ function createOpenRouterLLMClient(apiKey: string, model?: string): UnifiedLLMCl
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://github.com/mizchi/vrt-harness",
+        "HTTP-Referer": "https://github.com/mizchi/vrt",
       },
       body: JSON.stringify({
         model: modelId,

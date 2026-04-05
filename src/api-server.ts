@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * vrt-harness API サーバー
+ * vrt API サーバー
  *
  * Hono で構築。Node.js ローカル実行用。
  * Cloudflare Workers にもそのまま移植可能な構造。
@@ -419,5 +419,5 @@ async function resolveHtmlSource(source: HtmlSource): Promise<string | null> {
 
 // ---- Server ----
 
-console.log(`vrt-harness API server on http://127.0.0.1:${PORT}`);
+console.log(`vrt API server on http://127.0.0.1:${PORT}`);
 serve({ fetch: app.fetch, port: PORT, hostname: "127.0.0.1" });

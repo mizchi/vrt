@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * vrt-harness ベンチマーク
+ * vrt ベンチマーク
  *
  * LLM を通さない決定的な API のパフォーマンスを計測する。
  * 結果をベースラインとして記録し、改善の追跡に使う。
@@ -82,7 +82,7 @@ async function main() {
   await mkdir(TMP, { recursive: true });
 
   console.log();
-  console.log(`${BOLD}${CYAN}vrt-harness benchmark${RESET}`);
+  console.log(`${BOLD}${CYAN}vrt benchmark${RESET}`);
   console.log();
 
   const results: BenchResult[] = [];

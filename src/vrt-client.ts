@@ -1,5 +1,5 @@
 /**
- * vrt-harness TypeScript Client SDK
+ * vrt TypeScript Client SDK
  *
  * API サーバーの全エンドポイントに対応する型安全なクライアント。
  * Node.js / Deno / ブラウザで動作。

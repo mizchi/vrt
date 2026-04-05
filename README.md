@@ -1,4 +1,4 @@
-# vrt-harness
+# vrt
 
 Visual Regression Testing + Accessibility Semantic Verification harness for coding agents.
 
@@ -114,7 +114,7 @@ Known diff を `approval.json` で許容できる。
 - `src/migration-fix-loop.ts` は `migration-report.json` を読み、最大 diff の viewport を 1 件選んで fix prompt を作る。baseline に同じ `selector/property` があればその値を自動適用し、なければ `ANTHROPIC_API_KEY` がある場合だけ LLM を呼ぶ。`just migration-fix-loop -- --report test-results/migration/migration-report.json --no-rerun` のように使える。
 - `src/migration-fix-loop.ts` は `--selector/--property/--value/--media` で手動 fix、`--response-file` で外部 LLM 応答の取り込み、`--prompt-out` で prompt の保存にも対応する。既定では `<variant>.fixloop.html` を書き出し、同一プロセス内で `migration-compare` を rerun する。compare を走らせず適用だけ見たい場合は `--no-rerun` を使う。
 - sandbox などで Playwright browser launch が拒否される場合、`migration-fix-loop` は fix file の書き出しを維持したまま rerun を warning 扱いでスキップする。
-- `src/flaker-vrt-runner.ts` は `flaker` の custom runner protocol に合わせて `migration-compare` を test suite 化する。設定は [flaker-integration-design.md](/Users/mz/ghq/github.com/mizchi/vrt-harness/docs/flaker-integration-design.md) と [flaker.vrt.json](/Users/mz/ghq/github.com/mizchi/vrt-harness/examples/flaker.vrt.json)、[flaker.toml](/Users/mz/ghq/github.com/mizchi/vrt-harness/examples/flaker.toml) を参照。
+- `src/flaker-vrt-runner.ts` は `flaker` の custom runner protocol に合わせて `migration-compare` を test suite 化する。設定は [flaker-integration-design.md](/Users/mz/ghq/github.com/mizchi/vrt/docs/flaker-integration-design.md) と [flaker.vrt.json](/Users/mz/ghq/github.com/mizchi/vrt/examples/flaker.vrt.json)、[flaker.toml](/Users/mz/ghq/github.com/mizchi/vrt/examples/flaker.toml) を参照。
 - `metric-ci` 側には built-in の `vrt-migration` adapter が入り、`flaker import migration-report.json --adapter vrt-migration` と `report summarize --adapter vrt-migration` で `migration-report.json` を直接扱えるようになった。`src/flaker-vrt-report-adapter.ts` は custom adapter 経路や古い report の補完用として残してあり、`cat test-results/migration/migration-report.json | node --experimental-strip-types src/flaker-vrt-report-adapter.ts --scenario-id migration/tailwind-to-vanilla` や `just flaker-vrt-adapt -- --file test-results/migration/migration-report.json --scenario-id migration/tailwind-to-vanilla` のように使える。
 - `metric-ci` 側には built-in の `vrt-bench` adapter も入り、`flaker import bench-report.json --adapter vrt-bench` と `report summarize --adapter vrt-bench` で `test-results/css-bench/<fixture>/bench-report.json` を直接扱える。1 declaration mutation を 1 test に正規化し、`backend/category/selectorType/interactive/fallbackUsed/resolvedBy` は variant に載る。
 - `metric-ci` の `collect` は `[adapter]` から `artifact_name` と `command` を読む。`examples/flaker.toml` は `type = "vrt-migration"` / `artifact_name = "migration-report"` を含むので、そのまま `migration-report` artifact の収集設定としても使える。
@@ -130,7 +130,7 @@ Known diff を `approval.json` で許容できる。
 - bench を `--no-db` なしで実行すると、trial 明細は `data/detection-patterns.jsonl`、run summary は `data/bench-history.jsonl` に追記される。`just css-report` は backend 別の最新値と `prescanner vs chromium` の speedup を表示する。
 - `src/css-challenge.ts` も `--fixture <name>` を受け取るので、単発の recovery challenge を新規 fixture で直接回せる。
 - `just vrt-approve` は `--fixture <name>` ごとの `test-results/css-bench/<fixture>/approval-suggestions.json` を対話的に review して `approval.json` にマージする。`approval-history.jsonl` に `actor / actedAt / action / reason` を追記し、`--actor` と `--history` で上書きできる。確認だけなら `just vrt-approve --fixture dashboard --all-approve --output /tmp/approval.json` のように使える。
-- 例は [examples/approval.example.json](/Users/mz/ghq/github.com/mizchi/vrt-harness/examples/approval.example.json)。
+- 例は [examples/approval.example.json](/Users/mz/ghq/github.com/mizchi/vrt/examples/approval.example.json)。
 
 ## Agent workflow
 

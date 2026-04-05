@@ -1,4 +1,4 @@
-# vrt-harness task runner
+# vrt task runner
 
 default:
   just --list

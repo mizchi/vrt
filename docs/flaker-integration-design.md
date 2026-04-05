@@ -1,16 +1,16 @@
-# flaker / vrt-harness 統合設計
+# flaker / vrt 統合設計
 
 ## 背景
 
 `flaker` は test selection / flaky 判定 / quarantine / 履歴蓄積に強い。  
-`vrt-harness` は VRT 実行、approval、migration fix loop、renderer 差分解析に強い。
+`vrt` は VRT 実行、approval、migration fix loop、renderer 差分解析に強い。
 
 この 2 つを組み合わせると、VRT を単発の比較ツールではなく、CI 上で再試行・隔離・傾向分析できる test suite として運用できる。
 
 対象リポジトリ:
 
 - `flaker`: [/Users/mz/ghq/github.com/mizchi/metric-ci](/Users/mz/ghq/github.com/mizchi/metric-ci)
-- `vrt-harness`: [/Users/mz/ghq/github.com/mizchi/vrt-harness](/Users/mz/ghq/github.com/mizchi/vrt-harness)
+- `vrt`: [/Users/mz/ghq/github.com/mizchi/vrt](/Users/mz/ghq/github.com/mizchi/vrt)
 
 ## ゴール
 
@@ -25,7 +25,7 @@
 - `approval.json` を `flaker.quarantine.json` に統合すること
 - 最初から `flaker` 本体に組み込み runner を追加すること
 
-初期実装では `vrt-harness` 側に custom runner を置き、`flaker` から外部コマンドとして呼ぶ。
+初期実装では `vrt` 側に custom runner を置き、`flaker` から外部コマンドとして呼ぶ。
 2026-04-02 時点ではこの custom runner に加えて、`metric-ci` 側の built-in `vrt-migration` / `vrt-bench` adapter と、artifact 収集用 workflow まで実装済み。
 
 ## 責務境界
@@ -40,14 +40,14 @@
 
 根拠: [docs/why-flaker.ja.md](/Users/mz/ghq/github.com/mizchi/metric-ci/docs/why-flaker.ja.md), [types.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/runners/types.ts), [quarantine-manifest.ts](/Users/mz/ghq/github.com/mizchi/metric-ci/src/cli/quarantine-manifest.ts)
 
-### vrt-harness が持つ責務
+### vrt が持つ責務
 
 - HTML/URL のレンダリング比較
 - pixel diff / paint tree diff / computed style diff
 - approval による known diff フィルタ
 - migration compare report と fix loop
 
-根拠: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt-harness/src/migration-compare.ts), [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt-harness/src/approval.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt-harness/src/migration-fix-loop-core.ts)
+根拠: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-compare.ts), [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/approval.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-fix-loop-core.ts)
 
 ## 基本方針
 
@@ -58,7 +58,7 @@
 ```text
 flaker sample/run/quarantine
   -> custom runner
-    -> vrt-harness migration-compare
+    -> vrt migration-compare
       -> report.json + test results
         -> flaker DuckDB
 ```
@@ -77,8 +77,8 @@ flaker sample/run/quarantine
 
 `migration-report.json` や `bench-report.json` を直接 `flaker` に流し込む adapter を追加する。
 
-2026-04-02 時点では `metric-ci` 側に built-in の `vrt-migration` adapter と `vrt-bench` adapter が入り、`import / collect / report summarize` で `migration-report.json` と `bench-report.json` を直接扱える。`vrt-harness` 側の `src/flaker-vrt-report-adapter.ts` は custom adapter 経路や legacy report 補完用として残す。
-`vrt-harness` 側には `.github/workflows/migration-report.yml` を置き、`workflow_dispatch` で 1 scenario を実行して artifact 名 `migration-report` を出す。`metric-ci collect` の既定設定と衝突しないよう、初期運用では 1 run = 1 scenario に固定する。
+2026-04-02 時点では `metric-ci` 側に built-in の `vrt-migration` adapter と `vrt-bench` adapter が入り、`import / collect / report summarize` で `migration-report.json` と `bench-report.json` を直接扱える。`vrt` 側の `src/flaker-vrt-report-adapter.ts` は custom adapter 経路や legacy report 補完用として残す。
+`vrt` 側には `.github/workflows/migration-report.yml` を置き、`workflow_dispatch` で 1 scenario を実行して artifact 名 `migration-report` を出す。`metric-ci collect` の既定設定と衝突しないよう、初期運用では 1 run = 1 scenario に固定する。
 同様に `.github/workflows/bench-report.yml` を置き、1 fixture の `css-challenge-bench` を Chromium backend で実行して artifact 名 `bench-report` を出す。`vrt-bench` adapter は artifact 内に単一の `bench-report.json` がある前提なので、ここも 1 run = 1 fixture に固定する。
 
 ## なぜ Migration VRT から始めるか
@@ -87,7 +87,7 @@ flaker sample/run/quarantine
 - `fixedViewports` を渡せるので、`flaker` から指定された test subset だけ実行しやすい
 - `clean / approved / remaining` の収束概念がすでにある
 
-根拠: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt-harness/src/migration-compare.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt-harness/src/migration-fix-loop-core.ts)
+根拠: [migration-compare.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-compare.ts), [migration-fix-loop-core.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/migration-fix-loop-core.ts)
 
 ## 安定した test identity
 
@@ -205,7 +205,7 @@ flaker sample/run/quarantine
 - `approved` は identity ではなく run metadata
 - `approved` を identity に入れると履歴が分断される
 
-`approved` の詳細は `vrt-harness` 側の report artifact に残す。
+`approved` の詳細は `vrt` 側の report artifact に残す。
 
 ## Approval と Quarantine の分離
 
@@ -219,7 +219,7 @@ flaker sample/run/quarantine
 - reset CSS 差分
 - tiny spacing drift
 
-根拠: [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt-harness/src/approval.ts)
+根拠: [approval.ts](/Users/mz/ghq/github.com/mizchi/vrt/src/approval.ts)
 
 ### quarantine
 
@@ -253,14 +253,14 @@ test-results/flaker-vrt/
     migration-reset-css-report.json
 ```
 
-`stdout` には report path を出しておく。深掘りは `vrt-harness` の artifact を見る。
+`stdout` には report path を出しておく。深掘りは `vrt` の artifact を見る。
 
 ## flaker.toml 例
 
 ```toml
 [repo]
 owner = "mizchi"
-name = "vrt-harness"
+name = "vrt"
 
 [storage]
 path = ".flaker/data.duckdb"
@@ -284,7 +284,7 @@ flaky_rate_threshold = 30.0
 min_runs = 5
 ```
 
-`vrt-harness` 単体リポジトリで運用するなら runner はこの repo に置き、artifact 収集は `metric-ci` built-in の `vrt-migration` adapter を使う。
+`vrt` 単体リポジトリで運用するなら runner はこの repo に置き、artifact 収集は `metric-ci` built-in の `vrt-migration` adapter を使う。
 
 ## 実装フェーズ
 
@@ -327,7 +327,7 @@ min_runs = 5
 
 ### 1. runner の配置場所
 
-初期実装は `vrt-harness` 側でよい。理由:
+初期実装は `vrt` 側でよい。理由:
 
 - `runMigrationCompare()` などの内部 API に直接触れる
 - `metric-ci` 側は現在 rename/開発中で dirty worktree がある
