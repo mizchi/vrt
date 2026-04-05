@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { VrtDiff, VrtSnapshot, DiffRegion } from "./types.ts";
+import type { VrtDiff, VrtSnapshot, DiffRegion, DiffRegionType, DiffReport, ShiftRegion } from "./types.ts";
 
 // PNG decoding/encoding and pixel comparison
 // Uses pngjs + pixelmatch — both are devDependencies
@@ -193,17 +193,253 @@ function detectDiffRegions(
         }
       }
 
+      const regionWidth = (maxC - minC + 1) * cellSize;
+      const regionHeight = (maxR - minR + 1) * cellSize;
       regions.push({
         x: minC * cellSize,
         y: minR * cellSize,
-        width: (maxC - minC + 1) * cellSize,
-        height: (maxR - minR + 1) * cellSize,
+        width: regionWidth,
+        height: regionHeight,
         diffPixelCount: totalDiff,
+        regionType: classifyRegion(regionWidth, regionHeight, width),
       });
     }
   }
 
   return regions;
+}
+
+/**
+ * Classify a diff region based on its shape relative to the image width.
+ * - "edge": thin lines (height <= 2 or width <= 2)
+ * - "shift": wide horizontal bands (width/height > 3 and width > 80% image width)
+ * - "content": localized changes
+ */
+function classifyRegion(regionWidth: number, regionHeight: number, imageWidth: number): DiffRegionType {
+  if (regionHeight <= 2 || regionWidth <= 2) return "edge";
+  if (regionWidth / regionHeight > 3 && regionWidth > imageWidth * 0.8) return "shift";
+  return "content";
+}
+
+/**
+ * Compute luminance profile (average brightness per row).
+ */
+function luminanceProfile(data: Uint8Array, width: number, height: number): Float64Array {
+  const profile = new Float64Array(height);
+  for (let y = 0; y < height; y++) {
+    let sum = 0;
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      sum += 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+    }
+    profile[y] = sum / width;
+  }
+  return profile;
+}
+
+/**
+ * Detect global vertical shift between two images using cross-correlation.
+ * Returns the offset in pixels (positive = img2 shifted down).
+ */
+function detectGlobalShift(
+  baseline: { data: Uint8Array; width: number; height: number },
+  current: { data: Uint8Array; width: number; height: number },
+  maxShift?: number,
+): number {
+  const height = Math.min(baseline.height, current.height);
+  const width = Math.min(baseline.width, current.width);
+  const limit = maxShift ?? Math.min(Math.floor(height / 4), 500);
+
+  const profile1 = luminanceProfile(baseline.data, width, height);
+  const profile2 = luminanceProfile(current.data, width, height);
+
+  let bestOffset = 0;
+  let bestCorr = -Infinity;
+
+  for (let offset = -limit; offset <= limit; offset++) {
+    let sum = 0;
+    let count = 0;
+    for (let y = 0; y < height; y++) {
+      const y2 = y + offset;
+      if (y2 >= 0 && y2 < height) {
+        sum += profile1[y] * profile2[y2];
+        count++;
+      }
+    }
+    const corr = count > 0 ? sum / count : 0;
+    if (corr > bestCorr) {
+      bestCorr = corr;
+      bestOffset = offset;
+    }
+  }
+  return bestOffset;
+}
+
+/**
+ * Count diff pixels after compensating for vertical shift.
+ */
+function compensatedDiffCount(
+  baselineData: Uint8Array,
+  currentData: Uint8Array,
+  width: number,
+  height: number,
+  shift: number,
+  threshold: number,
+): number {
+  let count = 0;
+  for (let y = 0; y < height; y++) {
+    const y2 = y + shift;
+    if (y2 < 0 || y2 >= height) {
+      count += width;
+      continue;
+    }
+    for (let x = 0; x < width; x++) {
+      const idx1 = (y * width + x) * 4;
+      const idx2 = (y2 * width + x) * 4;
+      const dr = Math.abs(baselineData[idx1] - currentData[idx2]);
+      const dg = Math.abs(baselineData[idx1 + 1] - currentData[idx2 + 1]);
+      const db = Math.abs(baselineData[idx1 + 2] - currentData[idx2 + 2]);
+      if ((dr + dg + db) / 3 > threshold * 255) count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Generate a compact 10x10 ASCII heatmap of diff distribution.
+ */
+function generateCompact(
+  diffData: Uint8Array,
+  width: number,
+  height: number,
+  diffPixels: number,
+  totalPixels: number,
+  regions: DiffRegion[],
+): string {
+  const gridSize = 10;
+  const cellW = Math.ceil(width / gridSize);
+  const cellH = Math.ceil(height / gridSize);
+  const grid: number[][] = Array.from({ length: gridSize }, () => new Array(gridSize).fill(0));
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      if (diffData[idx] > 0) {
+        const gx = Math.min(Math.floor(x / cellW), gridSize - 1);
+        const gy = Math.min(Math.floor(y / cellH), gridSize - 1);
+        grid[gy][gx]++;
+      }
+    }
+  }
+
+  const matchPct = ((1 - diffPixels / totalPixels) * 100).toFixed(0);
+  const lines = [`diff:${diffPixels}/${totalPixels}(${matchPct}%match)`];
+  const cellTotal = cellW * cellH;
+  for (let gy = 0; gy < gridSize; gy++) {
+    lines.push(grid[gy].map((v) => (v > cellTotal * 0.01 ? "X" : ".")).join(""));
+  }
+  if (regions.length > 0) {
+    const regionStrs = regions.map((r) => `${r.regionType || "content"}:${r.x},${r.y},${r.width}x${r.height}`);
+    lines.push(`regions:${regionStrs.join(";")}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Generate a comprehensive diff report including clustering, shift detection,
+ * and region classification. Compatible with mizchi/pixelmatch 0.5.0 DiffReport format.
+ */
+export async function generateDiffReport(
+  snapshot: VrtSnapshot,
+  opts: {
+    threshold?: number;
+    outputDir?: string;
+    skipHeatmap?: boolean;
+    detectShift?: boolean;
+  } = {},
+): Promise<DiffReport | null> {
+  if (!snapshot.baselinePath) return null;
+
+  const pixelmatch = (await import("pixelmatch")).default;
+  const baseline = await decodePng(snapshot.baselinePath);
+  const current = await decodePng(snapshot.screenshotPath);
+
+  let resizedBaseline = baseline;
+  let resizedCurrent = current;
+  let overflowPixels = 0;
+
+  if (baseline.width !== current.width || baseline.height !== current.height) {
+    const commonW = Math.min(baseline.width, current.width);
+    const commonH = Math.min(baseline.height, current.height);
+    const maxW = Math.max(baseline.width, current.width);
+    const maxH = Math.max(baseline.height, current.height);
+    overflowPixels = maxW * maxH - commonW * commonH;
+    resizedBaseline = cropImage(baseline, commonW, commonH);
+    resizedCurrent = cropImage(current, commonW, commonH);
+  }
+
+  const width = resizedBaseline.width;
+  const height = resizedBaseline.height;
+  const totalPixels = width * height + overflowPixels;
+  const diffOutput = new Uint8Array(width * height * 4);
+  const threshold = opts.threshold ?? 0.1;
+
+  const diffPixels = overflowPixels + pixelmatch(
+    resizedBaseline.data,
+    resizedCurrent.data,
+    diffOutput,
+    width,
+    height,
+    { threshold },
+  );
+
+  // Heatmap
+  let heatmapPath: string | undefined;
+  if (opts.outputDir && diffPixels > 0 && !opts.skipHeatmap) {
+    const safeName = snapshot.testId.replace(/[/\\:]/g, "_");
+    heatmapPath = `${opts.outputDir}/${safeName}_heatmap.png`;
+    await encodePng(heatmapPath, { width, height, data: diffOutput });
+  }
+
+  // Regions with classification
+  const regions = detectDiffRegions(diffOutput, width, height);
+
+  // Shift detection
+  let globalShift = 0;
+  let shiftRegions: ShiftRegion[] = [];
+  let compensated = diffPixels;
+
+  if (opts.detectShift !== false && height > 4) {
+    globalShift = detectGlobalShift(resizedBaseline, resizedCurrent);
+    if (globalShift !== 0) {
+      compensated = compensatedDiffCount(
+        resizedBaseline.data,
+        resizedCurrent.data,
+        width,
+        height,
+        globalShift,
+        threshold,
+      );
+      shiftRegions = [{ yStart: 0, yEnd: height, shift: globalShift }];
+    }
+  }
+
+  const shiftOnly = regions.length > 0 && regions.every((r) => r.regionType === "shift" || r.regionType === "edge");
+  const contentChangeCount = regions.filter((r) => r.regionType === "content").length;
+  const compact = generateCompact(diffOutput, width, height, diffPixels, totalPixels, regions);
+
+  return {
+    diffPixels,
+    totalPixels,
+    diffRatio: diffPixels / totalPixels,
+    regions,
+    shiftOnly,
+    contentChangeCount,
+    globalShift,
+    shiftRegions,
+    compensatedDiffCount: compensated,
+    compact,
+  };
 }
 
 /**

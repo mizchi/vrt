@@ -69,12 +69,34 @@ export interface VrtDiff {
   regions: DiffRegion[];
 }
 
+export type DiffRegionType = "shift" | "content" | "edge";
+
 export interface DiffRegion {
   x: number;
   y: number;
   width: number;
   height: number;
   diffPixelCount: number;
+  regionType?: DiffRegionType;
+}
+
+export interface ShiftRegion {
+  yStart: number;
+  yEnd: number;
+  shift: number;
+}
+
+export interface DiffReport {
+  diffPixels: number;
+  totalPixels: number;
+  diffRatio: number;
+  regions: DiffRegion[];
+  shiftOnly: boolean;
+  contentChangeCount: number;
+  globalShift: number;
+  shiftRegions: ShiftRegion[];
+  compensatedDiffCount: number;
+  compact: string;
 }
 
 // ---- Dependency Graph ----
