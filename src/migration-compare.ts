@@ -28,7 +28,7 @@ import {
   type PaintNode,
   type PaintTreeChange,
 } from "./crater-client.ts";
-import { compareScreenshots } from "./heatmap.ts";
+import { compareScreenshots, generateDiffReport } from "./heatmap.ts";
 import {
   buildMigrationRegionApprovalContexts,
   classifyMigrationDiff,
@@ -510,6 +510,11 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
         const diff = await compareScreenshots(snap, { outputDir });
         const rawDiffRatio = diff?.diffRatio ?? 0;
         const rawDiffPixels = diff?.diffPixels ?? 0;
+
+        // Shift detection
+        const diffReport = rawDiffRatio > 0
+          ? await generateDiffReport(snap, { outputDir, detectShift: true, skipHeatmap: true })
+          : null;
         const rawClassification = classifyMigrationDiff(diff);
         const approved = diff && approvalManifest
           ? filterApprovedVrtRegions(
@@ -626,6 +631,10 @@ export async function runMigrationCompare(options: MigrationCompareOptions): Pro
         if (fixCandidates.length > 0) {
           const topCandidate = fixCandidates[0];
           process.stdout.write(` ${DIM}<${topCandidate.selector} { ${topCandidate.property} }>${RESET}`);
+        }
+        if (diffReport && diffReport.globalShift !== 0) {
+          const compPct = (diffReport.compensatedDiffCount / diffReport.totalPixels * 100).toFixed(1);
+          process.stdout.write(` ${DIM}[shift ${diffReport.globalShift > 0 ? "+" : ""}${diffReport.globalShift}px → ${compPct}%]${RESET}`);
         }
         console.log();
       }

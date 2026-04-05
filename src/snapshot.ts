@@ -9,7 +9,7 @@
 import { mkdir, readFile, writeFile, access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { chromium } from "playwright";
-import { compareScreenshots } from "./heatmap.ts";
+import { compareScreenshots, generateDiffReport } from "./heatmap.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
 import { getArg, hasFlag, getPositionalArgs, args } from "./cli-args.ts";
 import { applyMask, parseMaskSelectors } from "./mask.ts";
@@ -30,6 +30,9 @@ interface SnapshotResult {
   baselinePath?: string;
   diffRatio?: number;
   isNew: boolean;
+  globalShift?: number;
+  compensatedDiffRatio?: number;
+  shiftOnly?: boolean;
 }
 
 function urlToLabel(url: string): string {
@@ -104,11 +107,32 @@ async function main() {
           };
           const diff = await compareScreenshots(snap, { outputDir: OUTPUT_DIR });
           const diffRatio = diff?.diffRatio ?? 0;
-          const diffStr = diffRatio === 0
-            ? `${GREEN}0.0%${RESET}`
-            : `${diffRatio < 0.01 ? YELLOW : RED}${(diffRatio * 100).toFixed(2)}%${RESET}`;
+
+          // Shift detection for enhanced analysis
+          const report = diffRatio > 0
+            ? await generateDiffReport(snap, { outputDir: OUTPUT_DIR, detectShift: true })
+            : null;
+          const globalShift = report?.globalShift ?? 0;
+          const compensatedDiffRatio = report ? report.compensatedDiffCount / report.totalPixels : diffRatio;
+          const shiftOnly = report?.shiftOnly ?? false;
+
+          let diffStr: string;
+          if (diffRatio === 0) {
+            diffStr = `${GREEN}0.0%${RESET}`;
+          } else if (globalShift !== 0) {
+            const rawPct = (diffRatio * 100).toFixed(2);
+            const compPct = (compensatedDiffRatio * 100).toFixed(2);
+            const color = compensatedDiffRatio < 0.01 ? YELLOW : RED;
+            diffStr = `${color}${compPct}%${RESET} ${DIM}(raw ${rawPct}%, shift ${globalShift > 0 ? "+" : ""}${globalShift}px)${RESET}`;
+          } else {
+            diffStr = `${diffRatio < 0.01 ? YELLOW : RED}${(diffRatio * 100).toFixed(2)}%${RESET}`;
+          }
+
           console.log(`    ${vp.label.padEnd(10)} ${diffStr}`);
-          results.push({ url, label, viewport: vp.label, screenshotPath: currentPath, baselinePath, diffRatio, isNew: false });
+          results.push({
+            url, label, viewport: vp.label, screenshotPath: currentPath, baselinePath,
+            diffRatio, isNew: false, globalShift, compensatedDiffRatio, shiftOnly,
+          });
         } else {
           // First run: promote current to baseline
           const { copyFile } = await import("node:fs/promises");
