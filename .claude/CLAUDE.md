@@ -72,8 +72,37 @@ just migration-tailwind
 # Reset CSS 比較
 just migration-reset
 
-# カスタム比較
-node --experimental-strip-types src/vrt.ts compare before.html after.html
+# ファイル比較
+vrt compare before.html after.html
+
+# URL 比較
+vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/
+
+# マスク付き (動的コンテンツ除外)
+vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/ --mask ".marquee-container,.hero-badge"
+```
+
+## Snapshot (URL → multi-viewport キャプチャ)
+
+```bash
+# 初回: baseline 作成。2回目以降: baseline と diff
+vrt snapshot http://localhost:3000/ http://localhost:3000/about/ --output snapshots/
+
+# マスク付き (アニメーション等の動的要素を除外)
+vrt snapshot http://localhost:3000/ --mask ".marquee-container,.hero-badge"
+```
+
+## Dogfooding
+
+```bash
+# luna.mbt (requires: npx serve ~/ghq/.../luna.mbt/dist -p 4200)
+just dogfood-luna
+
+# sol.mbt (requires: npx serve ~/ghq/.../sol.mbt/website/dist-docs -p 3000)
+just dogfood-sol
+
+# False positive テスト (同一 URL を 2 回比較)
+just false-positive http://localhost:3000/luna/
 ```
 
 ## Fix Loop の実行
