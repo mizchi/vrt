@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { margin: 0; font-family: sans-serif; }
+  /* Header height changed: 20px -> 60px padding (causes cascade shift) */
+  header { background: #333; color: white; padding: 60px 20px; }
+  header h1 { margin: 0; font-size: 32px; }
+  header .subtitle { margin-top: 8px; font-size: 14px; opacity: 0.8; }
+  main { padding: 20px; }
+  main p { line-height: 1.6; }
+  .sidebar { background: #f0f0f0; padding: 15px; margin-top: 10px; }
+  footer { background: #666; color: white; padding: 15px; text-align: center; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>My Site</h1>
+    <div class="subtitle">A subtitle was added</div>
+  </header>
+  <main>
+    <p>Content paragraph one. Lorem ipsum dolor sit amet.</p>
+    <p>Content paragraph two. Consectetur adipiscing elit.</p>
+    <div class="sidebar">Sidebar content here.</div>
+  </main>
+  <footer>Footer text &copy; 2026</footer>
+</body>
+</html>

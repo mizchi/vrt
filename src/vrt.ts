@@ -36,6 +36,10 @@ async function main() {
       process.argv = [process.argv[0], "snapshot", ...rest];
       await import("./snapshot.ts");
       break;
+    case "elements":
+      process.argv = [process.argv[0], "element-compare", ...rest];
+      await import("./element-compare.ts");
+      break;
     case "smoke":
       process.argv = [process.argv[0], "smoke-runner", ...rest];
       await import("./smoke-runner.ts");
@@ -99,6 +103,7 @@ function printUsage() {
 
 \x1b[1mCommands:\x1b[0m
   compare <before> <after>    Compare HTML files across viewports
+  elements [options]          Element-level comparison (avoids cascade shifts)
   bench [options]             CSS challenge benchmark
   report                      Detection pattern report
   discover <file>             Discover breakpoints from HTML/CSS
