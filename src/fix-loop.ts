@@ -12,7 +12,7 @@
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { compareScreenshots } from "./heatmap.ts";
+import { compareScreenshots, generateDiffReport } from "./heatmap.ts";
 import {
   parseCssDeclarations, removeCssProperty, extractCss, replaceCss,
   seededRandom, groupBySelector, removeSelectorBlock, escapeRegex,
@@ -136,6 +136,12 @@ async function main() {
       ? (await readFile(diff.heatmapPath)).toString("base64")
       : (await readFile(brokenPath)).toString("base64");
 
+    // Diff report with shift detection
+    const diffReport = await generateDiffReport({
+      testId: `r${round}`, testTitle: `r${round}`, projectName: "fix-loop",
+      screenshotPath: brokenPath, baselinePath, status: "changed",
+    }, { outputDir: TMP, detectShift: true, skipHeatmap: true });
+
     // Build rich text report: CSS text diff + selector list
     const currentDecls = parseCssDeclarations(currentCss);
     const originalDecls = parseCssDeclarations(originalCss);
@@ -159,6 +165,13 @@ async function main() {
       cssSource: currentCss,
       cssDiff: cssDiffLines.join("\n"),
       highResHeatmapBase64: (await readFile(brokenPath)).toString("base64"),
+      compactHeatmap: diffReport?.compact,
+      shiftInfo: diffReport ? {
+        globalShift: diffReport.globalShift,
+        shiftOnly: diffReport.shiftOnly,
+        compensatedDiffRatio: diffReport.compensatedDiffCount / diffReport.totalPixels,
+        contentChangeCount: diffReport.contentChangeCount,
+      } : undefined,
     });
 
     console.log(`    VLM: ${analysis.changes.length} changes detected (${analysis.vlmLatencyMs}ms)${escalated ? ` ${YELLOW}[escalated]${RESET}` : ""}`);

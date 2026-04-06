@@ -73,6 +73,15 @@ export interface AnalyzeOptions {
   resolution?: ResolutionPreset;
   /** Cropped region for the target selector (base64 PNG) */
   selectorCropBase64?: string;
+  /** Compact ASCII heatmap from DiffReport (10x10 grid + regions) */
+  compactHeatmap?: string;
+  /** Shift detection results */
+  shiftInfo?: {
+    globalShift: number;
+    shiftOnly: boolean;
+    compensatedDiffRatio: number;
+    contentChangeCount: number;
+  };
 }
 
 export interface ReasoningPipeline {
@@ -291,6 +300,24 @@ export function createReasoningPipeline(config?: PipelineConfig): ReasoningPipel
       imageBase64 = resizeBase64Png(imageBase64, { resolution });
 
       let prompt = STAGE1_PROMPT;
+      if (options.shiftInfo) {
+        const si = options.shiftInfo;
+        prompt += `\n\nShift detection:`;
+        if (si.globalShift !== 0) {
+          prompt += `\n- Global vertical shift: ${si.globalShift > 0 ? "+" : ""}${si.globalShift}px`;
+          prompt += `\n- Compensated diff (shift excluded): ${(si.compensatedDiffRatio * 100).toFixed(1)}%`;
+          if (si.shiftOnly) {
+            prompt += `\n- SHIFT ONLY: all changes appear to be positional shifts, not content changes. Focus on layout-affecting properties (height, padding, margin).`;
+          } else {
+            prompt += `\n- ${si.contentChangeCount} content change region(s) detected beyond the shift.`;
+          }
+        } else {
+          prompt += `\n- No vertical shift detected.`;
+        }
+      }
+      if (options.compactHeatmap) {
+        prompt += `\n\nDiff heatmap (10x10 grid, X=changed, .=unchanged):\n${options.compactHeatmap}`;
+      }
       if (options.textReport) {
         prompt += `\n\nAdditional context from VRT pipeline:\n${options.textReport}`;
       }
