@@ -137,8 +137,8 @@ function detectDiffRegions(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      // Non-zero red channel in pixelmatch diff output = changed pixel
-      if (diffData[idx] > 0) {
+      // pixelmatch diff: changed = red (R=255,G=0), unchanged = white (R=255,G=255)
+      if (diffData[idx + 1] < 128) {
         const col = Math.floor(x / cellSize);
         const row = Math.floor(y / cellSize);
         grid[row * cols + col]++;
@@ -324,7 +324,9 @@ function generateCompact(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      if (diffData[idx] > 0) {
+      // pixelmatch diff output: changed pixels are red (R=255,G=0,B=0),
+      // unchanged pixels are white (R=255,G=255,B=255). Check G channel.
+      if (diffData[idx + 1] < 128) {
         const gx = Math.min(Math.floor(x / cellW), gridSize - 1);
         const gy = Math.min(Math.floor(y / cellH), gridSize - 1);
         grid[gy][gx]++;
@@ -336,7 +338,7 @@ function generateCompact(
   const lines = [`diff:${diffPixels}/${totalPixels}(${matchPct}%match)`];
   const cellTotal = cellW * cellH;
   for (let gy = 0; gy < gridSize; gy++) {
-    lines.push(grid[gy].map((v) => (v > cellTotal * 0.01 ? "X" : ".")).join(""));
+    lines.push(grid[gy].map((v) => (v > cellTotal * 0.05 ? "X" : ".")).join(""));
   }
   if (regions.length > 0) {
     const regionStrs = regions.map((r) => `${r.regionType || "content"}:${r.x},${r.y},${r.width}x${r.height}`);
