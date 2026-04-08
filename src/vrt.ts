@@ -1,66 +1,43 @@
 #!/usr/bin/env node
 /**
  * vrt -- unified CLI entry point
- *
- * Usage:
- *   vrt compare <before> <after> [options]
- *   vrt bench [options]
- *   vrt report
- *   vrt discover <file>
- *   vrt smoke <file-or-url> [options]
- *   vrt serve [--port 3456]
- *   vrt status [--url http://localhost:3456]
  */
-
-const args = process.argv.slice(2);
-const command = args[0];
-const rest = args.slice(1);
+import { resolveRootCommand } from "./vrt-command-router.ts";
 
 async function main() {
-  switch (command) {
-    case "compare":
-      process.argv = [process.argv[0], "migration-compare", ...rest];
-      await import("./migration-compare.ts");
-      break;
-    case "bench":
-      process.argv = [process.argv[0], "css-challenge-bench", ...rest];
-      await import("./css-challenge-bench.ts");
-      break;
-    case "report":
-      await import("./detection-report.ts");
-      break;
+  const route = resolveRootCommand(process.argv.slice(2));
+
+  switch (route.kind) {
+    case "module":
+      await runModuleCommand(route.modulePath, route.argv);
+      return;
     case "discover":
-      await runDiscover(rest);
-      break;
-    case "snapshot":
-      process.argv = [process.argv[0], "snapshot", ...rest];
-      await import("./snapshot.ts");
-      break;
-    case "elements":
-      process.argv = [process.argv[0], "element-compare", ...rest];
-      await import("./element-compare.ts");
-      break;
-    case "smoke":
-      process.argv = [process.argv[0], "smoke-runner", ...rest];
-      await import("./smoke-runner.ts");
-      break;
-    case "serve":
-      process.argv = [process.argv[0], "api-server", ...rest];
-      await import("./api-server.ts");
-      break;
+      await runDiscover(route.argv);
+      return;
     case "status":
-      await runStatus(rest);
-      break;
-    case "help":
-    case "--help":
-    case "-h":
-      printUsage();
-      break;
+      await runStatus(route.argv);
+      return;
+    case "workflow": {
+      const { runWorkflowCli } = await import("./vrt-cli.ts");
+      await runWorkflowCli(route.argv);
+      return;
+    }
+    case "usage":
+      if (route.exitCode === 0) {
+        console.log(route.message);
+      } else {
+        console.error(route.message);
+        process.exit(route.exitCode);
+      }
+      return;
     default:
-      if (command) console.error(`Unknown command: ${command}\n`);
-      printUsage();
-      process.exit(command ? 1 : 0);
+      route satisfies never;
   }
+}
+
+async function runModuleCommand(modulePath: string, argv: string[]) {
+  process.argv = [process.argv[0], modulePath, ...argv];
+  await import(modulePath);
 }
 
 async function runDiscover(args: string[]) {
@@ -95,32 +72,6 @@ async function runStatus(args: string[]) {
     console.error(`Server not available at ${url}`);
     process.exit(1);
   }
-}
-
-function printUsage() {
-  console.log(`
-\x1b[1mvrt\x1b[0m — Visual Regression Testing Harness
-
-\x1b[1mCommands:\x1b[0m
-  compare <before> <after>    Compare HTML files across viewports
-  elements [options]          Element-level comparison (avoids cascade shifts)
-  bench [options]             CSS challenge benchmark
-  report                      Detection pattern report
-  discover <file>             Discover breakpoints from HTML/CSS
-  smoke <file-or-url>         A11y-driven smoke test
-  serve [--port N]            Start API server
-  status [--url URL]          Check API server status
-
-\x1b[1mExamples:\x1b[0m
-  vrt compare before.html after.html
-  vrt compare --dir fixtures/migration/reset-css --baseline normalize.html --variants modern.html destyle.html
-  vrt bench --fixture page --trials 30
-  vrt bench --mode selector --backend crater
-  vrt discover page.html
-  vrt smoke page.html --max-actions 20 --seed 42
-  vrt smoke --url https://example.com --mode reasoning
-  vrt serve --port 3456
-`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

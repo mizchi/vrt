@@ -29,6 +29,7 @@ import { buildDepGraph, findAffectedComponents, graphStats } from "./dep-graph.t
 import { extractDiffSemantics } from "./intent.ts";
 import { diffA11yTrees, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
 import { introspect, introspectToSpec, verifySpec } from "./introspect.ts";
+import { formatWorkflowUsage } from "./vrt-command-router.ts";
 import { runVerifyPipeline, type VerifyPaths } from "./vrt-verify.ts";
 import type { UnifiedAgentContext, UiSpec, A11yNode } from "./types.ts";
 
@@ -132,19 +133,19 @@ async function verify() {
   const result = await runVerifyPipeline(paths);
 
   if (!result.passed) {
-    console.log("\nFAILED — Fix the issues and run `vrt capture && vrt verify` again.");
+    console.log("\nFAILED — Fix the issues and run `vrt workflow capture && vrt workflow verify` again.");
     console.log("Details: " + REPORT_PATH);
     process.exit(1);
   } else if (result.needsReview) {
-    console.log("\nWARNING — Some changes need review. Run `vrt report` for details.");
-    console.log("If changes are intentional, run `vrt approve` to update baselines.");
+    console.log("\nWARNING — Some changes need review. Run `vrt workflow report` for details.");
+    console.log("If changes are intentional, run `vrt workflow approve` to update baselines.");
     process.exit(0);
   } else if (result.vrtDiffs.length === 0 && result.a11yDiffs.length === 0) {
     console.log("\nPASS — No visual or semantic changes detected.");
     process.exit(0);
   } else {
     console.log("\nPASS — All changes approved.");
-    console.log("Run `vrt approve` to update baselines.");
+    console.log("Run `vrt workflow approve` to update baselines.");
     process.exit(0);
   }
 }
@@ -153,7 +154,7 @@ async function approve() {
   console.log("=== VRT Approve: Updating baselines ===\n");
 
   if (!existsSync(SNAPSHOTS_DIR)) {
-    console.error("No snapshots found. Run `vrt capture` first.");
+    console.error("No snapshots found. Run `vrt workflow capture` first.");
     process.exit(1);
   }
 
@@ -170,7 +171,7 @@ async function approve() {
 
 async function report() {
   if (!existsSync(REPORT_PATH)) {
-    console.error("No report found. Run `vrt verify` first.");
+    console.error("No report found. Run `vrt workflow verify` first.");
     process.exit(1);
   }
 
@@ -263,7 +264,7 @@ async function affectedCmd() {
 async function introspectCmd() {
   const dir = existsSync(SNAPSHOTS_DIR) ? SNAPSHOTS_DIR : BASELINES_DIR;
   if (!existsSync(dir)) {
-    console.error("No snapshots or baselines found. Run `vrt init` or `vrt capture` first.");
+    console.error("No snapshots or baselines found. Run `vrt workflow init` or `vrt workflow capture` first.");
     process.exit(1);
   }
 
@@ -288,7 +289,7 @@ async function introspectCmd() {
 
 async function specVerifyCmd() {
   if (!existsSync(SPEC_PATH)) {
-    console.error("No spec.json found. Run `vrt introspect` first.");
+    console.error("No spec.json found. Run `vrt workflow introspect` first.");
     process.exit(1);
   }
 
@@ -361,11 +362,11 @@ async function expectCmd() {
   console.log("=== Generate expectation.json from current state ===\n");
 
   if (!existsSync(BASELINES_DIR)) {
-    console.error("No baselines found. Run `vrt init` first.");
+    console.error("No baselines found. Run `vrt workflow init` first.");
     process.exit(1);
   }
   if (!existsSync(SNAPSHOTS_DIR)) {
-    console.error("No snapshots found. Run `vrt capture` first.");
+    console.error("No snapshots found. Run `vrt workflow capture` first.");
     process.exit(1);
   }
 
@@ -449,7 +450,7 @@ async function expectCmd() {
     const icon = !p.hasA11yDiff ? "  " : p.hasRegression ? "!!" : "~~";
     console.log(`  [${icon}] ${p.testId}: ${p.changes.length} change(s)`);
   }
-  console.log(`\nReview and edit as needed, then run: vrt verify`);
+  console.log(`\nReview and edit as needed, then run: vrt workflow verify`);
 }
 
 // ---- Helpers ----
@@ -465,8 +466,6 @@ async function listFiles(dir: string, suffix: string): Promise<string[]> {
 
 // ---- Main ----
 
-const command = process.argv[2];
-
 const commands: Record<string, () => Promise<void>> = {
   init,
   capture,
@@ -480,35 +479,26 @@ const commands: Record<string, () => Promise<void>> = {
   expect: expectCmd,
 };
 
-const handler = commands[command];
-if (handler) {
-  handler().catch((err) => {
+export async function runWorkflowCli(argv = process.argv.slice(2)) {
+  const command = argv[0];
+  if (!command || command === "help" || command === "--help" || command === "-h") {
+    console.log(formatWorkflowUsage());
+    return;
+  }
+
+  const handler = commands[command];
+  if (!handler) {
+    console.error(`Unknown workflow command: ${command}\n`);
+    console.error(formatWorkflowUsage());
+    process.exit(1);
+  }
+
+  await handler();
+}
+
+if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1]) {
+  runWorkflowCli().catch((err) => {
     console.error(err);
     process.exit(1);
   });
-} else {
-  console.log(`vrt — Visual Regression + Semantic Testing CLI
-
-Usage: tsx vrt/src/vrt-cli.ts <command>
-
-Commands:
-  init       Create baseline screenshots + a11y trees (requires running server)
-  capture    Take current snapshots (requires running server)
-  verify     Compare snapshots against baselines, run verification pipeline
-  approve    Promote current snapshots to new baselines
-  report     Show last verification report
-  graph      Display dependency graph
-  affected   Show components affected by current changes
-  introspect Generate spec.json from current a11y snapshots
-  spec-verify Verify spec.json invariants against current state
-  expect     Auto-generate expectation.json from baseline vs snapshot diff
-
-Workflow for coding agents:
-  1. vrt init            — One-time baseline setup
-  2. (make code changes)
-  3. vrt capture         — Snapshot current state
-  4. vrt verify          — Check for regressions
-  5. (fix if needed, repeat 3-4)
-  6. vrt approve         — Accept changes as new baseline
-`);
 }

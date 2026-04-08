@@ -2,6 +2,12 @@
 
 Visual Regression Testing toolkit — pixel diff, computed style diff, a11y tree diff, and AI-powered CSS fix generation.
 
+The public surface is organized into three layers:
+
+- `vrt <command>` for one-shot analysis and comparison commands
+- `vrt workflow <command>` for baseline/snapshot verification loops
+- `vrt api <command>` for serving and probing the HTTP API
+
 ## Features
 
 - **Pixel diff** — pixelmatch v7 + heatmap generation
@@ -16,10 +22,12 @@ Visual Regression Testing toolkit — pixel diff, computed style diff, a11y tree
 
 ## Quick Start
 
+The examples below assume the `vrt` command is already installed and available on your PATH.
+
 ```bash
 pnpm install
 
-# Run tests (341 tests)
+# Run tests
 pnpm test
 
 # Compare two HTML files
@@ -31,6 +39,11 @@ vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/
 # Snapshot URLs (creates baseline on first run, diffs on subsequent runs)
 vrt snapshot http://localhost:3000/ http://localhost:3000/about/ --output snapshots/
 
+# Workflow verification loop
+vrt workflow init
+vrt workflow capture
+vrt workflow verify
+
 # Mask dynamic content
 vrt snapshot http://localhost:3000/ --mask ".marquee-container,.hero-badge"
 
@@ -41,17 +54,89 @@ just css-bench --fixture page --trials 30
 just fix-loop --fixture page --seed 42
 ```
 
-## CLI
+## CLI Surface
+
+### Core Commands
 
 ```bash
-vrt compare <before.html> <after.html>     # Migration VRT (file or URL)
-vrt snapshot <url1> [url2] ...             # Multi-viewport snapshot + diff
+vrt compare <before.html> <after.html>      # Migration VRT for files or URLs
+vrt snapshot <url1> [url2] ...              # Multi-viewport snapshot + diff
+vrt elements [options]                      # Element-level diff with shift isolation
+vrt smoke <file-or-url>                     # A11y-driven random interaction test
+vrt discover <html-file>                    # Breakpoint discovery from HTML/CSS
 vrt bench [options]                         # CSS challenge benchmark
-vrt report                                 # Detection pattern report
-vrt smoke <file-or-url>                    # A11y-driven random interaction test
-vrt serve [--port 3456]                    # API server
-vrt status [--url http://localhost:3456]   # Server health check
+vrt report                                  # Detection pattern report
 ```
+
+### Workflow Commands
+
+These commands manage state under `baselines/`, `snapshots/`, `output/`, `vrt-report.json`, `expectation.json`, and `spec.json`.
+
+Before running them, start the target app and point `VRT_BASE_URL` at it when needed.
+The built-in capture workflow defaults to `http://127.0.0.1:4174`.
+
+```bash
+vrt workflow init
+vrt workflow capture
+vrt workflow verify
+vrt workflow approve
+vrt workflow report
+vrt workflow graph
+vrt workflow affected
+vrt workflow introspect
+vrt workflow spec-verify
+vrt workflow expect
+```
+
+Workflow aliases are kept for ergonomics where they do not collide:
+
+- `vrt init`, `vrt capture`, `vrt verify`, `vrt approve`
+- `vrt graph`, `vrt affected`, `vrt introspect`, `vrt spec-verify`, `vrt expect`
+
+`vrt report` remains the detection pattern report, so verification output lives under `vrt workflow report`.
+
+### API Commands
+
+```bash
+vrt api serve [--port 3456]                # Start HTTP API server
+vrt api status [--url http://localhost:3456]
+```
+
+Compatibility aliases:
+
+- `vrt serve` -> `vrt api serve`
+- `vrt status` -> `vrt api status`
+
+## HTTP API
+
+Start the server:
+
+```bash
+vrt api serve --port 3456
+```
+
+Available endpoints:
+
+- `GET /api/status` — server version, backends, and capabilities
+- `POST /api/compare` — compare baseline/current HTML or URLs across viewports
+- `POST /api/compare-renderers` — compare Chromium vs Crater rendering
+- `POST /api/reason` — VLM/LLM reasoning pipeline for diff analysis and fixes
+- `POST /api/smoke-test` — random or reasoning-guided a11y smoke test
+
+TypeScript client:
+
+```ts
+import { VrtClient } from "./src/vrt-client.ts";
+
+const client = new VrtClient("http://localhost:3456");
+const status = await client.status();
+const result = await client.compareHtml(
+  "<main><button>Before</button></main>",
+  "<main><button class='primary'>After</button></main>",
+);
+```
+
+`compareUrls(...)` is intended for public HTTP(S) targets. The API server rejects localhost and private-network URLs.
 
 ## Architecture
 
@@ -90,7 +175,10 @@ HTML (file or URL)
 
 ```
 src/
-  vrt.ts                    # CLI entry point
+  vrt.ts                    # Unified public CLI entry point
+  vrt-command-router.ts     # Root command routing + usage text
+  vrt-cli.ts                # Stateful workflow CLI
+  vrt-client.ts             # TypeScript client for the HTTP API
   snapshot.ts               # URL snapshot + baseline diff
   migration-compare.ts      # HTML/URL comparison across viewports
   css-challenge-bench.ts    # CSS deletion/recovery benchmark
