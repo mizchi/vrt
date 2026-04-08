@@ -1,12 +1,12 @@
 import type {
   QualityCheckResult,
-  QualityCheckType,
   VrtSnapshot,
   VrtDiff,
   DepGraph,
   AffectedComponent,
 } from "./types.ts";
-import { decodePng, detectWhiteout, detectEmptyContent } from "./heatmap.ts";
+import { detectWhiteout, detectEmptyContent } from "./heatmap.ts";
+import { decodePng } from "./png-utils.ts";
 
 /**
  * Run all quality checks.

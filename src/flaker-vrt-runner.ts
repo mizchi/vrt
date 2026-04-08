@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { mkdir, readFile } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { loadFlakerVrtConfig, toViewportSpec, type FlakerVrtConfig, type FlakerVrtMigrationScenario } from "./flaker-vrt-config.ts";
 import {
   runMigrationCompare,

@@ -23,7 +23,6 @@ import type {
   ChangeIntent,
   UnifiedAgentContext,
   VrtExpectation,
-  IntrospectResult,
   PageIntrospection,
 } from "./types.ts";
 

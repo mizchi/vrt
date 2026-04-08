@@ -4,7 +4,7 @@
  *
  * Shared foundation for css-challenge.ts and css-challenge-bench.ts
  */
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Browser, Page } from "playwright";
 import { chromium } from "playwright";
@@ -30,9 +30,7 @@ import {
   buildInteractionTargetPlans,
   captureEmulatedInteractionStyleSnapshotInDom,
   captureComputedStyleSnapshotForTargetSelectorsInDom,
-  buildComputedStyleCaptureExpression,
   buildComputedStyleCaptureJsonExpression,
-  captureComputedStyleSnapshotInDom,
   ESBUILD_NAME_POLYFILL,
   type ComputedStyleSnapshot,
   collectInteractionTargetPlansInDom,

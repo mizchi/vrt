@@ -13,12 +13,11 @@ import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { diffA11yTrees, parsePlaywrightA11ySnapshot, checkA11yTree } from "./a11y-semantic.ts";
 import { reasonAboutChanges, type ReasoningChain } from "./reasoning.ts";
-import { introspectToSpec, verifySpec, type SpecVerifyResult } from "./introspect.ts";
-import { compareScreenshots, encodePng } from "./heatmap.ts";
-import { classifyVisualDiff } from "./visual-semantic.ts";
+import { introspectToSpec, verifySpec } from "./introspect.ts";
+import { encodePng } from "./png-utils.ts";
 import { createLLMProvider } from "./llm-client.ts";
 import type { LLMProvider } from "./intent.ts";
-import type { A11yNode, PageExpectation, ChangeIntent, VrtSnapshot, UiSpec } from "./types.ts";
+import type { A11yNode, UiSpec } from "./types.ts";
 
 const FIXTURES = join(import.meta.dirname!, "..", "fixtures", "react-sample");
 const TMP = join(import.meta.dirname!, "..", "test-results", "demo-multi");
@@ -166,7 +165,7 @@ async function scenarioA(llm: LLMProvider | null, baseline: A11yNode) {
   console.log(`\n${B}${C}═══ Scenario A: Refactor → Labels Broken → Fix ═══${R}\n`);
 
   const spec = quickSpec(baseline);
-  const basePath = await makePng("a-base.png", [...HDR, ...HEAD, ...FORM({r:35,g:134,b:54})]);
+  await makePng("a-base.png", [...HDR, ...HEAD, ...FORM({r:35,g:134,b:54})]);
 
   // Break
   phase(1, 3, "Regression: labels removed by refactor");

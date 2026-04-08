@@ -114,7 +114,7 @@ export class CraterClient {
     if (this.contextId) {
       try {
         await this.sendBidi("browsingContext.close", { context: this.contextId });
-      } catch { /* best-effort */ }
+      } catch (e) { console.warn("[crater] close context failed:", e instanceof Error ? e.message : e); }
     }
     this.contextId = null;
     this.ws?.close();
@@ -288,14 +288,19 @@ export class CraterClient {
   }
 
   private handleMessage(data: string): void {
+    let msg: BidiResponse;
     try {
-      const msg = JSON.parse(data) as BidiResponse;
-      const pending = this.pendingCommands.get(msg.id);
-      if (pending) {
-        this.pendingCommands.delete(msg.id);
-        pending.resolve(msg);
-      }
-    } catch { /* ignore parse errors */ }
+      msg = JSON.parse(data) as BidiResponse;
+    } catch {
+      console.warn("[crater] invalid JSON from BiDi:", data.slice(0, 200));
+      return;
+    }
+    if (typeof msg.id !== "number") return;
+    const pending = this.pendingCommands.get(msg.id);
+    if (pending) {
+      this.pendingCommands.delete(msg.id);
+      pending.resolve(msg);
+    }
   }
 
   private sendBidi(method: string, params: Record<string, unknown>, timeoutMs = 10_000): Promise<BidiResponse> {

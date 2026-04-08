@@ -15,8 +15,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runGoal, formatGoalReport } from "./goal-runner.ts";
-import type { Goal, GoalStep } from "./goal-runner.ts";
-import type { A11yNode, PageExpectation } from "./types.ts";
+import type { Goal } from "./goal-runner.ts";
+import type { A11yNode } from "./types.ts";
 
 const FIXTURES = join(import.meta.dirname!, "..", "fixtures", "react-sample");
 

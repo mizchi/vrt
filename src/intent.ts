@@ -144,7 +144,7 @@ function isComponentFile(path: string): boolean {
  */
 function inferVisualExpectations(
   files: FileChange[],
-  commitMessage: string,
+  _commitMessage: string,
   changeType: ChangeIntent["changeType"]
 ): VisualExpectation[] {
   const expectations: VisualExpectation[] = [];

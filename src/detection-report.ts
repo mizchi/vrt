@@ -6,7 +6,7 @@
  *
  * Usage: npx tsx src/detection-report.ts
  */
-import { readAllRecords, getDbStats, type DetectionRecord } from "./detection-db.ts";
+import { readAllRecords, getDbStats } from "./detection-db.ts";
 import { isOutOfScope } from "./detection-classify.ts";
 import { getBenchHistoryStats, readBenchHistory } from "./bench-history.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr as _hr } from "./terminal-colors.ts";

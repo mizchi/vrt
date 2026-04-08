@@ -8,9 +8,10 @@
  */
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { writeFile, mkdir, rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { compareScreenshots, decodePng, detectWhiteout, detectEmptyContent } from "./heatmap.ts";
+import { compareScreenshots, detectWhiteout } from "./heatmap.ts";
+import { decodePng } from "./png-utils.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
 import type { VrtSnapshot } from "./types.ts";
 
@@ -44,7 +45,7 @@ function createTestPng(width: number, height: number, regions: Array<{
 }
 
 async function savePng(path: string, png: { width: number; height: number; data: Uint8Array }) {
-  const { encodePng } = await import("./heatmap.ts");
+  const { encodePng } = await import("./png-utils.ts");
   await encodePng(path, png);
 }
 

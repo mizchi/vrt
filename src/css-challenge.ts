@@ -10,14 +10,14 @@
  *
  * Usage: npx tsx src/css-challenge.ts [--fixture <name>] [--seed <number>] [--max-attempts <number>] [--approval <path>] [--strict]
  */
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { formatPlaywrightLaunchError, isPlaywrightSandboxRestrictionError } from "./playwright-launch-error.ts";
 import { applyApprovalToVrtDiff, collectApprovalWarnings, inferApprovalChangeType, loadApprovalManifest } from "./approval.ts";
 import { getCssChallengeFixturePath } from "./css-challenge-fixtures.ts";
 import { categorizeProperty, escapeRegex } from "./css-challenge-core.ts";
-import { compareScreenshots, encodePng } from "./heatmap.ts";
+import { compareScreenshots } from "./heatmap.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
 import { diffA11yTrees, checkA11yTree, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
 import { createLLMProvider } from "./llm-client.ts";
@@ -37,7 +37,6 @@ const APPROVAL_PATH = getArg("approval", "");
 const STRICT = hasFlag("strict");
 const VIEWPORT = { width: 1280, height: 900 };
 
-const BG_RED = "\x1b[41m";
 const BG_GREEN = "\x1b[42m";
 function banner(text: string) { console.log(`\n${BOLD}${CYAN}▸ ${text}${RESET}\n`); }
 
@@ -207,7 +206,7 @@ function cdpNodesToTree(nodes: Array<{
 // ---- LLM fix ----
 
 function buildFixPrompt(
-  removedFrom: { selector: string; property: string },
+  _removedFrom: { selector: string; property: string },
   vrtReport: string,
   fullCss: string,
 ): string {
@@ -486,7 +485,7 @@ async function main() {
     const fixedCss = applyCssFix(currentCss, fix);
     const fixedHtml = htmlRaw.replace(originalCss, fixedCss);
     const fixedPath = join(TMP, `fixed-${attempt}.png`);
-    const fixedState = await capturePageState(fixedHtml, fixedPath);
+    await capturePageState(fixedHtml, fixedPath);
 
     // Compare fixed vs baseline
     const fixedSnap: VrtSnapshot = {

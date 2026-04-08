@@ -6,12 +6,12 @@
  *   vrt snapshot http://localhost:4156/todomvc --output snapshots/luna/
  *   vrt snapshot http://localhost:3000/ http://localhost:3000/luna/ --output snapshots/sol/
  */
-import { mkdir, readFile, writeFile, access } from "node:fs/promises";
+import { mkdir, writeFile, access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { chromium } from "playwright";
 import { compareScreenshots, generateDiffReport } from "./heatmap.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
-import { getArg, hasFlag, getPositionalArgs, args } from "./cli-args.ts";
+import { getArg, getPositionalArgs, args } from "./cli-args.ts";
 import { applyMask, parseMaskSelectors } from "./mask.ts";
 import type { VrtSnapshot } from "./types.ts";
 

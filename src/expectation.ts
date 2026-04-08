@@ -241,7 +241,7 @@ export function crossValidateWithExpectation(
   pageExp: PageExpectation | undefined,
   visualDiff: VisualSemanticDiff | undefined,
   a11yDiff: A11yDiff | undefined,
-  intent: ChangeIntent
+  _intent: ChangeIntent
 ): CrossValidationResult {
   if (!pageExp) {
     // No expectation defined -- fall back to normal cross-validation
@@ -319,13 +319,13 @@ export function scoreLoop(
   const practicalityScore = scorePracticality(ctx, expectations, details);
 
   // 3. Fix steps
-  const stepsScore = scoreFixSteps(meta.fixSteps, details);
+  scoreFixSteps(meta.fixSteps, details);
 
   // 4. Final quality
   const qualityScore = scoreFinalQuality(ctx, details);
 
   // 5. Token usage
-  const tokenScore = scoreTokenUsage(meta.tokenUsage, details);
+  scoreTokenUsage(meta.tokenUsage, details);
 
   return {
     usability: usabilityScore,

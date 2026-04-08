@@ -4,8 +4,6 @@
  * Pre-classification: selector type, interactive state
  * Post-classification: undetected reason estimation
  */
-import type { PropertyCategory } from "./css-challenge-core.ts";
-
 // ---- Types ----
 
 export type SelectorType = "element" | "class" | "pseudo-class" | "pseudo-element" | "compound";

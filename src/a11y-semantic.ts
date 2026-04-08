@@ -1,7 +1,6 @@
 import type {
   A11yNode,
   A11yChange,
-  A11yChangeType,
   A11yDiff,
   A11ySnapshot,
 } from "./types.ts";

@@ -53,7 +53,7 @@ const sampleA11y = `
 
 describe("heuristicCheck", () => {
   it("should pass when keywords match", () => {
-    const result = heuristicCheck(sampleA11y, "ナビゲーションにリンクがある");
+    heuristicCheck(sampleA11y, "ナビゲーションにリンクがある");
     // "ナビゲーション" doesn't match because a11y is in English
     // But let's test with English
     const r2 = heuristicCheck(sampleA11y, "navigation has links");
@@ -66,7 +66,7 @@ describe("heuristicCheck", () => {
   });
 
   it("should check numeric assertions", () => {
-    const r1 = heuristicCheck(sampleA11y, "リンクが3つ以上ある");
+    heuristicCheck(sampleA11y, "リンクが3つ以上ある");
     // a11y has "- " markers — count them
     const count = (sampleA11y.match(/- /g) || []).length;
     assert.ok(count >= 3, `Element count: ${count}`);

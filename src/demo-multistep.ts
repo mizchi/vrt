@@ -12,8 +12,7 @@ import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { diffA11yTrees, parsePlaywrightA11ySnapshot, checkA11yTree } from "./a11y-semantic.ts";
 import { reasonAboutChanges, type ReasoningChain } from "./reasoning.ts";
-import { introspectToSpec, verifySpec } from "./introspect.ts";
-import { encodePng } from "./heatmap.ts";
+import { encodePng } from "./png-utils.ts";
 import { createLLMProvider } from "./llm-client.ts";
 import type { LLMProvider } from "./intent.ts";
 import type { A11yNode, PageExpectation, ChangeIntent } from "./types.ts";
@@ -337,8 +336,6 @@ In 3-4 sentences: explain what went wrong and give the specific fix.`,
   console.log(`  ${D}Pattern: implement → verify → ${failCount > 0 ? "AI diagnose → fix → re-verify → " : ""}complete${R}`);
 
   // Final spec check
-  const LANDMARK = new Set(["banner","main","navigation","contentinfo","form","region","search","tablist","tabpanel"]);
-  const INTERACTIVE = new Set(["button","link","textbox","checkbox","radio","searchbox","switch","tab","columnheader"]);
   const finalTree = await loadTree("dashboard-step5-complete.a11y.json");
   const finalIssues = checkA11yTree(finalTree);
   console.log(`\n  ${B}Final a11y:${R} ${finalIssues.length === 0 ? `${BG_G}${B} CLEAN ${R}` : `${RE}${finalIssues.length} issues${R}`}`);

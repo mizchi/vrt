@@ -9,17 +9,15 @@
  *
  * Usage: npx tsx vrt/src/demo-fix-loop.ts
  */
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { diffA11yTrees, parsePlaywrightA11ySnapshot, checkA11yTree } from "./a11y-semantic.ts";
 import { reasonAboutChanges, type ReasoningChain } from "./reasoning.ts";
-import { matchA11yExpectation } from "./expectation.ts";
-import { introspectToSpec, verifySpec, type SpecVerifyResult } from "./introspect.ts";
-import { compareScreenshots, encodePng } from "./heatmap.ts";
+import { introspectToSpec, verifySpec } from "./introspect.ts";
+import { compareScreenshots } from "./heatmap.ts";
+import { encodePng } from "./png-utils.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
-import { runGoal, formatGoalReport, type Goal } from "./goal-runner.ts";
 import { createLLMProvider } from "./llm-client.ts";
-import type { LLMProvider } from "./intent.ts";
 import type { A11yNode, PageExpectation, ChangeIntent, VrtSnapshot } from "./types.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr as _hr } from "./terminal-colors.ts";
 

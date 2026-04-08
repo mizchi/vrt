@@ -6,8 +6,7 @@
  * 同一の画像データで比較する。
  */
 import { performance } from "node:perf_hooks";
-import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { DIM, RESET, GREEN, YELLOW, CYAN, BOLD } from "./terminal-colors.ts";
 
@@ -105,7 +104,7 @@ async function main() {
       // 同等サイズのベンチ結果を moon bench から取得済みのデータで比較する
       console.log(`  ${DIM}MoonBit JS: using moon bench data (100x100 = 1.18ms)${RESET}`);
       // 100x100 → 1.18ms = 10,000px → extrapolate
-      for (const { w, h, label } of sizes) {
+  for (const { w, h, label } of sizes) {
         const pixels = w * h;
         const ratio = pixels / 10000;
         const estMs = 1.18 * ratio;
@@ -147,7 +146,7 @@ async function main() {
   console.log(`  ${"Implementation".padEnd(25)} ${"Size".padEnd(12)} ${"avg".padStart(10)} ${"ops/s".padStart(8)} ${DIM}diff${RESET}`);
   console.log(`  ${"─".repeat(25)} ${"─".repeat(12)} ${"─".repeat(10)} ${"─".repeat(8)}`);
 
-  for (const { w, h, label } of sizes) {
+  for (const { label } of sizes) {
     const group = results.filter((r) => r.size === label);
     for (const r of group) {
       const avgStr = r.avgMs < 1 ? `${(r.avgMs * 1000).toFixed(0)}µs` : `${r.avgMs.toFixed(1)}ms`;

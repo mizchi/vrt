@@ -13,7 +13,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { chromium, type Page } from "playwright";
-import { compareScreenshots, encodePng, decodePng } from "./heatmap.ts";
+import { compareScreenshots } from "./heatmap.ts";
 import { applyMask, parseMaskSelectors } from "./mask.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
 import type { VrtSnapshot } from "./types.ts";
@@ -232,8 +232,7 @@ function parseArgs(args: string[]): ElementCompareOptions {
 
   const selectorsRaw = getArg("selectors");
   if (!selectorsRaw) {
-    console.error("Error: --selectors is required (comma-separated CSS selectors)");
-    process.exit(1);
+    throw new Error("--selectors is required (comma-separated CSS selectors)");
   }
   const selectors = selectorsRaw.split(",").map((s) => s.trim()).filter(Boolean);
 

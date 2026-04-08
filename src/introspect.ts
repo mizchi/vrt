@@ -103,10 +103,10 @@ function generateDescription(
 }
 
 function generateInvariants(
-  testId: string,
+  _testId: string,
   landmarks: { role: string; name: string }[],
   interactive: { role: string; name: string; hasLabel: boolean }[],
-  headingLevels: number[],
+  _headingLevels: number[],
   unlabeledCount: number
 ): SpecInvariant[] {
   const invariants: SpecInvariant[] = [];

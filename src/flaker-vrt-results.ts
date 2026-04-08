@@ -1,4 +1,4 @@
-import { relative, resolve, sep } from "node:path";
+import { relative, resolve } from "node:path";
 import type { FlakerVrtMigrationScenario } from "./flaker-vrt-config.ts";
 import type { MigrationCompareReport, MigrationCompareResult } from "./migration-compare.ts";
 import type { FlakerTestCaseResult, FlakerTestId } from "./flaker-vrt-runner.ts";

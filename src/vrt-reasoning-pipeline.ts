@@ -9,9 +9,9 @@
  *   const analysis = await pipeline.analyze(heatmapBase64, textReport);
  *   const fix = await pipeline.suggestFix(analysis, cssSource);
  */
-import { createUnifiedLLMClient, type UnifiedLLMClient, type LLMResponse } from "./llm-client.ts";
-import { createVlmClient, resolveModel, type VlmClient, type VlmResponse } from "./vlm-client.ts";
-import { resizeBase64Png, type ResolutionPreset, RESOLUTION_PRESETS } from "./image-resize.ts";
+import { createUnifiedLLMClient } from "./llm-client.ts";
+import { createVlmClient, resolveModel, type VlmClient } from "./vlm-client.ts";
+import { resizeBase64Png, type ResolutionPreset } from "./image-resize.ts";
 
 // ---- Types ----
 

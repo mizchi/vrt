@@ -3,7 +3,6 @@ import { join, relative, resolve, dirname, extname } from "node:path";
 import type {
   DepGraph,
   DepNode,
-  DepEdge,
   Language,
   AffectedComponent,
 } from "./types.ts";

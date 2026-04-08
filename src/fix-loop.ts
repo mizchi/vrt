@@ -9,16 +9,16 @@
  *   node --experimental-strip-types src/fix-loop.ts --fixture page --seed 42
  *   node --experimental-strip-types src/fix-loop.ts --fixture dashboard --max-rounds 5
  */
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { compareScreenshots, generateDiffReport } from "./heatmap.ts";
 import {
   parseCssDeclarations, removeCssProperty, extractCss, replaceCss,
   seededRandom, groupBySelector, removeSelectorBlock, escapeRegex,
-  type CssDeclaration, type CssSelectorBlock,
+  type CssDeclaration,
 } from "./css-challenge-core.ts";
-import { createReasoningPipeline, type StructuredDiffReport, type FixSuggestion } from "./vrt-reasoning-pipeline.ts";
+import { createReasoningPipeline } from "./vrt-reasoning-pipeline.ts";
 import { resolveResolutionForViewport } from "./image-resize.ts";
 import { getCssChallengeFixturePath } from "./css-challenge-fixtures.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";

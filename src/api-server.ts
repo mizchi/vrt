@@ -10,10 +10,9 @@
 import crypto from "node:crypto";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { readFile } from "node:fs/promises";
 import type {
-  CompareRequest, CompareResponse, CompareOptions,
-  SmokeTestRequest, SmokeTestResponse,
+  CompareRequest, CompareResponse,
+  SmokeTestRequest,
   StatusResponse,
   ViewportResult, PixelDiffResult,
   HtmlSource,
@@ -24,7 +23,7 @@ import { isCraterAvailable, CraterClient } from "./crater-client.ts";
 // ---- Config ----
 
 const args = process.argv.slice(2);
-const PORT = parseInt(args.find((a, i) => args[i - 1] === "--port") ?? "3456", 10);
+const PORT = parseInt(args.find((_a, i) => args[i - 1] === "--port") ?? "3456", 10);
 
 // ---- App ----
 
@@ -46,7 +45,7 @@ app.use("*", async (c, next) => {
 app.get("/api/status", async (c) => {
   const craterAvailable = await isCraterAvailable();
   const status: StatusResponse = {
-    version: "0.2.0",
+    version: "0.3.0",
     capabilities: ["compare", "compare-renderers", "smoke-test", "reason", "report"],
     backends: [
       { name: "chromium", available: true },
@@ -208,8 +207,6 @@ app.post("/api/compare-renderers", async (c) => {
   const { discoverViewports } = await import("./viewport-discovery.ts");
   const { mkdir, rm } = await import("node:fs/promises");
   const { join } = await import("node:path");
-  const { PNG } = await import("pngjs");
-
   const tmpDir = join(process.cwd(), "test-results", "api", `renderers-${Date.now()}`);
   await mkdir(tmpDir, { recursive: true });
 
@@ -251,7 +248,6 @@ app.post("/api/compare-renderers", async (c) => {
       // Paint tree for detailed diff
       let paintTreeChanges = 0;
       try {
-        const { diffPaintTrees } = await import("./crater-client.ts");
         // Capture paint tree for both renders
         // (crater only — chromium doesn't have paint tree)
         paintTreeChanges = 0; // placeholder — would need baseline vs current

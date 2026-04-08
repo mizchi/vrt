@@ -73,19 +73,20 @@ function createAnthropicClient(apiKey: string, model?: string): UnifiedLLMClient
   async function call(content: MessageContent, maxTokens: number): Promise<LLMResponse> {
     const start = Date.now();
 
-    // Build messages
-    let messageContent: any;
-    if (typeof content === "string") {
-      messageContent = content;
-    } else {
-      messageContent = content.map((c) => {
-        if (c.type === "text") return { type: "text", text: c.text };
-        return {
-          type: "image",
-          source: { type: "base64", media_type: c.mimeType ?? "image/png", data: c.base64 },
-        };
-      });
-    }
+    type AnthropicBlock =
+      | { type: "text"; text: string }
+      | { type: "image"; source: { type: "base64"; media_type: string; data: string } };
+
+    const messageContent: string | AnthropicBlock[] =
+      typeof content === "string"
+        ? content
+        : content.map((c): AnthropicBlock => {
+          if (c.type === "text") return { type: "text", text: c.text };
+          return {
+            type: "image",
+            source: { type: "base64", media_type: c.mimeType ?? "image/png", data: c.base64 },
+          };
+        });
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -147,15 +148,17 @@ function createGeminiLLMClient(apiKey: string, model?: string): UnifiedLLMClient
     const genModel = genAI.getGenerativeModel({ model: modelId });
     const start = Date.now();
 
-    let parts: any[];
-    if (typeof content === "string") {
-      parts = [{ text: content }];
-    } else {
-      parts = content.map((c) => {
-        if (c.type === "text") return { text: c.text };
-        return { inlineData: { mimeType: c.mimeType ?? "image/png", data: c.base64 } };
-      });
-    }
+    type GeminiPart =
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } };
+
+    const parts: GeminiPart[] =
+      typeof content === "string"
+        ? [{ text: content }]
+        : content.map((c): GeminiPart => {
+          if (c.type === "text") return { text: c.text };
+          return { inlineData: { mimeType: c.mimeType ?? "image/png", data: c.base64 } };
+        });
 
     const result = await genModel.generateContent({
       contents: [{ role: "user", parts }],
@@ -194,15 +197,17 @@ function createOpenRouterLLMClient(apiKey: string, model?: string): UnifiedLLMCl
   async function call(content: MessageContent, maxTokens: number): Promise<LLMResponse> {
     const start = Date.now();
 
-    let messageContent: any;
-    if (typeof content === "string") {
-      messageContent = content;
-    } else {
-      messageContent = content.map((c) => {
-        if (c.type === "text") return { type: "text", text: c.text };
-        return { type: "image_url", image_url: { url: `data:${c.mimeType ?? "image/png"};base64,${c.base64}` } };
-      });
-    }
+    type OpenRouterBlock =
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string } };
+
+    const messageContent: string | OpenRouterBlock[] =
+      typeof content === "string"
+        ? content
+        : content.map((c): OpenRouterBlock => {
+          if (c.type === "text") return { type: "text", text: c.text };
+          return { type: "image_url", image_url: { url: `data:${c.mimeType ?? "image/png"};base64,${c.base64}` } };
+        });
 
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",

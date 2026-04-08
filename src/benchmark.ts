@@ -10,7 +10,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { PNG } from "pngjs";
-import { DIM, RESET, GREEN, CYAN, BOLD } from "./terminal-colors.ts";
+import { DIM, RESET, CYAN, BOLD } from "./terminal-colors.ts";
 import type { DetectionRecord } from "./detection-db.ts";
 
 const TMP = join(import.meta.dirname!, "..", "test-results", "benchmark");
@@ -230,7 +230,6 @@ async function main() {
   // ---- Property classify ----
   {
     const { categorizeProperty } = await import("./css-challenge-core.ts");
-    const { classifySelectorType } = await import("./detection-classify.ts");
 
     const r = await bench("categorizeProperty x100", () => {
       for (const p of ["display", "padding", "width", "color", "font-size", "animation", "transform",
@@ -335,7 +334,7 @@ async function main() {
   // ---- Full migration-compare pipeline (no browser) ----
   {
     const { extractBreakpoints } = await import("./viewport-discovery.ts");
-    const { parseCssDeclarations, extractCss, diffComputedStyles } = await import("./css-challenge-core.ts");
+    const { parseCssDeclarations, extractCss } = await import("./css-challenge-core.ts");
     const html1 = await readFile(join(import.meta.dirname!, "..", "fixtures", "css-challenge", "page.html"), "utf-8");
     const html2 = await readFile(join(import.meta.dirname!, "..", "fixtures", "css-challenge", "dashboard.html"), "utf-8");
 

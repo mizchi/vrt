@@ -67,7 +67,7 @@ import {
   type PrescannerTrialResolution,
 } from "./prescanner.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD, hr } from "./terminal-colors.ts";
-import { args, getArg, getArgValues, hasFlag } from "./cli-args.ts";
+import { args } from "./cli-args.ts";
 
 // ---- Config ----
 
@@ -619,12 +619,12 @@ async function runFixtureBenchmark(fixture: string) {
     await rm(trialDir, { recursive: true, force: true }).catch(() => {});
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- TS narrows to never but craterClient may be set at runtime
-  if ((craterClient as CraterClient | null) != null) {
-    await (craterClient as unknown as CraterClient).close();
+  // Cleanup resources
+  if (craterClient != null) {
+    await (craterClient as CraterClient).close();
   }
-  if ((browser as Browser | null) != null) {
-    await (browser as unknown as Browser).close();
+  if (browser != null) {
+    await (browser as Browser).close();
   }
   const elapsedMs = Date.now() - startTime;
   const elapsed = (elapsedMs / 1000).toFixed(1);
@@ -673,7 +673,6 @@ async function runFixtureBenchmark(fixture: string) {
   // Scoped rate (excluding animation)
   const scoped = dbRecords.filter((r) => !isOutOfScope(r.property));
   const scopedDetected = scoped.filter((r) => r.detected).length;
-  const scopedUndetected = scoped.filter((r) => !r.detected).length;
   if (scoped.length < dbRecords.length) {
     const outOfScope = dbRecords.length - scoped.length;
     console.log(`    ${DIM}(excl. animation: ${fmtRate(scopedDetected, scoped.length)} | ${outOfScope} animation skipped)${RESET}`);

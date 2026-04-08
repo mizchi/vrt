@@ -1,72 +1,29 @@
-import { readFile, writeFile } from "node:fs/promises";
 import type { VrtDiff, VrtSnapshot, DiffRegion, DiffRegionType, DiffReport, ShiftRegion } from "./types.ts";
+import { type PngData, cropImage, decodePng, encodePng } from "./png-utils.ts";
 
-// PNG decoding/encoding and pixel comparison
-// Uses pngjs + pixelmatch — both are devDependencies
+// ---- Shared diff pipeline ----
 
-interface PngData {
+interface PixelDiffResult {
+  diffOutput: Uint8Array;
   width: number;
   height: number;
-  data: Uint8Array;
+  diffPixels: number;
+  totalPixels: number;
+  threshold: number;
+  resizedBaseline: PngData;
+  resizedCurrent: PngData;
 }
 
-function cropImage(img: PngData, w: number, h: number): PngData {
-  if (img.width === w && img.height === h) return img;
-  const data = new Uint8Array(w * h * 4);
-  for (let y = 0; y < h; y++) {
-    const srcOffset = y * img.width * 4;
-    const dstOffset = y * w * 4;
-    data.set(img.data.subarray(srcOffset, srcOffset + w * 4), dstOffset);
-  }
-  return { width: w, height: h, data };
-}
-
-/**
- * Read a PNG file and return RGBA pixel data.
- */
-export async function decodePng(path: string): Promise<PngData> {
-  const { PNG } = await import("pngjs");
-  const buffer = await readFile(path);
-  const png = PNG.sync.read(buffer);
-  return {
-    width: png.width,
-    height: png.height,
-    data: new Uint8Array(png.data.buffer, png.data.byteOffset, png.data.byteLength),
-  };
-}
-
-/**
- * Write RGBA pixel data to a PNG file.
- */
-export async function encodePng(
-  path: string,
-  data: PngData
-): Promise<void> {
-  const { PNG } = await import("pngjs");
-  const png = new PNG({ width: data.width, height: data.height });
-  Buffer.from(data.data.buffer, data.data.byteOffset, data.data.byteLength).copy(png.data);
-  const buffer = PNG.sync.write(png);
-  await writeFile(path, buffer);
-}
-
-/**
- * Compare two screenshots pixel-by-pixel and generate a diff heatmap.
- */
-export async function compareScreenshots(
-  snapshot: VrtSnapshot,
-  opts: {
-    threshold?: number; // pixelmatch threshold (0-1), default 0.1
-    outputDir?: string;
-    skipHeatmap?: boolean; // skip PNG heatmap generation for speed
-  } = {}
-): Promise<VrtDiff | null> {
-  if (!snapshot.baselinePath) return null;
-
+async function runPixelDiff(
+  baselinePath: string,
+  screenshotPath: string,
+  testId: string,
+  opts: { threshold?: number; outputDir?: string; skipHeatmap?: boolean },
+): Promise<PixelDiffResult & { heatmapPath?: string }> {
   const pixelmatch = (await import("pixelmatch")).default;
-  const baseline = await decodePng(snapshot.baselinePath);
-  const current = await decodePng(snapshot.screenshotPath);
+  const baseline = await decodePng(baselinePath);
+  const current = await decodePng(screenshotPath);
 
-  // Different sizes: compare common region + count overflow as diff
   let resizedBaseline = baseline;
   let resizedCurrent = current;
   let overflowPixels = 0;
@@ -74,11 +31,9 @@ export async function compareScreenshots(
   if (baseline.width !== current.width || baseline.height !== current.height) {
     const commonW = Math.min(baseline.width, current.width);
     const commonH = Math.min(baseline.height, current.height);
-    const maxW = Math.max(baseline.width, current.width);
-    const maxH = Math.max(baseline.height, current.height);
-    overflowPixels = maxW * maxH - commonW * commonH;
-
-    // Crop both images to common region
+    overflowPixels =
+      Math.max(baseline.width, current.width) * Math.max(baseline.height, current.height)
+      - commonW * commonH;
     resizedBaseline = cropImage(baseline, commonW, commonH);
     resizedCurrent = cropImage(current, commonW, commonH);
   }
@@ -90,31 +45,43 @@ export async function compareScreenshots(
   const threshold = opts.threshold ?? 0.1;
 
   const diffPixels = overflowPixels + pixelmatch(
-    resizedBaseline.data,
-    resizedCurrent.data,
-    diffOutput,
-    width,
-    height,
-    { threshold }
+    resizedBaseline.data, resizedCurrent.data, diffOutput, width, height, { threshold },
   );
 
-  // Heatmap output (skip PNG encode if skipHeatmap is set)
   let heatmapPath: string | undefined;
   if (opts.outputDir && diffPixels > 0 && !opts.skipHeatmap) {
-    const safeName = snapshot.testId.replace(/[/\\:]/g, "_");
+    const safeName = testId.replace(/[/\\:]/g, "_");
     heatmapPath = `${opts.outputDir}/${safeName}_heatmap.png`;
     await encodePng(heatmapPath, { width, height, data: diffOutput });
   }
 
-  // Detect diff regions (simplified connected-component analysis: grid-based)
-  const regions = detectDiffRegions(diffOutput, width, height);
+  return { diffOutput, width, height, diffPixels, totalPixels, threshold, resizedBaseline, resizedCurrent, heatmapPath };
+}
+
+// ---- Public API ----
+
+/**
+ * Compare two screenshots pixel-by-pixel and generate a diff heatmap.
+ */
+export async function compareScreenshots(
+  snapshot: VrtSnapshot,
+  opts: {
+    threshold?: number;
+    outputDir?: string;
+    skipHeatmap?: boolean;
+  } = {}
+): Promise<VrtDiff | null> {
+  if (!snapshot.baselinePath) return null;
+
+  const r = await runPixelDiff(snapshot.baselinePath, snapshot.screenshotPath, snapshot.testId, opts);
+  const regions = detectDiffRegions(r.diffOutput, r.width, r.height);
 
   return {
     snapshot,
-    diffPixels,
-    totalPixels,
-    diffRatio: diffPixels / totalPixels,
-    heatmapPath,
+    diffPixels: r.diffPixels,
+    totalPixels: r.totalPixels,
+    diffRatio: r.diffPixels / r.totalPixels,
+    heatmapPath: r.heatmapPath,
     regions,
   };
 }
@@ -362,78 +329,33 @@ export async function generateDiffReport(
 ): Promise<DiffReport | null> {
   if (!snapshot.baselinePath) return null;
 
-  const pixelmatch = (await import("pixelmatch")).default;
-  const baseline = await decodePng(snapshot.baselinePath);
-  const current = await decodePng(snapshot.screenshotPath);
-
-  let resizedBaseline = baseline;
-  let resizedCurrent = current;
-  let overflowPixels = 0;
-
-  if (baseline.width !== current.width || baseline.height !== current.height) {
-    const commonW = Math.min(baseline.width, current.width);
-    const commonH = Math.min(baseline.height, current.height);
-    const maxW = Math.max(baseline.width, current.width);
-    const maxH = Math.max(baseline.height, current.height);
-    overflowPixels = maxW * maxH - commonW * commonH;
-    resizedBaseline = cropImage(baseline, commonW, commonH);
-    resizedCurrent = cropImage(current, commonW, commonH);
-  }
-
-  const width = resizedBaseline.width;
-  const height = resizedBaseline.height;
-  const totalPixels = width * height + overflowPixels;
-  const diffOutput = new Uint8Array(width * height * 4);
-  const threshold = opts.threshold ?? 0.1;
-
-  const diffPixels = overflowPixels + pixelmatch(
-    resizedBaseline.data,
-    resizedCurrent.data,
-    diffOutput,
-    width,
-    height,
-    { threshold },
-  );
-
-  // Heatmap
-  let heatmapPath: string | undefined;
-  if (opts.outputDir && diffPixels > 0 && !opts.skipHeatmap) {
-    const safeName = snapshot.testId.replace(/[/\\:]/g, "_");
-    heatmapPath = `${opts.outputDir}/${safeName}_heatmap.png`;
-    await encodePng(heatmapPath, { width, height, data: diffOutput });
-  }
-
-  // Regions with classification
-  const regions = detectDiffRegions(diffOutput, width, height);
+  const r = await runPixelDiff(snapshot.baselinePath, snapshot.screenshotPath, snapshot.testId, opts);
+  const regions = detectDiffRegions(r.diffOutput, r.width, r.height);
 
   // Shift detection
   let globalShift = 0;
   let shiftRegions: ShiftRegion[] = [];
-  let compensated = diffPixels;
+  let compensated = r.diffPixels;
 
-  if (opts.detectShift !== false && height > 4) {
-    globalShift = detectGlobalShift(resizedBaseline, resizedCurrent);
+  if (opts.detectShift !== false && r.height > 4) {
+    globalShift = detectGlobalShift(r.resizedBaseline, r.resizedCurrent);
     if (globalShift !== 0) {
       compensated = compensatedDiffCount(
-        resizedBaseline.data,
-        resizedCurrent.data,
-        width,
-        height,
-        globalShift,
-        threshold,
+        r.resizedBaseline.data, r.resizedCurrent.data,
+        r.width, r.height, globalShift, r.threshold,
       );
-      shiftRegions = [{ yStart: 0, yEnd: height, shift: globalShift }];
+      shiftRegions = [{ yStart: 0, yEnd: r.height, shift: globalShift }];
     }
   }
 
-  const shiftOnly = regions.length > 0 && regions.every((r) => r.regionType === "shift" || r.regionType === "edge");
-  const contentChangeCount = regions.filter((r) => r.regionType === "content").length;
-  const compact = generateCompact(diffOutput, width, height, diffPixels, totalPixels, regions);
+  const shiftOnly = regions.length > 0 && regions.every((rg) => rg.regionType === "shift" || rg.regionType === "edge");
+  const contentChangeCount = regions.filter((rg) => rg.regionType === "content").length;
+  const compact = generateCompact(r.diffOutput, r.width, r.height, r.diffPixels, r.totalPixels, regions);
 
   return {
-    diffPixels,
-    totalPixels,
-    diffRatio: diffPixels / totalPixels,
+    diffPixels: r.diffPixels,
+    totalPixels: r.totalPixels,
+    diffRatio: r.diffPixels / r.totalPixels,
     regions,
     shiftOnly,
     contentChangeCount,

@@ -7,15 +7,15 @@
  *
  * Usage: npx tsx vrt/src/demo.ts
  */
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { diffA11yTrees, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
 import { reasonAboutChanges } from "./reasoning.ts";
 import { matchA11yExpectation } from "./expectation.ts";
-import { introspectToSpec, verifySpec } from "./introspect.ts";
-import { compareScreenshots, encodePng } from "./heatmap.ts";
+import { compareScreenshots } from "./heatmap.ts";
+import { encodePng } from "./png-utils.ts";
 import { classifyVisualDiff } from "./visual-semantic.ts";
-import type { A11yNode, PageExpectation, ChangeIntent, VrtSnapshot } from "./types.ts";
+import type { PageExpectation, ChangeIntent, VrtSnapshot } from "./types.ts";
 
 const FIXTURES = join(import.meta.dirname!, "..", "fixtures", "react-sample");
 const TMP = join(import.meta.dirname!, "..", "test-results", "demo");

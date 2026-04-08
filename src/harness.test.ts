@@ -12,10 +12,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { diffA11yTrees, parsePlaywrightA11ySnapshot, checkA11yTree } from "./a11y-semantic.ts";
-import { matchA11yExpectation, crossValidateWithExpectation } from "./expectation.ts";
+import { diffA11yTrees, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
+import { crossValidateWithExpectation } from "./expectation.ts";
 import { reasonAboutChanges } from "./reasoning.ts";
-import { crossValidate } from "./cross-validation.ts";
 import { introspectToSpec, verifySpec } from "./introspect.ts";
 import type { A11yNode, PageExpectation, ChangeIntent, A11yDiff } from "./types.ts";
 
@@ -177,7 +176,6 @@ describe("Harness: full pipeline quality", () => {
           "home", sc.correctExpectation, undefined, d.changes.length > 0 ? d : undefined, sc.intent
         );
 
-        const approved = cv.recommendation === "approve";
         // style-only と regression cases: correct exp は no-change なので approve
         // 期待が変更ありの場合: 変更検出 + マッチ → approve
         if (sc.snapshot === "snapshot-style-only.a11y.json") {

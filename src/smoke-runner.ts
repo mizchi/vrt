@@ -14,10 +14,10 @@ import { readFile } from "node:fs/promises";
 import { chromium, type Page, type Browser } from "playwright";
 import type {
   SmokeTestRequest, SmokeTestResponse, SmokeAction, SmokeError,
-  A11ySnapshot, A11yNodeCompact, SmokeTestMeta,
+  A11ySnapshot, A11yNodeCompact,
 } from "./api-types.ts";
 
-import { getArg, hasFlag, args } from "./cli-args.ts";
+import { getArg, args } from "./cli-args.ts";
 import { DIM, RESET, GREEN, RED, YELLOW, CYAN, BOLD } from "./terminal-colors.ts";
 
 // ---- Config ----
@@ -90,8 +90,6 @@ async function discoverActions(page: Page): Promise<ActionCandidate[]> {
   // Get a11y snapshot
   const snapshot = await page.locator(":root").ariaSnapshot().then((yaml: string) => parseAriaYaml(yaml)).catch(() => null);
   if (!snapshot) return candidates;
-
-  const origin = new URL(page.url()).origin;
 
   function walk(node: any, path: string) {
     const role = node.role ?? "";

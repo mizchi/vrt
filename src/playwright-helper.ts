@@ -10,7 +10,6 @@
  * - cache -> don't re-run the same assertion
  */
 import type { Page } from "@playwright/test";
-import type { NlAssertion } from "./types.ts";
 import type { LLMProvider } from "./intent.ts";
 
 export interface NlAssertOptions {
@@ -58,7 +57,7 @@ export async function nlAssert(
   assertion: string,
   opts: NlAssertOptions = {}
 ): Promise<NlAssertResult> {
-  const { onlyOnFailure = true, dependsOn, llm, cache = true } = opts;
+  const { onlyOnFailure = true, llm, cache = true } = opts;
 
   // Cache check
   const cacheKey = `${page.url()}:${assertion}`;
@@ -143,8 +142,7 @@ async function llmAssert(
   llm: LLMProvider
 ): Promise<NlAssertResult> {
   // Capture screenshot
-  const screenshot = await page.screenshot({ type: "png" });
-  const base64 = screenshot.toString("base64");
+  await page.screenshot({ type: "png" });
 
   // Get a11y tree
   let a11yYaml = "";

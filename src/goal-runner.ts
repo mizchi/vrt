@@ -1,13 +1,9 @@
 import type {
-  A11yDiff,
   ChangeIntent,
   PageExpectation,
-  LoopScore,
-  UnifiedAgentContext,
-  VrtExpectation,
 } from "./types.ts";
 import { diffA11yTrees, parsePlaywrightA11ySnapshot } from "./a11y-semantic.ts";
-import { matchA11yExpectation, crossValidateWithExpectation, scoreLoop } from "./expectation.ts";
+import { matchA11yExpectation } from "./expectation.ts";
 import { reasonAboutChanges, type ReasoningChain } from "./reasoning.ts";
 import { introspectToSpec, verifySpec, type SpecVerifyResult } from "./introspect.ts";
 import type { A11yNode } from "./types.ts";

@@ -6,8 +6,6 @@
  */
 import type { Page } from "playwright";
 
-const MASK_STYLE_ID = "__vrt-mask-style__";
-
 /**
  * Inject mask styles into the page.
  * Sets visibility: hidden on target selectors including descendants.
