@@ -45,7 +45,7 @@ app.use("*", async (c, next) => {
 app.get("/api/status", async (c) => {
   const craterAvailable = await isCraterAvailable();
   const status: StatusResponse = {
-    version: "0.3.0",
+    version: "0.4.0",
     capabilities: ["compare", "compare-renderers", "smoke-test", "reason", "report"],
     backends: [
       { name: "chromium", available: true },
