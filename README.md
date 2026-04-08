@@ -2,6 +2,8 @@
 
 Visual Regression Testing toolkit — pixel diff, computed style diff, a11y tree diff, and AI-powered CSS fix generation.
 
+Requires Node 24+.
+
 The public surface is organized into three layers:
 
 - `vrt <command>` for one-shot analysis and comparison commands
@@ -33,6 +35,9 @@ pnpm test
 # Compare two HTML files
 vrt compare before.html after.html
 
+# Compare two existing PNG screenshots without Playwright
+vrt png-diff baselines/home.png snapshots/home.png
+
 # Compare two URLs
 vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/
 
@@ -60,6 +65,7 @@ just fix-loop --fixture page --seed 42
 
 ```bash
 vrt compare <before.html> <after.html>      # Migration VRT for files or URLs
+vrt png-diff <baseline.png> <current.png>   # Direct PNG pixel diff + heatmap
 vrt snapshot <url1> [url2] ...              # Multi-viewport snapshot + diff
 vrt elements [options]                      # Element-level diff with shift isolation
 vrt smoke <file-or-url>                     # A11y-driven random interaction test
@@ -74,6 +80,7 @@ These commands manage state under `baselines/`, `snapshots/`, `output/`, `vrt-re
 
 Before running them, start the target app and point `VRT_BASE_URL` at it when needed.
 The built-in capture workflow defaults to `http://127.0.0.1:4174`.
+`vrt workflow verify` itself only compares the PNG and `.a11y.json` artifacts already present under `baselines/` and `snapshots/`; it does not launch Playwright.
 
 ```bash
 vrt workflow init
@@ -126,7 +133,7 @@ Available endpoints:
 TypeScript client:
 
 ```ts
-import { VrtClient } from "./src/vrt-client.ts";
+import { VrtClient } from "vrt/client";
 
 const client = new VrtClient("http://localhost:3456");
 const status = await client.status();

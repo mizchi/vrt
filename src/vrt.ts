@@ -4,6 +4,17 @@
  */
 import { resolveRootCommand } from "./vrt-command-router.ts";
 
+const MODULE_LOADERS = {
+  "./api-server.ts": () => import("./api-server.ts"),
+  "./css-challenge-bench.ts": () => import("./css-challenge-bench.ts"),
+  "./detection-report.ts": () => import("./detection-report.ts"),
+  "./element-compare.ts": () => import("./element-compare.ts"),
+  "./migration-compare.ts": () => import("./migration-compare.ts"),
+  "./png-diff.ts": () => import("./png-diff.ts"),
+  "./smoke-runner.ts": () => import("./smoke-runner.ts"),
+  "./snapshot.ts": () => import("./snapshot.ts"),
+} as const;
+
 async function main() {
   const route = resolveRootCommand(process.argv.slice(2));
 
@@ -36,8 +47,12 @@ async function main() {
 }
 
 async function runModuleCommand(modulePath: string, argv: string[]) {
+  const load = MODULE_LOADERS[modulePath as keyof typeof MODULE_LOADERS];
+  if (!load) {
+    throw new Error(`Unsupported module command: ${modulePath}`);
+  }
   process.argv = [process.argv[0], modulePath, ...argv];
-  await import(modulePath);
+  await load();
 }
 
 async function runDiscover(args: string[]) {

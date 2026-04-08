@@ -25,6 +25,13 @@ describe("resolveRootCommand", () => {
     assert.deepEqual(workflow.argv, ["report"]);
   });
 
+  it("routes raw PNG comparison as a core command", () => {
+    const route = resolveRootCommand(["png-diff", "before.png", "after.png"]);
+    assert.equal(route.kind, "module");
+    assert.equal(route.modulePath, "./png-diff.ts");
+    assert.deepEqual(route.argv, ["before.png", "after.png"]);
+  });
+
   it("routes api commands under the api namespace", () => {
     const route = resolveRootCommand(["api", "serve", "--port", "4567"]);
     assert.equal(route.kind, "module");
@@ -57,6 +64,7 @@ describe("formatRootUsage", () => {
     const usage = formatRootUsage();
     assert.match(usage, /Workflow Commands:/);
     assert.match(usage, /API Commands:/);
+    assert.match(usage, /png-diff <baseline\.png> <current\.png>/);
     assert.match(usage, /workflow verify/);
     assert.match(usage, /api serve/);
   });

@@ -5,7 +5,7 @@
  * Built with Hono. For local Node.js execution.
  * Structured to be directly portable to Cloudflare Workers.
  *
- * Usage: node --experimental-strip-types src/api-server.ts [--port 3456]
+ * Usage: node src/api-server.ts [--port 3456]
  */
 import crypto from "node:crypto";
 import { Hono } from "hono";

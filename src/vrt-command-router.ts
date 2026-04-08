@@ -49,6 +49,7 @@ export type RootCommandRoute =
 
 const ROOT_MODULE_COMMANDS: Record<string, string> = {
   compare: "./migration-compare.ts",
+  "png-diff": "./png-diff.ts",
   bench: "./css-challenge-bench.ts",
   report: "./detection-report.ts",
   snapshot: "./snapshot.ts",
@@ -89,6 +90,8 @@ export function formatRootUsage(): string {
 
 Core Commands:
   compare <before> <after>    Compare HTML files or URLs across viewports
+  png-diff <baseline.png> <current.png>
+                              Compare existing PNG screenshots directly
   snapshot <url...>           Capture multi-viewport snapshots with baseline diff
   elements [options]          Element-level comparison with shift isolation
   smoke <file-or-url>         A11y-driven smoke test
@@ -114,6 +117,7 @@ Compatibility Aliases:
 
 Examples:
   vrt compare before.html after.html
+  vrt png-diff baseline.png current.png
   vrt snapshot http://localhost:3000/ --output snapshots/
   vrt workflow verify
   vrt workflow report

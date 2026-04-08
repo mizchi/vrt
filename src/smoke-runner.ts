@@ -6,9 +6,9 @@
  * performs random actions within the site, and detects crashes.
  *
  * Usage:
- *   node --experimental-strip-types src/smoke-runner.ts <url-or-file>
- *   node --experimental-strip-types src/smoke-runner.ts --url https://example.com --max-actions 20
- *   node --experimental-strip-types src/smoke-runner.ts --file fixtures/css-challenge/page.html --seed 42
+ *   node src/smoke-runner.ts <url-or-file>
+ *   node src/smoke-runner.ts --url https://example.com --max-actions 20
+ *   node src/smoke-runner.ts --file fixtures/css-challenge/page.html --seed 42
  */
 import { readFile } from "node:fs/promises";
 import { chromium, type Page, type Browser } from "playwright";
@@ -400,9 +400,9 @@ ACTION: click ROLE: button NAME: Submit`;
 
 async function main() {
   if (!URL_ARG && !FILE_ARG) {
-    console.log("Usage: node --experimental-strip-types src/smoke-runner.ts <file-or-url>");
-    console.log("       node --experimental-strip-types src/smoke-runner.ts --url https://example.com --max-actions 20");
-    console.log("       node --experimental-strip-types src/smoke-runner.ts --file page.html --seed 42");
+    console.log("Usage: node src/smoke-runner.ts <file-or-url>");
+    console.log("       node src/smoke-runner.ts --url https://example.com --max-actions 20");
+    console.log("       node src/smoke-runner.ts --file page.html --seed 42");
     process.exit(1);
   }
 

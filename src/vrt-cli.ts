@@ -14,7 +14,7 @@
  *   affected  -- show change impact scope
  */
 
-import { execSync, type ExecSyncOptions } from "node:child_process";
+import { execFileSync, execSync, type ExecSyncOptions } from "node:child_process";
 import { resolve, join } from "node:path";
 import {
   readFile,
@@ -44,6 +44,7 @@ const OUTPUT_DIR = join(VRT_ROOT, "output");
 const REPORT_PATH = join(VRT_ROOT, "vrt-report.json");
 const EXPECTATION_PATH = join(VRT_ROOT, "expectation.json");
 const SPEC_PATH = join(VRT_ROOT, "spec.json");
+const NPX_COMMAND = process.platform === "win32" ? "npx.cmd" : "npx";
 
 const EXEC_OPTS: ExecSyncOptions = {
   cwd: VRT_ROOT,
@@ -54,6 +55,29 @@ const EXEC_OPTS: ExecSyncOptions = {
   },
 };
 
+function resolveCaptureSpecPath(): string {
+  const candidates = [
+    join(VRT_ROOT, "dist", "e2e", "vrt-capture.spec.mjs"),
+    join(VRT_ROOT, "e2e", "vrt-capture.spec.ts"),
+  ];
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (!found) {
+    throw new Error("Missing VRT capture spec. Run `pnpm build` or restore `e2e/vrt-capture.spec.ts`.");
+  }
+  return found;
+}
+
+function runCaptureSpec(mode: "baseline" | "capture") {
+  execFileSync(
+    NPX_COMMAND,
+    ["playwright", "test", resolveCaptureSpecPath(), "--reporter=list"],
+    {
+      ...EXEC_OPTS,
+      env: { ...EXEC_OPTS.env, VRT_MODE: mode },
+    }
+  );
+}
+
 // ---- Commands ----
 
 async function init() {
@@ -63,19 +87,13 @@ async function init() {
 
   console.log("Running Playwright to capture baseline screenshots + a11y...");
   try {
-    execSync(
-      `npx playwright test e2e/vrt-capture.spec.ts --reporter=list`,
-      {
-        ...EXEC_OPTS,
-        env: { ...EXEC_OPTS.env, VRT_MODE: "baseline" },
-      }
-    );
+    runCaptureSpec("baseline");
   } catch (e) {
     // Some tests may fail (e.g. title check) but captures still succeed
     const captured = await listFiles(BASELINES_DIR, ".png");
     if (captured.length === 0) {
       console.error("Playwright capture failed. Is the server running?");
-      console.error("Start with: pnpm serve (from project root)");
+      console.error("Start your target app and set VRT_BASE_URL if it is not http://127.0.0.1:4174");
       process.exit(1);
     }
     console.log("  (some tests had warnings, but captures completed)");
@@ -98,17 +116,12 @@ async function capture() {
 
   console.log("Running Playwright to capture current state...");
   try {
-    execSync(
-      `npx playwright test e2e/vrt-capture.spec.ts --reporter=list`,
-      {
-        ...EXEC_OPTS,
-        env: { ...EXEC_OPTS.env, VRT_MODE: "capture" },
-      }
-    );
+    runCaptureSpec("capture");
   } catch (e) {
     const captured = await listFiles(SNAPSHOTS_DIR, ".png");
     if (captured.length === 0) {
       console.error("Playwright capture failed. Is the server running?");
+      console.error("Start your target app and set VRT_BASE_URL if it is not http://127.0.0.1:4174");
       process.exit(1);
     }
     console.log("  (some tests had warnings, but captures completed)");

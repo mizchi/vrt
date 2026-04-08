@@ -3,11 +3,11 @@
  * VLM Model Benchmark -- compare model reasoning quality on VRT diff images
  *
  * Usage:
- *   node --experimental-strip-types src/vlm-bench.ts --list                    # list models
- *   node --experimental-strip-types src/vlm-bench.ts --list --max-cost 0       # free models only
- *   node --experimental-strip-types src/vlm-bench.ts gemma-3-27b              # run specific model
- *   node --experimental-strip-types src/vlm-bench.ts gemma-3-27b llama-3.2    # compare models
- *   node --experimental-strip-types src/vlm-bench.ts --image heatmap.png gemma-3-27b
+ *   node src/vlm-bench.ts --list                    # list models
+ *   node src/vlm-bench.ts --list --max-cost 0       # free models only
+ *   node src/vlm-bench.ts gemma-3-27b              # run specific model
+ *   node src/vlm-bench.ts gemma-3-27b llama-3.2    # compare models
+ *   node src/vlm-bench.ts --image heatmap.png gemma-3-27b
  *
  * Environment: OPENROUTER_API_KEY required for execution (not for --list)
  */

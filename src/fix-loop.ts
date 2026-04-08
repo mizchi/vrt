@@ -6,8 +6,8 @@
  * then uses a two-stage pipeline to fix and verify via VRT.
  *
  * Usage:
- *   node --experimental-strip-types src/fix-loop.ts --fixture page --seed 42
- *   node --experimental-strip-types src/fix-loop.ts --fixture dashboard --max-rounds 5
+ *   node src/fix-loop.ts --fixture page --seed 42
+ *   node src/fix-loop.ts --fixture dashboard --max-rounds 5
  */
 import { readFile, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";

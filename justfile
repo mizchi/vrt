@@ -7,109 +7,109 @@ default:
 
 # Run VRT unit tests
 vrt-test:
-  node --test --experimental-strip-types src/**/*.test.ts
+  node --test src/**/*.test.ts
 
 # Run VRT demo (kitty graphics)
 vrt-demo:
-  node --experimental-strip-types src/demo.ts
+  node src/demo.ts
 
 # Run fix loop demo (detect → reason → fix → verify)
 vrt-demo-fix:
-  node --experimental-strip-types src/demo-fix-loop.ts
+  node src/demo-fix-loop.ts
 
 # Run multi-scenario demo (3 complex scenarios)
 vrt-demo-multi:
-  node --experimental-strip-types src/demo-scenarios.ts
+  node src/demo-scenarios.ts
 
 # Run 6-step dashboard rebuild demo
 vrt-demo-multistep:
-  node --experimental-strip-types src/demo-multistep.ts
+  node src/demo-multistep.ts
 
 # CSS recovery challenge (AI fixes random CSS deletion using VRT)
 css-challenge *args:
-  node --experimental-strip-types src/css-challenge.ts {{args}}
+  node src/css-challenge.ts {{args}}
 
 # CSS challenge benchmark (detection/recovery rates)
 css-bench *args:
-  NO_IMAGES=1 node --experimental-strip-types src/css-challenge-bench.ts {{args}}
+  NO_IMAGES=1 node src/css-challenge-bench.ts {{args}}
 
 # CSS benchmark (selector block deletion mode)
 css-bench-selector *args:
-  NO_IMAGES=1 node --experimental-strip-types src/css-challenge-bench.ts --mode selector {{args}}
+  NO_IMAGES=1 node src/css-challenge-bench.ts --mode selector {{args}}
 
 # CSS benchmark on all fixtures
 css-bench-all trials="30":
-  NO_IMAGES=1 node --experimental-strip-types src/css-challenge-bench.ts --trials {{trials}} --fixture all
+  NO_IMAGES=1 node src/css-challenge-bench.ts --trials {{trials}} --fixture all
 
 # CSS benchmark with crater backend (requires crater BiDi server on :9222)
 css-bench-crater *args:
-  NO_IMAGES=1 node --experimental-strip-types src/css-challenge-bench.ts --backend crater {{args}}
+  NO_IMAGES=1 node src/css-challenge-bench.ts --backend crater {{args}}
 
 # CSS benchmark with crater prescanner + Chromium fallback
 css-bench-prescanner *args:
-  NO_IMAGES=1 node --experimental-strip-types src/css-challenge-bench.ts --backend prescanner {{args}}
+  NO_IMAGES=1 node src/css-challenge-bench.ts --backend prescanner {{args}}
 
 # CSS detection pattern report (accumulated data analysis)
 css-report:
-  node --experimental-strip-types src/detection-report.ts
+  node src/detection-report.ts
 
 # Review generated approval suggestions and merge them into approval.json
 vrt-approve *args:
-  node --experimental-strip-types src/vrt-approve.ts {{args}}
+  node src/vrt-approve.ts {{args}}
 
 # Migration VRT compare (before vs after)
 migration-compare *args:
-  node --experimental-strip-types src/migration-compare.ts {{args}}
+  node src/migration-compare.ts {{args}}
 
 # Migration fix loop (report -> fix -> rerun)
 migration-fix-loop *args:
-  node --experimental-strip-types src/migration-fix-loop.ts {{args}}
+  node src/migration-fix-loop.ts {{args}}
 
 # Adapt migration-report.json to flaker TestCaseResult[] JSON
 flaker-vrt-adapt *args:
-  node --experimental-strip-types src/flaker-vrt-report-adapter.ts {{args}}
+  node src/flaker-vrt-report-adapter.ts {{args}}
 
 # Migration: Reset CSS comparison
 migration-reset:
-  node --experimental-strip-types src/migration-compare.ts --dir fixtures/migration/reset-css --baseline normalize.html --variants modern-normalize.html destyle.html no-reset.html
+  node src/migration-compare.ts --dir fixtures/migration/reset-css --baseline normalize.html --variants modern-normalize.html destyle.html no-reset.html
 
 # Migration: Tailwind to vanilla CSS
 migration-tailwind:
-  node --experimental-strip-types src/migration-compare.ts fixtures/migration/tailwind-to-vanilla/before.html fixtures/migration/tailwind-to-vanilla/after.html
+  node src/migration-compare.ts fixtures/migration/tailwind-to-vanilla/before.html fixtures/migration/tailwind-to-vanilla/after.html
 
 # Migration: shadcn/ui to luna
 migration-shadcn:
-  node --experimental-strip-types src/migration-compare.ts --dir fixtures/migration/shadcn-to-luna --baseline before.html --variants after.html
+  node src/migration-compare.ts --dir fixtures/migration/shadcn-to-luna --baseline before.html --variants after.html
 
 # VRT fix loop (break CSS → VLM analyze → LLM fix → verify)
 fix-loop *args:
-  node --experimental-strip-types src/fix-loop.ts {{args}}
+  node src/fix-loop.ts {{args}}
 
 # VLM model benchmark (compare vision models on VRT diffs)
 vlm-bench *args:
-  node --experimental-strip-types src/vlm-bench.ts {{args}}
+  node src/vlm-bench.ts {{args}}
 
 # Performance benchmark (deterministic APIs only)
 bench:
-  node --experimental-strip-types src/benchmark.ts
+  node src/benchmark.ts
 
 # API server (Hono, localhost)
 api-server *args:
-  node --experimental-strip-types src/api-server.ts {{args}}
+  node src/api-server.ts {{args}}
 
 # A11y-driven smoke test (random interaction)
 smoke-test *args:
-  node --experimental-strip-types src/smoke-runner.ts {{args}}
+  node src/smoke-runner.ts {{args}}
 
 # VRT snapshot (URL → multi-viewport capture + diff)
 snapshot *args:
-  node --experimental-strip-types src/snapshot.ts {{args}}
+  node src/snapshot.ts {{args}}
 
 # ---- Dogfooding ----
 
 # luna.mbt snapshot (requires: npx serve ~/ghq/.../luna.mbt/dist -p 4200)
 dogfood-luna:
-  node --experimental-strip-types src/snapshot.ts \
+  node src/snapshot.ts \
     http://localhost:4200/src/examples/todomvc/ \
     http://localhost:4200/src/examples/spa/ \
     http://localhost:4200/src/examples/wc/ \
@@ -120,7 +120,7 @@ dogfood-luna:
 
 # sol.mbt snapshot (requires: npx serve ~/ghq/.../sol.mbt/website/dist-docs -p 3000)
 dogfood-sol:
-  node --experimental-strip-types src/snapshot.ts \
+  node src/snapshot.ts \
     http://localhost:3000/ \
     http://localhost:3000/luna/ \
     http://localhost:3000/luna/tutorial-js/islands/ \
@@ -131,7 +131,7 @@ dogfood-sol:
 
 # False positive test: same URL compared twice
 false-positive url:
-  node --experimental-strip-types src/migration-compare.ts \
+  node src/migration-compare.ts \
     --url {{url}} --current-url {{url}} \
     --output-dir test-results/false-positive --no-paint-tree
 
