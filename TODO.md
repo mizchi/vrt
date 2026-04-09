@@ -102,6 +102,21 @@ Use vrt on real projects to verify practicality.
 - [x] luna.mbt dogfooding: false positive rate 0% (6 pages × 2 viewports)
 - [x] sol.mbt dogfooding: false positive rate 20% (dynamic content on root page)
 - [x] Record results in `docs/reports/2026-04-05-dogfood-luna-sol.md`
+- [x] sample-webapp-2026 dogfood で出た snapshot UX を改善する
+  - `snapshot` の label 生成が query string を見ないため、`/` と `/?severity=critical` が同じ baseline に潰れる
+  - `--label` / route manifest / query-aware label のどれかで URL ごとの identity を安定化したい
+- [x] `vrt snapshot` に CI 向け fail 条件を持たせる
+  - sample では `snapshot-report.json` を読んで回帰判定する `scripts/vrt-snapshot.mjs` が必要だった
+  - `--fail-on-diff`, `--fail-on-new-baseline`, `--max-diff-ratio` を CLI に持たせたい
+- [x] `snapshot` 系の baseline approve を first-class にする
+  - sample では `scripts/vrt-approve.mjs` で `*-current.png` を `*-baseline.png` にコピーしている
+  - `vrt snapshot approve` もしくは `vrt snapshot --approve` が欲しい
+- [ ] 外部プロジェクト向けに `workflow` の route/spec coupling を外す
+  - 現状の `e2e/vrt-capture.spec.ts` は vrt 自身の route 一覧を内包しており、そのままでは sample app に流用できない
+  - config file か custom capture entrypoint を差し込めるようにしたい
+- [x] `vrt snapshot` の config file を公式サポートする
+  - sample では `vrt.config.json` に `baseUrl`, `routes`, `outputDir`, `threshold` を寄せて wrapper で解釈している
+  - JSON/TOML の config を直接読めると導入がかなり軽くなる
 - [ ] Run VRT in CI per PR, measure false positive rate
 - [ ] Pass diff report to subagent for fix code generation, measure success rate
 

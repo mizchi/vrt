@@ -7,4 +7,5 @@ snapshots/
 output/
 vrt-report.json
 playwright-report/
+.playwright-mcp/
 data/*.jsonl
