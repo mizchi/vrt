@@ -65,6 +65,7 @@ describe("formatRootUsage", () => {
     assert.match(usage, /Workflow Commands:/);
     assert.match(usage, /API Commands:/);
     assert.match(usage, /png-diff <baseline\.png> <current\.png>/);
+    assert.match(usage, /snapshot approve/);
     assert.match(usage, /workflow verify/);
     assert.match(usage, /api serve/);
   });

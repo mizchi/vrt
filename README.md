@@ -44,6 +44,18 @@ vrt compare --url http://localhost:3000/ --current-url http://localhost:8080/
 # Snapshot URLs (creates baseline on first run, diffs on subsequent runs)
 vrt snapshot http://localhost:3000/ http://localhost:3000/about/ --output snapshots/
 
+# Use explicit labels when URL-derived names are not ideal
+vrt snapshot http://localhost:3000/issues?severity=critical --label critical-issues
+
+# Fail CI when diffs or new baselines are detected
+vrt snapshot http://localhost:3000/ --fail-on-diff --fail-on-new-baseline --max-diff-ratio 0.01
+
+# Promote accepted snapshot diffs to the new baseline
+vrt snapshot approve --output snapshots/
+
+# Load snapshot targets from vrt.config.json
+vrt snapshot
+
 # Workflow verification loop
 vrt workflow init
 vrt workflow capture
@@ -67,12 +79,35 @@ just fix-loop --fixture page --seed 42
 vrt compare <before.html> <after.html>      # Migration VRT for files or URLs
 vrt png-diff <baseline.png> <current.png>   # Direct PNG pixel diff + heatmap
 vrt snapshot <url1> [url2] ...              # Multi-viewport snapshot + diff
+vrt snapshot approve                        # Promote *-current.png to *-baseline.png
 vrt elements [options]                      # Element-level diff with shift isolation
 vrt smoke <file-or-url>                     # A11y-driven random interaction test
 vrt discover <html-file>                    # Breakpoint discovery from HTML/CSS
 vrt bench [options]                         # CSS challenge benchmark
 vrt report                                  # Detection pattern report
 ```
+
+Snapshot labels are query-aware by default, so `/issues` and `/issues?severity=critical` no longer share the same baseline name.
+Use repeated `--label` flags to override labels explicitly when needed.
+The same `--label` flag can be used with `vrt snapshot approve` to approve only selected labels.
+
+Minimal `vrt.config.json`:
+
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "routes": [
+    "/",
+    { "path": "/issues?severity=critical", "label": "critical-issues" }
+  ],
+  "outputDir": "test-results/snapshots/sample-webapp-2026",
+  "threshold": 0.1,
+  "failOnDiff": true,
+  "maxDiffRatio": 0.01
+}
+```
+
+When `vrt.config.json` exists in the current directory, `vrt snapshot` loads it automatically. Use `--config <path>` to point at another file, and pass URLs or flags directly when you want CLI values to override config defaults.
 
 ### Workflow Commands
 

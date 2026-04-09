@@ -93,6 +93,7 @@ Core Commands:
   png-diff <baseline.png> <current.png>
                               Compare existing PNG screenshots directly
   snapshot <url...>           Capture multi-viewport snapshots with baseline diff
+  snapshot approve            Promote accepted snapshot diffs to baselines
   elements [options]          Element-level comparison with shift isolation
   smoke <file-or-url>         A11y-driven smoke test
   discover <file>             Discover responsive breakpoints from HTML/CSS
@@ -119,6 +120,7 @@ Examples:
   vrt compare before.html after.html
   vrt png-diff baseline.png current.png
   vrt snapshot http://localhost:3000/ --output snapshots/
+  vrt snapshot approve --output snapshots/
   vrt workflow verify
   vrt workflow report
   vrt api serve --port 3456`;
