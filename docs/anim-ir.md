@@ -516,6 +516,88 @@ judges is on screen — rather than first. The check fails if a bar's final
 height is not its value's share of the axis and warns about a series the
 sequence never reveals.
 
+## kind: flowchart
+
+```json
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "flowchart",
+  "title": "Retry with a cap",
+  "nodes": [
+    { "id": "start", "label": "request", "shape": "terminal" },
+    { "id": "send", "label": "send it" },
+    { "id": "ok", "label": "2xx?", "shape": "decision" },
+    { "id": "tries", "label": "tries < 3?", "shape": "decision" },
+    { "id": "wait", "label": "back off" },
+    { "id": "done", "label": "done", "shape": "terminal" },
+    { "id": "fail", "label": "give up", "shape": "terminal" }
+  ],
+  "edges": [
+    ["start", "send"], ["send", "ok"],
+    { "from": "ok", "to": "done", "label": "yes" },
+    { "from": "ok", "to": "tries", "label": "no" },
+    { "from": "tries", "to": "wait", "label": "yes" },
+    { "from": "tries", "to": "fail", "label": "no" },
+    ["wait", "send"]
+  ],
+  "walk": ["send", "ok", "tries", "wait", "send", "ok", "done"]
+}
+```
+
+| field | |
+|---|---|
+| `nodes` | required: `"id"` or `{"id", "label", "shape", "pos"}`. `shape`: `process` (a box, default), `decision` (a diamond — a question with labelled ways out), `terminal` (a pill: start, end, give up), `io` (a slanted box: input / output). `pos` pins a node |
+| `edges` | required: `["from", "to"]` or `{"from", "to", "label"}`; one edge per pair. A decision's ways out carry their answer as `label` (`yes` / `no`, or the condition); the check warns when one has none |
+| `start` | the node the walk starts at; default the first node |
+| `walk` | the nodes visited after `start`, in order — every hop must be an edge (the validator names the ways out when it is not); `{"at": "id", "caption": "…"}` to narrate a hop yourself, `{"note": "…"}` for a captioned pause, and any annotation op |
+| `layout` | `tb` (default) \| `lr`. Nodes are layered by distance from `start`; a loop — an edge back to an earlier node — runs round the outside of the chart, as a hand-drawn one does |
+
+Each hop is a step: `send it → 2xx?`, or out of a decision `2xx?: no → tries < 3?`
+— the question, the answer, the destination. A token slides along the arrow;
+visited nodes turn green, the current one the accent colour. The check warns
+about a decision with one way out (a question with one answer is a step), a way
+out of a decision without a label, a node the walk never reaches, and a walk
+that stops at a node with a way out. A fact sheet (`check --expect`) for a
+flowchart has `nodes`, `edges` (`"a->b"` or `"a->b:yes"`), `visited` and `end`.
+
+## kind: gantt
+
+```json
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "gantt",
+  "title": "Release 1.2",
+  "unit": "day",
+  "tasks": [
+    { "id": "design", "label": "Design", "start": 0, "end": 3, "lane": "UX" },
+    { "id": "build", "label": "Build", "start": 3, "end": 8, "lane": "Eng", "after": ["design"] },
+    { "id": "qa", "label": "QA", "start": 8, "end": 10, "lane": "QA", "after": ["build"] },
+    { "id": "ship", "label": "Ship", "start": 10, "milestone": true, "lane": "QA", "after": ["qa"] }
+  ],
+  "ops": [
+    { "advance": 3 },
+    { "advance": 6, "caption": "Day 6: build is halfway" },
+    { "slip": { "task": "build", "end": 9 }, "caption": "A dependency breaks: build slips a day" },
+    { "status": { "task": "qa", "state": "late" }, "caption": "QA cannot start on day 8" },
+    { "advance": 11 }
+  ]
+}
+```
+
+| field | |
+|---|---|
+| `tasks` | required: `{"id", "label", "start", "end", "lane", "after": ["id", …], "milestone": true}`. `start` / `end` are in `unit`s — a number line, not a calendar. `lane` groups rows into a labelled band (tasks without one each get a row); `after` draws an arrow from each prerequisite's end to this start, and the check warns when this starts before one of them ends; a `milestone` is a diamond at `start` and has no `end` |
+| `unit` | the axis's word — `day` (default), `week`, `sprint`, `ms` |
+| `tick`, `from`, `to` | axis step and range; default a 1-2-5 step over 0 … the latest end |
+| `ops` | `{"advance": t}` moves the time cursor to `t`: bars fill as it passes, a task it enters lights, one it leaves settles green, and the step says who starts and who finishes (`day 3: Build starts; Design finishes`). `{"slip": {"task", "start", "end"}}` moves a task's dates (its bar stretches; the arrows touching it fade — dependents do not move, slip them too). `{"status": {"task", "state": "late" \| "blocked" \| "done"}}` colours a task by what happened to it. `{"note": "…"}` and every annotation op. All take `caption` and `ms` |
+
+The check warns when a task starts before something it depends on ends, when
+the cursor stops before a task's end (the viewer never sees it finish), and
+errors when the cursor goes backwards. Anchors: a task id, a lane name, a
+dependency `"pre->task"`, `"cursor"` — so `{"callout": {"at": "build", "text":
+"blocked on the API"}}` and `{"value": {"id": "eta", "text": "day 11", "at":
+"ship", "side": "right"}}` work as in every kind.
+
 ## kind: diagram
 
 ```json

@@ -26,6 +26,8 @@ import {
   type SortScene,
   type StackScene,
   type StateMachineScene,
+  type FlowchartScene,
+  type GanttScene,
   type Timeline,
   type TreeScene,
   type VectorScene,
@@ -44,6 +46,8 @@ export interface Examples {
   matrix: MatrixScene;
   graph: GraphScene;
   chart: ChartScene;
+  flowchart: FlowchartScene;
+  gantt: GanttScene;
   diagram: DiagramScene;
   modules: ModulesScene;
   vector: VectorScene;
@@ -208,6 +212,49 @@ export const EXAMPLES: Examples = {
       { highlight: { category: "ap" }, caption: "ap improves most — it was furthest from the database" },
     ],
   },
+  flowchart: {
+    format: SCENE_FORMAT,
+    kind: "flowchart",
+    title: "Retry with a cap",
+    nodes: [
+      { id: "start", label: "request", shape: "terminal" },
+      { id: "send", label: "send it" },
+      { id: "ok", label: "2xx?", shape: "decision" },
+      { id: "tries", label: "tries < 3?", shape: "decision" },
+      { id: "wait", label: "back off" },
+      { id: "done", label: "done", shape: "terminal" },
+      { id: "fail", label: "give up", shape: "terminal" },
+    ],
+    edges: [
+      ["start", "send"],
+      ["send", "ok"],
+      { from: "ok", to: "done", label: "yes" },
+      { from: "ok", to: "tries", label: "no" },
+      { from: "tries", to: "wait", label: "yes" },
+      { from: "tries", to: "fail", label: "no" },
+      ["wait", "send"],
+    ],
+    walk: ["send", "ok", "tries", "wait", "send", "ok", "done"],
+  },
+  gantt: {
+    format: SCENE_FORMAT,
+    kind: "gantt",
+    title: "Release 1.2",
+    unit: "day",
+    tasks: [
+      { id: "design", label: "Design", start: 0, end: 3, lane: "UX" },
+      { id: "build", label: "Build", start: 3, end: 8, lane: "Eng", after: ["design"] },
+      { id: "qa", label: "QA", start: 8, end: 10, lane: "QA", after: ["build"] },
+      { id: "ship", label: "Ship", start: 10, milestone: true, lane: "QA", after: ["qa"] },
+    ],
+    ops: [
+      { advance: 3 },
+      { advance: 6, caption: "Day 6: build is halfway" },
+      { slip: { task: "build", end: 9 }, caption: "A dependency breaks: build slips a day" },
+      { status: { task: "qa", state: "late" }, caption: "QA cannot start on day 8" },
+      { advance: 11 },
+    ],
+  },
   diagram: {
     format: SCENE_FORMAT,
     kind: "diagram",
@@ -329,6 +376,8 @@ Anchors by kind (what "at" / "of" / "around" may name):
   matrix         a cell "r,c", "row:<label or index>", "col:<label or index>"
   graph          a node id, an edge "a->b"
   chart          a series id, a category, "series/category"
+  flowchart      a node id, an edge "a->b", an edge label (when only one edge carries it), "token"
+  gantt          a task id, a lane name, a dependency "pre->task", "cursor"
   diagram / modules  a node or module id, a group id, an edge "a->b" (the dependency ["a", "b"] is the edge "a->b")
   vector         a node id`;
 
@@ -447,6 +496,27 @@ Give "algorithm" OR "ops". With an algorithm the check fails unless every node r
                 {"note": "…"} ]                       each may carry "caption" and "ms"
                                    default: reveal each series in order
 The check fails if a bar's final height is not its value's share of the axis, and warns about a series never revealed.`,
+  flowchart: `kind: flowchart — boxes, diamonds and pills, arrows with the answers, a token walking a path
+  "nodes": [ "id" | {"id", "label", "shape": "process" | "decision" | "terminal" | "io", "pos": [x, y]} ]
+                                   required; process = box (default), decision = diamond, terminal = pill (start / end), io = slanted box
+  "edges": [ ["from", "to"] | {"from", "to", "label": "yes"} ]   required; one edge per pair; a decision's ways out carry their answer
+  "start": "id"                    default: the first node
+  "walk": [ "id" | {"at": "id", "caption"} | {"note": "…"} ]   the nodes visited after start, in order; every hop must be an edge
+  "layout": "tb" | "lr"            default tb
+Each hop is one step captioned "<from> → <to>", or "<question>: <answer> → <to>" out of a decision. A loop is a normal edge back
+to an earlier node; the arrow bends round what is in its way. The check warns about a decision with one way out, an unlabelled way
+out of a decision, a node the walk never reaches, and a walk that stops at a node with a way out.`,
+  gantt: `kind: gantt — tasks as bars on a time axis, dependencies, a cursor that moves through the plan
+  "tasks": [ {"id", "label", "start", "end", "lane", "after": ["id", …], "milestone": true} ]
+                                   required; start / end in units (a label, not a clock); lane groups rows into a band;
+                                   after draws an arrow from each prerequisite's end; milestone = a diamond at start (no end)
+  "unit": "day"                    the axis's word, default day      "tick": n   axis step, default a 1-2-5 step
+  "from", "to": numbers            axis range, default 0 .. the latest end
+  "ops": [ {"advance": t} | {"slip": {"task", "start", "end"}} | {"status": {"task", "state": "late" | "blocked" | "done"}} | {"note": "…"} ]
+                                   advance moves the cursor to t (bars fill as it passes; a step says who starts and who finishes);
+                                   slip moves a task's dates (dependents stay — slip them too); status colours a task by what happened
+The check warns when a task starts before something it depends on ends, when the cursor never reaches a task's end, and errors
+when the cursor goes backwards.`,
   diagram: `kind: diagram — boxes and arrows, narrated in beats
   "nodes": [ {"id", "label", "shape": "rect" | "circle" | "ellipse", "pos": [x, y], "fill", "tone", "hidden": true} ]   required; "tone": "accent" fills the box, "bad" | "muted" colour outline and label
   "edges": [ {"from", "to", "label", "style": "arrow" | "line" | "dashed" | "implements" | "forbidden", "tone", "hidden": true} ]
@@ -518,6 +588,8 @@ export function schemaIndex(): string {
     matrix         a grid of cells (DP table, matrix, table) filled, highlighted, rows / columns swapped
     graph          nodes and edges traversed (bfs / dfs / dijkstra, or explicit ops)
     chart          a bar or line chart revealed series by series
+    flowchart      boxes and decision diamonds with labelled ways out, a token walking one path
+    gantt          tasks as bars on a time axis with dependencies, a cursor moving through the plan
     diagram        boxes and arrows walked through in narrated beats
     vector         generic shapes and a list of tweens
     compose        several scenes in panes, side by side or stacked, in sequence or in parallel

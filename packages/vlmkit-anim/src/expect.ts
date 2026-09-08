@@ -175,6 +175,7 @@ export const EXPECT_KINDS: Record<string, (keyof Expectation)[]> = {
   modules: ["modules", "deps", "forbidden", "highlighted", "groups"],
   diagram: ["modules", "deps", "forbidden", "highlighted", "groups"],
   graph: ["nodes", "edges", "visited", "path", "labels", "highlighted"],
+  flowchart: ["nodes", "edges", "visited", "end"],
   "state-machine": ["states", "transitions", "initial", "final", "visited", "end"],
   distributed: ["nodes", "messages", "lost", "status"],
 };
@@ -206,7 +207,7 @@ export function checkExpectation(exp: Expectation, scene: Scene, tl: Timeline): 
     out.push(err(`expect.${k}`, `"${k}" is not a fact a "${scene.kind}" scene has; it is not compared`, `a ${scene.kind} sheet reads ${fields.join(", ")}`));
   }
   if (scene.kind === "modules" || scene.kind === "diagram") out.push(...checkModulesExpectation(exp, scene, tl));
-  else if (scene.kind === "graph") out.push(...checkGraphExpectation(exp, scene, tl));
+  else if (scene.kind === "graph" || scene.kind === "flowchart") out.push(...checkGraphExpectation(exp, scene, tl));
   else if (scene.kind === "state-machine") out.push(...checkStateMachineExpectation(exp, scene, tl));
   else out.push(...checkDistributedExpectation(exp, scene as Extract<Scene, { kind: "distributed" }>, tl));
   return { diagnostics: out, compared };
@@ -359,15 +360,21 @@ function checkModulesExpectation(exp: Expectation, scene: Scene, tl: Timeline): 
 
 // ---- graph ---------------------------------------------------------------------------------
 
-function checkGraphExpectation(exp: Expectation, scene: Extract<Scene, { kind: "graph" }>, tl: Timeline): Diagnostic[] {
+function checkGraphExpectation(exp: Expectation, scene: Extract<Scene, { kind: "graph" | "flowchart" }>, tl: Timeline): Diagnostic[] {
   const out: Diagnostic[] = [];
   const T = themeOf(scene);
   const frame = sampleFrame(tl, timelineDuration(tl));
   const meta = (tl.meta ?? {}) as { visited?: string[]; path?: string[]; labels?: Record<string, string> };
   const nodes = scene.nodes.map((n) => (typeof n === "string" ? n : n.id));
-  const directed = scene.directed === true;
-  const edges = scene.edges.map(normEdge);
-  const same = (a: { from: string; to: string }, b: { from: string; to: string }): boolean => (a.from === b.from && a.to === b.to) || (!directed && a.from === b.to && a.to === b.from);
+  // A flowchart is always directed; its edges carry the answer as a label, which a fact may name (`"q->b:yes"`).
+  const directed = scene.kind === "flowchart" || scene.directed === true;
+  const edges = scene.edges.map((e) => normEdge(e as Parameters<typeof normEdge>[0]) as { from: string; to: string; label?: string });
+  const same = (a: { from: string; to: string; tag?: string }, b: { from: string; to: string; label?: string }): boolean =>
+    ((a.from === b.from && a.to === b.to) || (!directed && a.from === b.to && a.to === b.from)) && (a.tag === undefined || a.tag === b.label);
+  if (exp.end !== undefined) {
+    const got = meta.visited?.[meta.visited.length - 1];
+    if (got !== exp.end) out.push(err(`walk`, `the walk ends at "${got ?? "?"}"; the facts say "${exp.end}"`, `the walk has to end with a hop into "${exp.end}"`));
+  }
 
   if (exp.nodes) out.push(...exactIds("nodes", "nodes", "node", exp.nodes, nodes, { missing: (id) => `add "${id}" to "nodes" — the facts use these ids`, extra: () => `remove it, or rename it to the id the facts use (${exp.nodes!.map((m) => `"${m}"`).join(", ")})` }));
   if (exp.edges) {
@@ -377,10 +384,11 @@ function checkGraphExpectation(exp: Expectation, scene: Extract<Scene, { kind: "
       if (hit) continue;
       const reversed = directed ? edges.find((e) => e.from === w.to && e.to === w.from) : undefined;
       if (reversed && !want.some((x) => same(x, reversed))) out.push(err(`edges(${edgeKey(reversed.from, reversed.to)})`, `edge ${linkText(w)} is drawn the other way round, as ${edgeKey(reversed.from, reversed.to)}`, `on a directed graph ["${w.from}", "${w.to}"] is an arrow ${w.from} → ${w.to}`));
+      else if (edges.some((e) => e.from === w.from && e.to === w.to)) out.push(err(`edges(${edgeKey(w.from, w.to)})`, `edge ${edgeKey(w.from, w.to)} is labelled "${edges.find((e) => e.from === w.from && e.to === w.to)!.label ?? ""}"; the facts say "${w.tag}"`, `set "label": "${w.tag}" on it`));
       else out.push(err(`expect.edges`, `edge ${linkText(w, !directed)} is missing from the picture`, `add ["${w.from}", "${w.to}"] to "edges"`));
     }
     for (const e of edges) {
-      if (want.some((w) => same(w, e))) continue;
+      if (want.some((w) => same(w, e) || (w.from === e.from && w.to === e.to))) continue; // a wrong label was reported above
       if (directed && want.some((w) => w.from === e.to && w.to === e.from)) continue; // reported as "the other way round"
       out.push(err(`edges(${edgeKey(e.from, e.to)})`, `edge ${edgeKey(e.from, e.to)} is drawn but the facts do not have it`, `remove it from "edges" — or, if the picture is right, fix the expectation file`));
     }
@@ -561,6 +569,9 @@ export const EXPECT_SHEET = `expect — the facts a scene must show, for \`check
   path         the nodes of the path lit at the end, in order (the last "path" op, or dijkstra's route to "goal")
   labels       {"node": "text"}: the label beside a node at the end
   highlighted  the nodes lit by "highlight" in the final frame, and nothing else (visited nodes are green, not lit)
+
+  flowchart
+  nodes, edges ("a->b" or "a->b:yes" — with the answer, it must match), visited (the walk from start), end (where it stops)
 
   state-machine
   states       ids drawn, exactly these          initial   the state the token starts in

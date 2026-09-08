@@ -26,6 +26,7 @@ import {
   type Diagnostic,
   type Scene,
   type Timeline,
+  FLOW_SHAPES,
 } from "./types.ts";
 
 type Obj = Record<string, unknown>;
@@ -617,6 +618,146 @@ function validateStateMachine(ctx: Ctx, doc: Obj): void {
       }
       cur = next;
     }
+  }
+}
+
+function validateFlowchart(ctx: Ctx, doc: Obj): void {
+  validateBase(ctx, doc, ["nodes", "edges", "start", "walk", "layout"]);
+  if (doc.layout !== undefined) ctx.enumOf(doc.layout, "layout", ["tb", "lr"], "layout");
+  let nodeIds: string[] = [];
+  const shapes = new Map<string, string>();
+  if (ctx.array(doc.nodes, "nodes", { minLength: 1 })) {
+    nodeIds = ids(ctx, doc.nodes, "nodes");
+    doc.nodes.forEach((n, i) => {
+      if (isObj(n)) {
+        ctx.keys(n, `nodes[${i}]`, ["id", "label", "shape", "pos"]);
+        if (n.shape !== undefined && ctx.enumOf(n.shape, `nodes[${i}].shape`, FLOW_SHAPES, "shape") && isStr(n.id)) shapes.set(n.id, n.shape as string);
+        if (n.pos !== undefined) ctx.vec2(n.pos, `nodes[${i}].pos`);
+      } else if (!isStr(n)) ctx.error(`nodes[${i}]`, `a node is a string id or {"id", "label", "shape", "pos"}`);
+    });
+  }
+  const outs = new Map<string, Map<string, string | undefined>>();
+  if (ctx.array(doc.edges, "edges")) {
+    doc.edges.forEach((e, i) => {
+      const path = `edges[${i}]`;
+      let from: unknown;
+      let to: unknown;
+      let label: string | undefined;
+      if (Array.isArray(e)) {
+        if (e.length !== 2) ctx.error(path, `an edge shorthand is ["from", "to"], got ${e.length} item(s)`);
+        [from, to] = e;
+      } else if (isObj(e)) {
+        ctx.keys(e, path, ["from", "to", "label"]);
+        from = e.from;
+        to = e.to;
+        if (e.label !== undefined && ctx.string(e.label, `${path}.label`)) label = e.label;
+      } else {
+        ctx.error(path, `an edge is ["from", "to"] or {"from", "to", "label"}`);
+        return;
+      }
+      const a = ctx.ref(from, `${path}.from`, nodeIds, "node");
+      const c = ctx.ref(to, `${path}.to`, nodeIds, "node");
+      if (a && c) {
+        const row = outs.get(from as string) ?? new Map<string, string | undefined>();
+        if (row.has(to as string)) ctx.error(path, `"${from as string}" already has an edge to "${to as string}"`, "one edge per pair; give a decision's two answers two different targets");
+        row.set(to as string, label);
+        outs.set(from as string, row);
+      }
+    });
+  }
+  let start = nodeIds[0];
+  if (doc.start !== undefined && ctx.ref(doc.start, "start", nodeIds, "node")) start = doc.start as string;
+  if (doc.walk !== undefined && ctx.array(doc.walk, "walk") && start) {
+    let cur = start;
+    for (let i = 0; i < doc.walk.length; i++) {
+      const item = doc.walk[i];
+      let next: unknown = item;
+      if (isObj(item)) {
+        if (annotationItem(ctx, item, `walk[${i}]`)) continue;
+        if ("note" in item) {
+          ctx.keys(item, `walk[${i}]`, ["note", "ms"]);
+          if (!isStr(item.note)) ctx.error(`walk[${i}].note`, "note takes a string");
+          continue;
+        }
+        if (!("at" in item)) {
+          ctx.error(`walk[${i}]`, `a walk item is a node id, {"at": id, "caption"}, {"note"} or an annotation op; found keys ${list(Object.keys(item))}`);
+          break;
+        }
+        ctx.keys(item, `walk[${i}]`, ["at", "caption", "ms"]);
+        next = item.at;
+      }
+      if (!ctx.string(next, isObj(item) ? `walk[${i}].at` : `walk[${i}]`)) break;
+      const row = outs.get(cur);
+      if (!row?.has(next)) {
+        const avail = row ? [...row.keys()] : [];
+        const near = closest(next, avail);
+        ctx.error(
+          `walk[${i}]`,
+          `no edge from "${cur}" to "${next}"`,
+          avail.length ? `${near ? `did you mean "${near}"? ` : ""}from "${cur}" the edges lead to ${list(avail)}` : `"${cur}" has no way out; add an edge to "edges" or end the walk here`,
+        );
+        break;
+      }
+      cur = next;
+    }
+  }
+  void shapes;
+}
+
+function validateGantt(ctx: Ctx, doc: Obj): void {
+  validateBase(ctx, doc, ["tasks", "unit", "tick", "from", "to", "ops"]);
+  if (doc.unit !== undefined) ctx.string(doc.unit, "unit");
+  if (doc.tick !== undefined) ctx.number(doc.tick, "tick", { min: 0 });
+  if (doc.from !== undefined) ctx.number(doc.from, "from");
+  if (doc.to !== undefined) ctx.number(doc.to, "to");
+  let taskIds: string[] = [];
+  if (ctx.array(doc.tasks, "tasks", { minLength: 1 })) {
+    taskIds = ids(ctx, doc.tasks, "tasks");
+    doc.tasks.forEach((t, i) => {
+      const path = `tasks[${i}]`;
+      if (!ctx.object(t, path)) return;
+      ctx.keys(t, path, ["id", "label", "start", "end", "lane", "after", "milestone"]);
+      const s = ctx.number(t.start, `${path}.start`);
+      if (t.end !== undefined && ctx.number(t.end, `${path}.end`) && s && (t.end as number) < (t.start as number)) ctx.error(`${path}.end`, `"${String(t.id)}" ends at ${t.end as number}, before it starts at ${t.start as number}`);
+      if (t.end === undefined && t.milestone !== true) ctx.error(`${path}.end`, `"${String(t.id)}" has no "end": give it one, or make it a milestone with "milestone": true`);
+      if (t.lane !== undefined) ctx.string(t.lane, `${path}.lane`);
+      if (t.milestone !== undefined && typeof t.milestone !== "boolean") ctx.error(`${path}.milestone`, "milestone takes true/false");
+      if (t.after !== undefined && ctx.array(t.after, `${path}.after`)) {
+        t.after.forEach((a, k) => {
+          if (ctx.ref(a, `${path}.after[${k}]`, taskIds, "task") && a === t.id) ctx.error(`${path}.after[${k}]`, `"${String(t.id)}" cannot depend on itself`);
+        });
+      }
+    });
+  }
+  if (doc.ops !== undefined && ctx.array(doc.ops, "ops")) {
+    doc.ops.forEach((op, i) => {
+      const path = `ops[${i}]`;
+      if (!ctx.object(op, path)) return;
+      if (annotationItem(ctx, op, path)) return;
+      if ("note" in op) {
+        ctx.keys(op, path, ["note", "ms"]);
+        if (!isStr(op.note)) ctx.error(`${path}.note`, "note takes a string");
+      } else if ("advance" in op) {
+        ctx.keys(op, path, ["advance", "caption", "ms"]);
+        ctx.number(op.advance, `${path}.advance`);
+      } else if ("slip" in op) {
+        ctx.keys(op, path, ["slip", "caption", "ms"]);
+        if (ctx.object(op.slip, `${path}.slip`)) {
+          ctx.keys(op.slip, `${path}.slip`, ["task", "start", "end"]);
+          ctx.ref(op.slip.task, `${path}.slip.task`, taskIds, "task");
+          if (op.slip.start !== undefined) ctx.number(op.slip.start, `${path}.slip.start`);
+          if (op.slip.end !== undefined) ctx.number(op.slip.end, `${path}.slip.end`);
+          if (op.slip.start === undefined && op.slip.end === undefined) ctx.error(`${path}.slip`, `a slip changes "start" and/or "end"; neither is given`);
+        }
+      } else if ("status" in op) {
+        ctx.keys(op, path, ["status", "caption", "ms"]);
+        if (ctx.object(op.status, `${path}.status`)) {
+          ctx.keys(op.status, `${path}.status`, ["task", "state"]);
+          ctx.ref(op.status.task, `${path}.status.task`, taskIds, "task");
+          ctx.enumOf(op.status.state, `${path}.status.state`, ["late", "blocked", "done"], "state");
+        }
+      } else ctx.error(path, `an op is {"advance": t}, {"slip": {"task", "start", "end"}}, {"status": {"task", "state"}}, {"note"} or an annotation op; found keys ${list(Object.keys(op))}`);
+    });
   }
 }
 
@@ -1516,6 +1657,8 @@ export function validateScene(doc: unknown): Diagnostic[] {
     case "matrix": validateMatrix(ctx, doc); break;
     case "graph": validateGraph(ctx, doc); break;
     case "chart": validateChart(ctx, doc); break;
+    case "flowchart": validateFlowchart(ctx, doc); break;
+    case "gantt": validateGantt(ctx, doc); break;
     case "vector": validateVector(ctx, doc); break;
   }
   return ctx.diags;

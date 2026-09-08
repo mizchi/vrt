@@ -118,6 +118,13 @@ message) and `imports-capture-map` (`packages/vlmkit-capture/src` drawn from its
 source and checked against `facts/imports-capture-map.expect.json`, which the
 tool wrote from the same imports) — writers `la`–`ld`.
 
+v19 (2026-09-08) adds two kinds — `flowchart` (decision diamonds with labelled
+ways out, a walked path, loops round the outside) and `gantt` (bars on a time
+axis, dependencies, a cursor moved by `advance`, `slip` and `status`) — and two
+briefs: `flowchart-checkout-facts` (a checkout with three questions and two
+loops, its sheet fixing edges with their answers and the walk) and
+`gantt-sprint-plan` (a sprint that slips, played day by day). Writers `ma`–`mc`.
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from
@@ -126,4 +133,4 @@ caption arithmetic) was updated — the checker cannot read arithmetic, so that
 is a hand count.
 Reports: `docs/reports/2026-09-04-anim-ir-v*.md`, `docs/reports/2026-09-05-anim-ir-v{9,10,11,12}.md`,
 `docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`,
-`docs/reports/2026-09-08-anim-ir-v{16,17,18}.md`.
+`docs/reports/2026-09-08-anim-ir-v{16,17,18,19}.md`.

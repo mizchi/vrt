@@ -17,6 +17,8 @@ import {
   SCENE_FORMAT,
   type ArrayScene,
   type ChartScene,
+  type FlowchartScene,
+  type GanttScene,
   type ComposeScene,
   type DiagramScene,
   type DistributedScene,
@@ -60,6 +62,8 @@ export const scene = {
   matrix: constructor<MatrixScene>("matrix"),
   graph: constructor<GraphScene>("graph"),
   chart: constructor<ChartScene>("chart"),
+  flowchart: constructor<FlowchartScene>("flowchart"),
+  gantt: constructor<GanttScene>("gantt"),
   vector: constructor<VectorScene>("vector"),
   compose: constructor<ComposeScene>("compose"),
 } as const;

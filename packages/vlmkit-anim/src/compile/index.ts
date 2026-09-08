@@ -13,6 +13,8 @@ import { compileCompose } from "./compose.ts";
 import { compileQueue, compileStack } from "./collection.ts";
 import { compileDiagram } from "./diagram.ts";
 import { compileDistributed } from "./distributed.ts";
+import { compileFlowchart } from "./flowchart.ts";
+import { compileGantt } from "./gantt.ts";
 import { compileGraph } from "./graph.ts";
 import { compileHeap } from "./heap.ts";
 import { compileList } from "./list.ts";
@@ -61,6 +63,8 @@ function dispatch(scene: Scene): Timeline {
     case "matrix": return compileMatrix(scene);
     case "graph": return compileGraph(scene);
     case "chart": return compileChart(scene);
+    case "flowchart": return compileFlowchart(scene);
+    case "gantt": return compileGantt(scene);
     case "vector": return compileVector(scene);
   }
 }

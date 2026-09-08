@@ -1,0 +1,20 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "nodes": ["start", "login", "signin", "address", "stock", "remove", "pay", "paid", "retry", "done"],
+  "edges": [
+    "start->login",
+    "login->signin:no",
+    "login->address:yes",
+    "signin->address",
+    "address->stock",
+    "stock->remove:no",
+    "remove->stock",
+    "stock->pay:yes",
+    "pay->paid",
+    "paid->retry:no",
+    "retry->pay",
+    "paid->done:yes"
+  ],
+  "visited": ["start", "login", "signin", "address", "stock", "remove", "stock", "pay", "paid", "retry", "pay", "paid", "done"],
+  "end": "done"
+}
