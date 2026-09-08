@@ -16,6 +16,7 @@
  */
 
 import { sampleTimes } from "./render-svg.ts";
+import { textWidth } from "./text-width.ts";
 import { currentStep, sampleFrame, type NodeState } from "./timeline.ts";
 import type { Timeline, TimelineNode } from "./types.ts";
 
@@ -102,7 +103,8 @@ function textBox(n: TimelineNode, st: NodeState, pos: [number, number]): LayoutB
   if (text === undefined || String(text) === "") return undefined;
   const lines = String(text).split("\n");
   const fs = n.fontSize ?? 14;
-  const w = Math.max(...lines.map((l) => l.length)) * fs * 0.55;
+  // Latin at 0.55 em, CJK and emoji at 1 em — a Japanese label is not 60% of its width (v15).
+  const w = textWidth(String(text), fs, 0.55);
   const h = lines.length * fs * 1.2;
   const anchor = n.shape === "text" ? n.anchor ?? "middle" : "middle";
   const left = anchor === "start" ? pos[0] : anchor === "end" ? pos[0] - w : pos[0] - w / 2;

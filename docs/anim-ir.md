@@ -43,6 +43,13 @@ Common to every scene: `format`, `kind`, optional `title` (drawn at the top),
 (`{width, height, background}`; kinds pick a size that fits), `theme` (colours:
 `node nodeStroke text accent muted ok bad background`, and `fontSize`).
 
+Labels, captions and annotation texts may be in any script. Boxes are sized
+for the glyphs they hold — a CJK glyph is one em, a Latin one about 0.6 — and
+a callout or caption that has to wrap breaks at spaces where there are any and
+between glyphs where there are none, so Japanese text needs no spaces or `\n`
+to fit. Ids are what the ops and the fact sheets name; keep them ASCII and put
+the language in `label`.
+
 **Captions are the explanation.** The runtime shows the current step's caption
 under the picture; `explain` prints them. Every kind generates sensible default
 captions; write your own where the default would not say why. Three

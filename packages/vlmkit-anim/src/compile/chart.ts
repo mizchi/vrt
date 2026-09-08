@@ -6,6 +6,7 @@
  * share of the axis.
  */
 
+import { textWidth } from "../text-width.ts";
 import type { ChartScene, ChartStep, ChartTarget, Timeline } from "../types.ts";
 import { Builder } from "./builder.ts";
 
@@ -62,7 +63,7 @@ export function compileChart(scene: ChartScene): Timeline {
     let lx = right;
     for (const s of [...series].reverse()) {
       const text = s.label ?? s.id;
-      lx -= text.length * (T.fontSize - 3) * 0.6 + 8;
+      lx -= textWidth(text, T.fontSize - 3) + 8;
       b.node({ id: `legend-${s.id}-text`, shape: "text", pos: [lx, top + 6], text, fontSize: T.fontSize - 3, color: T.text, anchor: "start" });
       lx -= 14;
       b.node({ id: `legend-${s.id}`, shape: "rect", pos: [lx + 4, top + 6], size: [10, 10], fill: s.color, stroke: s.color, rx: 2 });
