@@ -269,7 +269,7 @@ order must be ascending and every node at its depth.
 | `initial` | required |
 | `transitions` | required: `{"from", "to", "on": "event", "note": "/ action"}`; one per (from, on). The note is drawn on the edge and appended to the generated caption (`on lock: closed → locked / beep`), so `explain` carries it; a trace item's own `caption` replaces the whole line |
 | `trace` | required: items fired in order. An event name (must be legal from the current state — the validator lists the legal ones when it is not); `{"on": "ev", "caption": "…"}` to narrate that step yourself; `{"note": "…"}` for a captioned pause; `{"goto": "state", "caption": "…"}` to jump the token without a transition — how you show a second path after the first has ended |
-| `layout` | `lr` (default) \| `tb` \| `circle` |
+| `layout` | `lr` (default) \| `tb` \| `circle`. `lr` and `tb` layer the states by distance from `initial` and order each layer to straighten the arrows; **ties follow the order of `states`**, so when two branches from one state collide, moving the target state earlier or later in the list moves it in the picture (ib, v15). `lr` with more than five or six states runs wide — the check warns past 2000px; use `tb`. `circle` suits a small ring of states with few branches; on a mostly linear machine every label lands on a neighbour |
 
 Each event is a step captioned `on <event>: a → b`; a token slides along the
 arrow. States and transitions the trace never reaches are still drawn, and the

@@ -8,31 +8,8 @@ import type { DiagramScene, Timeline } from "../types.ts";
 import { Builder, along, boxRadius, labelWidth, trimEdge } from "./builder.ts";
 import { layoutNodes } from "./layout.ts";
 
-type Box = { x: number; y: number; w: number; h: number };
-type Seg = [[number, number], [number, number]];
-
-/** Length of the part of a segment inside a box (Liang–Barsky), for "does this edge run through that label". */
-export function segmentInside(seg: Seg, b: Box): number {
-  const [[x0, y0], [x1, y1]] = seg;
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  let t0 = 0;
-  let t1 = 1;
-  const clip = (p: number, q: number): boolean => {
-    if (p === 0) return q >= 0;
-    const r = q / p;
-    if (p < 0) {
-      if (r > t1) return false;
-      if (r > t0) t0 = r;
-    } else {
-      if (r < t0) return false;
-      if (r < t1) t1 = r;
-    }
-    return true;
-  };
-  if (!clip(-dx, x0 - b.x) || !clip(dx, b.x + b.w - x0) || !clip(-dy, y0 - b.y) || !clip(dy, b.y + b.h - y0)) return 0;
-  return Math.hypot(dx, dy) * Math.max(0, t1 - t0);
-}
+import { routeAround, segmentInside, type Box, type Seg } from "./route.ts";
+export { segmentInside } from "./route.ts";
 
 export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modules" = "diagram"): Timeline {
   const b = new Builder(scene, { width: 640, height: 360, stepMs: 700 });
@@ -85,45 +62,8 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
   // An edge that would run behind a box that is not one of its ends bends around it: a waypoint level with
   // the box, just past its nearer side, then on. Passes repeat while a new segment finds a new box (fa, fc
   // and the workspace map, v13: dependency arrows from two layers up vanished behind a module in between).
-  const route = (e: { from: string; to: string }): [number, number][] => {
-    let pts: [number, number][] = [pos.get(e.from)!, pos.get(e.to)!];
-    const routed = new Set<string>();
-    for (let pass = 0; pass < 4; pass++) {
-      const next: [number, number][] = [pts[0]];
-      let bent = false;
-      for (let k = 0; k + 1 < pts.length; k++) {
-        const [a, c] = [pts[k], pts[k + 1]];
-        // Blockers in the order the leg meets them, by projection on the leg's dominant axis.
-        const steepLeg = Math.abs(c[1] - a[1]) >= Math.abs(c[0] - a[0]);
-        const blockers = scene.nodes
-          .filter((n) => n.id !== e.from && n.id !== e.to && !routed.has(n.id) && segmentInside([a, c], boxOf(n.id)) > 2)
-          .map((n) => ({ n, box: boxOf(n.id), at: steepLeg ? (pos.get(n.id)![1] - a[1]) / ((c[1] - a[1]) || 1) : (pos.get(n.id)![0] - a[0]) / ((c[0] - a[0]) || 1) }))
-          .sort((u, v) => u.at - v.at);
-        for (const { n, box, at } of blockers) {
-          routed.add(n.id);
-          bent = true;
-          // Where the line is, level with the box: go round on the side it already leans to, far enough out
-          // that neither leg clips a corner of the box.
-          const lineAt = along(a, c, Math.max(0, Math.min(1, at)));
-          const prev = next[next.length - 1];
-          // A mostly vertical leg goes round to the left or right of the box; a mostly horizontal one over or under.
-          const steep = Math.abs(c[1] - a[1]) >= Math.abs(c[0] - a[0]);
-          let w: [number, number] = prev;
-          for (const margin of [14, 26, 40]) {
-            w = steep
-              ? [lineAt[0] <= box.x + box.w / 2 ? box.x - margin : box.x + box.w + margin, box.y + box.h / 2]
-              : [box.x + box.w / 2, lineAt[1] <= box.y + box.h / 2 ? box.y - margin : box.y + box.h + margin];
-            if (segmentInside([prev, w], box) <= 2 && segmentInside([w, c], box) <= 2) break;
-          }
-          next.push(w);
-        }
-        next.push(c);
-      }
-      pts = next;
-      if (!bent) break;
-    }
-    return pts;
-  };
+  const route = (e: { from: string; to: string }): [number, number][] =>
+    routeAround(pos.get(e.from)!, pos.get(e.to)!, scene.nodes.map((n) => ({ id: n.id, box: boxOf(n.id) })), new Set([e.from, e.to]));
   const edgeGeom = (scene.edges ?? []).map((e, i) => {
     const centres = route(e);
     const first = centres[1];

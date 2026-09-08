@@ -190,7 +190,10 @@ through labels the geometry could not see; `layout` now reports `crossed`, and t
 container labels, annotation placement and arcs were reworked until the five scenes went from 91 crossings to 2),
 `docs/reports/2026-09-06-anim-ir-v14.md` (the figure against its facts: `check --expect facts.json` names v13's two
 green-but-wrong pictures in one line each; four writers with fact sheets were four green, and the sheet caught one
-wrong final highlight on the first run).
+wrong final highlight on the first run), `docs/reports/2026-09-07-anim-ir-v15.md` (labels in Japanese: a CJK glyph
+is one em and every width estimate had said 0.6, so `layout`'s green was a lie on Japanese figures; measured against
+Chromium, fixed in one module; the state-machine compiler learned the diagram's edge routing when a writer's only
+fix for a transition through a state was to reorder the list).
 
 ## Measuring Gate / Rule Execution Cost
 

@@ -14,4 +14,4 @@
  * every `package.json` and that the CHANGELOG has a section for it, so the literal cannot drift
  * from the release either.
  */
-export const VLMKIT_VERSION = "0.13.0";
+export const VLMKIT_VERSION = "0.14.0";

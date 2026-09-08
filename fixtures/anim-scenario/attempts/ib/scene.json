@@ -1,0 +1,36 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "state-machine",
+  "title": "注文の状態遷移",
+  "states": [
+    { "id": "accepted", "label": "受付済み" },
+    { "id": "awaiting_payment", "label": "支払い待ち" },
+    { "id": "paid", "label": "支払い完了" },
+    { "id": "refunded", "label": "返金済み", "final": true },
+    { "id": "preparing", "label": "出荷準備中" },
+    { "id": "shipped", "label": "出荷済み" },
+    { "id": "delivered", "label": "配達完了", "final": true },
+    { "id": "cancelled", "label": "キャンセル済み", "final": true }
+  ],
+  "initial": "accepted",
+  "layout": "tb",
+  "transitions": [
+    { "from": "accepted", "to": "awaiting_payment", "on": "注文確定", "note": "/ 確認メール送信" },
+    { "from": "awaiting_payment", "to": "paid", "on": "入金確認", "note": "/ 受領メール送信" },
+    { "from": "awaiting_payment", "to": "cancelled", "on": "期限切れ", "note": "/ キャンセル通知送信" },
+    { "from": "paid", "to": "preparing", "on": "ピッキング開始", "note": "/ 倉庫へ指示送信" },
+    { "from": "preparing", "to": "shipped", "on": "発送", "note": "/ 配送通知送信" },
+    { "from": "shipped", "to": "delivered", "on": "受領", "note": "/ 完了通知送信" },
+    { "from": "paid", "to": "refunded", "on": "キャンセル要求", "note": "/ 返金処理開始" },
+    { "from": "preparing", "to": "refunded", "on": "キャンセル要求", "note": "/ 返金処理開始" }
+  ],
+  "trace": [
+    "注文確定",
+    "入金確認",
+    "ピッキング開始",
+    "発送",
+    "受領",
+    { "goto": "paid", "caption": "別の経路: 支払い完了に戻ってキャンセル要求を再生します" },
+    "キャンセル要求"
+  ]
+}

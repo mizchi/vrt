@@ -1,0 +1,81 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "注文処理パイプライン",
+  "modules": [
+    { "id": "web", "label": "ストアフロント" },
+    { "id": "gateway", "label": "APIゲートウェイ" },
+    { "id": "checkout", "label": "決済フロー" },
+    { "id": "inventory", "label": "在庫管理サービス" },
+    { "id": "payments", "label": "支払い" },
+    { "id": "orders", "label": "注文記録" },
+    { "id": "db", "label": "データベース" },
+    { "id": "queue", "label": "メッセージキュー" }
+  ],
+  "deps": [
+    ["web", "gateway"],
+    ["gateway", "checkout"],
+    ["checkout", "inventory"],
+    ["checkout", "payments"],
+    ["checkout", "orders"],
+    ["inventory", "db"],
+    ["orders", "db"],
+    ["orders", "queue"],
+    ["payments", "queue"]
+  ],
+  "groups": [
+    { "id": "frontend", "label": "フロントエンド層", "modules": ["web", "gateway"] },
+    { "id": "domain", "label": "ドメイン層（業務ロジック）", "modules": ["checkout", "inventory", "payments", "orders"] },
+    { "id": "platform", "label": "プラットフォーム", "modules": ["db", "queue"] }
+  ],
+  "sequence": [
+    {
+      "flow": "web->gateway",
+      "caption": "注文はストアフロントから入ります"
+    },
+    {
+      "flow": "gateway->checkout",
+      "caption": "APIゲートウェイが決済フローに渡します"
+    },
+    {
+      "flow": "checkout->inventory",
+      "caption": "決済フローはまず在庫を確保します"
+    },
+    {
+      "flow": "inventory->db",
+      "caption": "在庫情報をデータベースから取得・更新"
+    },
+    {
+      "flow": "checkout->payments",
+      "caption": "次に支払い処理を開始（非同期）"
+    },
+    {
+      "flow": "payments->queue",
+      "caption": "支払いはキューに送ります"
+    },
+    {
+      "flow": "checkout->orders",
+      "caption": "同時に注文を記録します"
+    },
+    {
+      "flow": "orders->db",
+      "caption": "注文データをデータベースに保存"
+    },
+    {
+      "flow": "orders->queue",
+      "caption": "注文完了イベントもキューに送信"
+    },
+    {
+      "highlight": ["payments->queue", "orders->queue"],
+      "caption": "これら二つの非同期な依存が、結果整合性の原因"
+    },
+    {
+      "callout": {
+        "at": "platform",
+        "text": "支払いと注文記録が同時にキューに送信されることで、一時的な不整合が生じる可能性があります",
+        "side": "above"
+      },
+      "ms": 0
+    }
+  ]
+}
