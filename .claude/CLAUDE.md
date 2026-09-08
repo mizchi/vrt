@@ -199,7 +199,11 @@ fix for a transition through a state was to reorder the list), `docs/reports/202
 own vocabulary: `tone` on modules and dependencies, `"style": "implements"`, `relate` `"style": "equals"` — the two
 asks the v13 writers left open, drawn by two writers on a brief that needs all three), `docs/reports/2026-09-08-anim-ir-v17.md`
 (where an annotation lands: the canvas grows on the side the writer asked for — left and above included, the picture
-shifts — and a callout's pointer goes round labelled boxes; three writers record asked side against landed side).
+shifts — and a callout's pointer goes round labelled boxes; three writers record asked side against landed side), `docs/reports/2026-09-08-anim-ir-v18.md`
+(fact sheets for the walked kinds — a graph's visit order and path, a state machine's transitions and end state, a
+distributed scene's messages and lost ones — and `vlmkit-anim facts` writing one from a directory's import graph; the
+four writers' sheets all matched, and every further round was a compiler defect the round fixed: the token on a short
+label, a 35px circle of four states, labels on states, a distance label under an edge).
 
 ## Measuring Gate / Rule Execution Cost
 

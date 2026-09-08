@@ -916,17 +916,47 @@ function validateDistributed(ctx: Ctx, doc: Obj): void {
       } else if (!isStr(n)) ctx.error(`nodes[${i}]`, `a node is a string id or {"id", "label", "status"}`);
     });
   }
-  // `after` names an EARLIER message by label; a label used twice cannot be an anchor.
+  // `after` names an EARLIER message by label; a label used twice cannot be an anchor on its own — then the
+  // message is named as `from->to:label` (or `from->to`), which a two-participant protocol needs for every label
+  // (lc, v18: prepare / yes / commit / ack are all sent twice by design).
   const labelsSoFar: string[] = [];
+  type Sent = { from: string; to: string; label?: string };
+  const sentSoFar: Sent[] = [];
+  const allSent: Sent[] = [];
   const allLabels = new Map<string, number>();
-  if (Array.isArray(doc.messages)) for (const m of doc.messages) if (isObj(m) && isStr(m.label)) allLabels.set(m.label, (allLabels.get(m.label) ?? 0) + 1);
-  const anchor = (v: unknown, path: string, candidates: string[]): void => {
+  if (Array.isArray(doc.messages)) {
+    for (const m of doc.messages) {
+      if (!isObj(m) || !isStr(m.from) || !isStr(m.to)) continue;
+      allSent.push({ from: m.from, to: m.to, ...(isStr(m.label) ? { label: m.label } : {}) });
+      if (isStr(m.label)) allLabels.set(m.label, (allLabels.get(m.label) ?? 0) + 1);
+    }
+  }
+  const qualified = (v: string): { from: string; to: string; label?: string } | undefined => {
+    const i = v.indexOf("->");
+    if (i < 0) return undefined;
+    const from = v.slice(0, i).trim();
+    const rest = v.slice(i + 2);
+    const c = rest.indexOf(":");
+    const to = (c >= 0 ? rest.slice(0, c) : rest).trim();
+    return from && to ? { from, to, ...(c >= 0 ? { label: rest.slice(c + 1).trim() } : {}) } : undefined;
+  };
+  const anchor = (v: unknown, path: string, candidates: string[], earlier: Sent[] = sentSoFar): void => {
     if (!isStr(v)) {
       ctx.error(path, `after takes the "label" of an earlier message, got ${describe(v)}`);
       return;
     }
+    const q = qualified(v);
+    if (q) {
+      const hits = earlier.filter((m) => m.from === q.from && m.to === q.to && (q.label === undefined || m.label === q.label));
+      if (hits.length === 1) return;
+      const anyHits = allSent.filter((m) => m.from === q.from && m.to === q.to && (q.label === undefined || m.label === q.label));
+      if (hits.length === 0) ctx.error(path, anyHits.length ? `"${v}" is a later message; after can only reference an earlier one` : `no earlier message is "${v}"`, `write the anchor as "from->to:label" — earlier messages: ${earlier.length ? earlier.map((m) => `"${m.from}->${m.to}${m.label !== undefined ? `:${m.label}` : ""}"`).join(", ") : "none yet"}`);
+      else ctx.error(path, `"${v}" names ${hits.length} earlier messages, so it cannot anchor anything`, `add the label: "${q.from}->${q.to}:<label>", or give the message you mean a unique label`);
+      return;
+    }
     if ((allLabels.get(v) ?? 0) > 1) {
-      ctx.error(path, `"${v}" labels ${allLabels.get(v)} messages, so it cannot anchor anything`, "give the message you mean a unique label");
+      const which = allSent.filter((m) => m.label === v).map((m) => `"${m.from}->${m.to}:${v}"`);
+      ctx.error(path, `"${v}" labels ${allLabels.get(v)} messages, so it cannot anchor anything on its own`, `name the one you mean as ${which.join(" or ")}`);
       return;
     }
     if (!candidates.includes(v)) {
@@ -972,6 +1002,7 @@ function validateDistributed(ctx: Ctx, doc: Obj): void {
       if (m.latency !== undefined) ctx.number(m.latency, `${path}.latency`, { min: 1 });
       if (m.lost !== undefined && typeof m.lost !== "boolean") ctx.error(`${path}.lost`, `lost takes true/false`);
       if (isStr(m.label)) labelsSoFar.push(m.label);
+      if (isStr(m.from) && isStr(m.to)) sentSoFar.push({ from: m.from, to: m.to, ...(isStr(m.label) ? { label: m.label } : {}) });
     });
   }
   if (doc.events !== undefined && ctx.array(doc.events, "events")) {
@@ -981,7 +1012,7 @@ function validateDistributed(ctx: Ctx, doc: Obj): void {
       ctx.keys(e, path, ["at", "after", "delay", "node", "status", "caption"]);
       if (e.at === undefined && e.after === undefined) ctx.error(path, `an event needs "at" (ms) or "after" (a message label)`, `e.g. {"after": "ok", "node": "primary", "status": "down"}`);
       if (e.at !== undefined) ctx.number(e.at, `${path}.at`, { min: 0 });
-      if (e.after !== undefined) anchor(e.after, `${path}.after`, [...allLabels.keys()].filter((l) => allLabels.get(l) === 1));
+      if (e.after !== undefined) anchor(e.after, `${path}.after`, [...allLabels.keys()].filter((l) => allLabels.get(l) === 1), allSent);
       if (e.at !== undefined && e.after !== undefined) ctx.error(`${path}.after`, `give "at" or "after", not both`);
       if (e.delay !== undefined) {
         ctx.number(e.delay, `${path}.delay`, { min: 0 });

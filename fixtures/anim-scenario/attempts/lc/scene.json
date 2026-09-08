@@ -55,12 +55,12 @@
       "lost": true
     },
     {
+      "note": "coord times out waiting for p2's ack (lost) and resends the commit"
+    },
+    {
       "from": "coord",
       "to": "p2",
-      "label": "commit again",
-      "after": "p2->coord:ack",
-      "delay": 800,
-      "caption": "coord times out waiting for p2's ack and resends the commit"
+      "label": "commit again"
     },
     {
       "from": "p2",

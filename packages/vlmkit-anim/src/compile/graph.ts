@@ -8,7 +8,8 @@
 
 import type { GraphEdge, GraphOp, GraphScene, Timeline } from "../types.ts";
 import { Builder, along, labelWidth, trimEdge } from "./builder.ts";
-import { layoutNodes } from "./layout.ts";
+import { segmentInside } from "./route.ts";
+import { layoutNodes, circleRadius } from "./layout.ts";
 
 export interface NormEdge {
   from: string;
@@ -114,7 +115,12 @@ export function generateGraphOps(scene: GraphScene): GraphOp[] {
 }
 
 export function compileGraph(scene: GraphScene): Timeline {
-  const b = new Builder(scene, { width: 640, height: 400, stepMs: 600 });
+  // A circle of many nodes needs a ring they fit on; the canvas grows to hold it (the layout used to shrink the
+  // ring to the frame and stack the nodes).
+  const fs0 = scene.theme?.fontSize ?? 14;
+  const nodeR = Math.max(...scene.nodes.map((n) => Math.min(30, Math.max(18, labelWidth((typeof n === "string" ? n : n.label ?? n.id), fs0) / 2))));
+  const ring = (scene.layout ?? "circle") === "circle" ? circleRadius(scene.nodes.length, nodeR * 2 + 28) + nodeR : 0;
+  const b = new Builder(scene, { width: Math.max(640, 2 * ring + 120), height: Math.max(400, 2 * ring + 160), stepMs: 600 });
   const T = b.theme;
   const nodes = scene.nodes.map((n) => (typeof n === "string" ? { id: n } : n));
   const ids = nodes.map((n) => n.id);
@@ -151,11 +157,52 @@ export function compileGraph(scene: GraphScene): Timeline {
       b.node({ id: `${id}-label`, shape: "text", pos: [mid[0] + nx * 10, mid[1] + ny * 10], text, fontSize: T.fontSize - 2, color: T.muted, halo: true });
     }
   });
+  // A node's label (a distance, a depth) goes on the side of the node no edge leaves from and no other node
+  // sits on: below first, then above, right, left. Fixed below, it sat on an edge in 17 of 18 frames for a
+  // writer who then permuted the node order 720 ways to move the edge instead (la, v18).
+  const segs = [...edgeGeom.values()].map((g): [[number, number], [number, number]] => [g.p, g.q]);
+  const labelSide = (id: string): [number, number] => {
+    const p = pos.get(id)!;
+    const r = radius.get(id)!;
+    const fs = T.fontSize - 2;
+    const lw = labelWidth("00", fs) - fs * 1.6;
+    const lh = fs * 1.3;
+    const spots: [number, number][] = [
+      [p[0], p[1] + r + 12],
+      [p[0], p[1] - r - 10],
+      [p[0] + r + 6 + lw / 2, p[1]],
+      [p[0] - r - 6 - lw / 2, p[1]],
+    ];
+    const cost = (c: [number, number]): number => {
+      const box = { x: c[0] - lw / 2, y: c[1] - lh / 2, w: lw, h: lh };
+      let s = 0;
+      for (const sg of segs) s += segmentInside(sg, box);
+      for (const other of nodes) {
+        if (other.id === id) continue;
+        const q = pos.get(other.id)!;
+        const or = radius.get(other.id)!;
+        const ob = { x: q[0] - or, y: q[1] - or, w: 2 * or, h: 2 * or };
+        if (box.x < ob.x + ob.w && ob.x < box.x + box.w && box.y < ob.y + ob.h && ob.y < box.y + box.h) s += 100;
+      }
+      if (box.x < 0 || box.y < 0 || box.x + box.w > b.width || box.y + box.h > b.height - 40) s += 1000;
+      return s;
+    };
+    let best = spots[0];
+    let bestCost = Infinity;
+    for (const c of spots) {
+      const k = cost(c);
+      if (k < bestCost - 1e-9) {
+        best = c;
+        bestCost = k;
+      }
+    }
+    return best;
+  };
   for (const n of nodes) {
     const p = pos.get(n.id)!;
     const r = radius.get(n.id)!;
     b.node({ id: `node-${n.id}`, shape: "circle", pos: p, r, fill: T.node, stroke: T.nodeStroke, strokeWidth: 1.5, text: n.label ?? n.id, fontSize: T.fontSize, color: T.text });
-    b.node({ id: `label-${n.id}`, shape: "text", pos: [p[0], p[1] + r + 12], text: "", fontSize: T.fontSize - 2, color: T.accent });
+    b.node({ id: `label-${n.id}`, shape: "text", pos: labelSide(n.id), text: "", fontSize: T.fontSize - 2, color: T.accent });
   }
   b.node({ id: "token", shape: "circle", pos: [0, 0], r: 6, fill: T.accent, stroke: T.nodeStroke, opacity: 0 });
   for (const n of nodes) b.anchor(n.id, `node-${n.id}`);

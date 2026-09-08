@@ -275,7 +275,7 @@ export async function runAnimCli(argv: string[]): Promise<number> {
     const modules = facts.expectation.modules?.length ?? 0;
     const deps = facts.expectation.deps?.length ?? 0;
     if (json) console.log(JSON.stringify({ dir, out, files: facts.files, imports: facts.imports, modules, deps, members: facts.members, expectation: facts.expectation }, null, 2));
-    else if (out) console.log(`${out}: ${modules} module(s), ${deps} dependenc${deps === 1 ? "y" : "ies"} from ${facts.files} file(s) (${facts.imports} imports followed)\n  next: vlmkit-anim check scene.json --expect ${out}`);
+    else if (out) console.log(`${out}: ${modules} module(s), ${deps} dependenc${deps === 1 ? "y" : "ies"} from ${facts.files} file(s) (${facts.imports} imports followed${hasFlag(rest, "--tests") ? ", tests included" : "; *.test.* and __tests__ skipped, --tests includes them"})\n  next: vlmkit-anim check scene.json --expect ${out}`);
     else process.stdout.write(text);
     return 0;
   }

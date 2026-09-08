@@ -6,7 +6,7 @@
 
 import type { StateMachineScene, Timeline } from "../types.ts";
 import { Builder, along, labelWidth, trimEdge } from "./builder.ts";
-import { layoutNodes } from "./layout.ts";
+import { layoutNodes, circleRadius } from "./layout.ts";
 import { placeEdgeLabel, polylineLegs, routeAround } from "./route.ts";
 
 export function compileStateMachine(scene: StateMachineScene): Timeline {
@@ -18,9 +18,11 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
   // Room between neighbouring states for the widest transition label.
   const widestLabel = Math.max(60, ...scene.transitions.map((t) => labelWidth(t.note ? `${t.on} ${t.note}` : t.on, fontSize - 2)));
   const span = states.length * R * 2 + (states.length - 1) * (widestLabel + 16) + 80;
+  // A circle grows with the ring the states need, not the other way round.
+  const ring = layout === "circle" ? circleRadius(states.length, R * 2.5) + R : 0;
   const b = new Builder(scene, {
-    width: layout === "lr" ? Math.max(640, Math.round(span)) : 640,
-    height: layout === "tb" ? Math.max(360, states.length * (R * 2 + 70)) : 360,
+    width: layout === "lr" ? Math.max(640, Math.round(span)) : Math.max(640, 2 * ring + 120),
+    height: layout === "tb" ? Math.max(360, states.length * (R * 2 + 70)) : Math.max(360, 2 * ring + 130),
     stepMs: 700,
   });
   const T = b.theme;
@@ -102,7 +104,16 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
     edgePts.set(i, [pp, qq]);
     const mid = along(pp, qq, 0.5);
     const labelOff = pair.k === 0 ? -13 : off + 13;
-    const lp: [number, number] = [mid[0] + nx * labelOff, mid[1] + ny * labelOff];
+    let lp: [number, number] = [mid[0] + nx * labelOff, mid[1] + ny * labelOff];
+    // The pair rule's spot may be on a state — a bystander ("refund" on `vending` in `tb`) or one of its own ends
+    // ("last-item" on `vending` in `circle`; lb, v18); then the label takes a spot no state and no earlier label
+    // holds, like a bent transition's does.
+    const bystanders = blockers.map((bl) => bl.box);
+    const hit = (box: { x: number; y: number; w: number; h: number }) => bystanders.some((o) => box.x < o.x + o.w && o.x < box.x + box.w && box.y < o.y + o.h && o.y < box.y + box.h);
+    if (hit(labelBox(lp, label))) {
+      const probe = labelBox([0, 0], label);
+      lp = placeEdgeLabel([pp, qq], probe.w, probe.h, [...occupied, ...bystanders]);
+    }
     b.node({ id: `${id}-label`, shape: "text", pos: lp, text: label, fontSize: T.fontSize - 2, color: T.text, halo: true });
     occupied.push(labelBox(lp, label));
   });
@@ -123,7 +134,10 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
     if (s.final) b.node({ id: `state-${s.id}-ring`, shape: "circle", pos: p, r: r + 5, fill: "none", stroke: T.nodeStroke });
     b.node({ id: `state-${s.id}`, shape: "circle", pos: p, r, fill: T.node, stroke: T.nodeStroke, strokeWidth: 2, text: s.label ?? s.id, fontSize: T.fontSize, color: T.text });
   }
-  b.node({ id: "token", shape: "circle", pos: pos.get(scene.initial)!, r: 7, fill: T.accent, stroke: T.nodeStroke, opacity: 1 });
+  // The token rests on the top of a state's rim, not on its label: at the centre it covered a short label ("idle",
+  // lb, v18) and a writer typed coordinates for every state trying to move it off.
+  const rest = (id: string): [number, number] => [pos.get(id)![0], pos.get(id)![1] - radius.get(id)!];
+  b.node({ id: "token", shape: "circle", pos: rest(scene.initial), r: 7, fill: T.accent, stroke: T.nodeStroke, opacity: 1 });
   for (const s of states) b.anchor(s.id, `state-${s.id}`);
   scene.transitions.forEach((tr, i) => {
     b.anchor(`${tr.from}->${tr.to}`, `tr-${i}`);
@@ -157,7 +171,7 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
       const t0 = b.t;
       const t1 = b.advance(b.stepMs * 0.8);
       b.tween("token", "opacity", 0, t0, t0 + (t1 - t0) * 0.4);
-      b.set("token", "pos", pos.get(next)!, t0 + (t1 - t0) * 0.5);
+      b.set("token", "pos", rest(next), t0 + (t1 - t0) * 0.5);
       b.tween("token", "opacity", 1, t0 + (t1 - t0) * 0.6, t1);
       b.set(`state-${cur}`, "fill", T.node, t0 + (t1 - t0) * 0.4);
       b.set(`state-${next}`, "fill", T.accent, t0 + (t1 - t0) * 0.6);
@@ -179,8 +193,8 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
     const t0 = b.t;
     const t1 = b.advance();
     // The token follows the transition's centre line — leg by leg when the arrow bends around a state.
-    const pts = [pos.get(cur)!, ...(edgePts.get(hit.index) ?? []).slice(1, -1), pos.get(next)!];
-    if (pts.length === 2) b.tween("token", "pos", pos.get(next)!, t0, t1);
+    const pts = [rest(cur), ...(edgePts.get(hit.index) ?? []).slice(1, -1), rest(next)];
+    if (pts.length === 2) b.tween("token", "pos", rest(next), t0, t1);
     else {
       const { legs, total } = polylineLegs(pts);
       let at = t0;

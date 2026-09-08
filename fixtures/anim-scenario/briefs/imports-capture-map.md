@@ -3,7 +3,8 @@
 Produce `scene.json` — a **still figure**, kind `modules` — that maps the
 source directory `packages/vlmkit-capture/src` of this repository: one module
 per top-level entry of that directory (a file is one module, named without its
-extension; a directory is one module), and one dependency for every relative
+extension; a directory is one module; test files — `*.test.ts` — are not part
+of the map), and one dependency for every relative
 import that crosses from one module to another. Read the source files to find
 them; that is the task. Group the modules by role as you read them (the
 Playwright side, the Crater side, configuration, the public surface — your

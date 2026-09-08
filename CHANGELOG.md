@@ -18,6 +18,16 @@ Dates are YYYY-MM-DD.
   directory's import graph: the entries at that depth are the modules, every relative import
   crossing between two of them a dependency. A module map drawn by hand from reading the code is
   then checked against the code, not against the writer's memory of it.
+- **What the writers' scenes found in the compilers, fixed:** a state machine's token rests on the top of the
+  state's rim (at the centre it covered a short label); a `circle` of states is a ring they fit on and the
+  canvas grows with it (four states had been laid within 35px of each other); a straight transition's label
+  that would sit on a state takes a free spot; a graph's distance labels pick the side of the node clear of
+  edges (fixed below, one crossed an edge in 17 of 18 frames). Five scenes in the corpus lost their last
+  layout issues.
+- **`after` accepts `"from->to:label"`** (or `"from->to"`) for a message whose label is sent twice — every
+  label of a two-participant protocol — and the ambiguous-label error names the choices.
+- The `crossed` hint speaks each kind's vocabulary; the canvas-size warning names the side that is over, the
+  pixel target and the layouts the kind has.
 - Report: `docs/reports/2026-09-08-anim-ir-v18.md`.
 
 ## 0.16.0 — 2026-09-08

@@ -324,7 +324,7 @@ check verifies the final tree is a heap and that pops come out in order.
 | field | |
 |---|---|
 | `nodes` | required: `"id"` or `{"id", "label", "status": up \| down \| leader \| busy}` |
-| `messages` | required: `{"from", "to", "label", "at": ms \| "<", "after": "label", "delay": ms, "latency": ms, "lost": true, "caption"}`; `at` defaults to right after the previous message lands, `"<"` starts it together with the previous message (a broadcast), `latency` defaults to `stepMs`; `after` starts it when the earlier message with that label lands (+ `delay`). `{"note": "…", "at" \| "after", "delay"}` in the same list is a captioned pause: nothing travels, every node waits for it, and it defaults to when everything so far has landed |
+| `messages` | required: `{"from", "to", "label", "at": ms \| "<", "after": "label", "delay": ms, "latency": ms, "lost": true, "caption"}`; `at` defaults to right after the previous message lands, `"<"` starts it together with the previous message (a broadcast), `latency` defaults to `stepMs`; `after` starts it when the earlier message with that label lands (+ `delay`); a label sent twice is named `"from->to:label"`. `{"note": "…", "at" \| "after", "delay"}` in the same list is a captioned pause: nothing travels, every node waits for it, and it defaults to when everything so far has landed |
 | `events` | `{"after": "label" \| "at": ms, "delay": ms, "node", "status", "caption"}` — recolours the node from that moment. Prefer `after`: an absolute `at` stays put when you lengthen a latency upstream, and the check warns when it then lands mid-flight or a down node keeps sending |
 
 Sequence-diagram picture: node boxes across the top, lifelines down, time runs
@@ -357,9 +357,11 @@ behind. A message into a node that is down when it lands should be
 Either way, `"at": "<"` sends together with the previous message and `after`
 pins to a landing. A lost message still "lands" for anchoring purposes at
 the moment it would have arrived (send + latency), so a timeout can be
-`{"after": "<the lost request>", "delay": 400}`. Labels used as an `after` target must be unique — a
-broadcast to two nodes needs two labels (`hb-n2`, `hb-n3`); the validator says
-so. `delay` on an event or message is milliseconds after its `after` anchor
+`{"after": "<the lost request>", "delay": 400}`. A label used as an `after`
+target on its own must be unique; when the same label goes to two nodes (a
+broadcast, every message of a two-participant commit) name the one you mean as
+`"after": "coord->p2:ack"` — `from->to:label`, or `from->to` when that pair
+sends once. The validator names the choices. `delay` on an event or message is milliseconds after its `after` anchor
 lands. Run `explain` after an edit and read the times: a beat that moved when
 it should not have is the tell.
 
@@ -631,7 +633,8 @@ a `graph` after its walk, or a `chart` fully revealed are stills too. `check`
 does not warn about a missing `sequence` on `modules`; it does on `diagram`,
 where the beats are the point. A still may still carry a one-beat `sequence`
 for emphasis — `{"highlight": ["handlers->services", "services->events"]}`
-colours those edges, a `callout` at an edge or module adds a note — since
+colours those edges, a `callout` at an edge or module adds a note, a `text`
+block without `at` says what the map leaves out ("tests omitted") — since
 `still` renders the last frame.
 
 ## Checking a figure against the facts
