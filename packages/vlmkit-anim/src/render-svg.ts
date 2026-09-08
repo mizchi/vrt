@@ -7,6 +7,7 @@
  * by an agent as text to see where things are.
  */
 
+import { breakPieces, textWidth } from "./text-width.ts";
 import { currentCaption, sampleFrame, timelineDuration, type NodeState } from "./timeline.ts";
 import type { Timeline, Vec2 } from "./types.ts";
 
@@ -218,24 +219,30 @@ export function renderFrameSvg(tl: Timeline, t: number, opts: RenderOptions = {}
 
 /** Greedy word wrap on an average-glyph-width estimate; the last allowed line takes whatever is left. */
 export function wrapCaption(text: string, maxWidth: number, fontSize: number, maxLines: number): string[] {
-  const perChar = fontSize * 0.55;
-  const fits = (s: string) => s.length * perChar <= maxWidth;
+  const fits = (s: string) => textWidth(s, fontSize, 0.55) <= maxWidth;
   if (fits(text)) return [text];
-  const words = text.split(/\s+/);
+  // Japanese captions have no spaces: break between glyphs instead.
+  const { pieces: words, glue } = breakPieces(text);
   const lines: string[] = [];
   let cur = "";
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w;
-    if (fits(next) || !cur) cur = next;
-    else {
-      lines.push(cur);
-      cur = w;
-      if (lines.length === maxLines - 1) break;
+  let k = 0; // index of the first piece not yet committed to `lines`
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    const next = cur ? `${cur}${glue}${w}` : w;
+    if (fits(next) || !cur) {
+      cur = next;
+      continue;
     }
+    lines.push(cur);
+    k = i;
+    cur = w;
+    if (lines.length === maxLines - 1) break;
   }
-  const used = lines.join(" ").split(/\s+/).filter(Boolean).length;
-  const rest = words.slice(used).join(" ");
-  if (rest) lines.push(rest);
+  // The last allowed line takes whatever is left, however long.
+  if (lines.length === maxLines - 1) {
+    const rest = words.slice(k).join(glue);
+    if (rest) lines.push(rest);
+  } else if (cur) lines.push(cur);
   return lines;
 }
 

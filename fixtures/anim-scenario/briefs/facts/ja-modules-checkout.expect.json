@@ -1,0 +1,21 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": ["web", "gateway", "checkout", "inventory", "payments", "orders", "db", "queue"],
+  "deps": [
+    "web->gateway",
+    "gateway->checkout",
+    "checkout->inventory",
+    "checkout->payments",
+    "checkout->orders",
+    "inventory->db",
+    "orders->db",
+    "orders->queue",
+    "payments->queue"
+  ],
+  "highlighted": ["payments->queue", "orders->queue"],
+  "groups": {
+    "frontend": ["web", "gateway"],
+    "domain": ["checkout", "inventory", "payments", "orders"],
+    "platform": ["db", "queue"]
+  }
+}

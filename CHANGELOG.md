@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 Dates are YYYY-MM-DD.
 
+## 0.14.0 — 2026-09-07
+
+**`vlmkit-anim`: labels in any script, and edges that go round what is in their way.**
+
+- **Text width by script.** Every width estimate counted characters at 0.6 em (0.55 in the layout
+  geometry). Measured in headless Chromium at 14px with the renderer's font stack, a CJK glyph is
+  exactly 1.00 em, fullwidth forms 1.00, Hangul 0.89, arrows and ✗ 0.84, emoji 1.00, capitals and
+  digits 0.64–0.70. A Japanese label was placed at 60% of its width and `layout` called the picture
+  clean while six of eight boxed labels in a module map overflowed by up to 22px. `text-width.ts`
+  decides the width once, by Unicode class; `labelWidth`, the geometry's text box, `wrapText`,
+  `wrapCaption` and the chart legend read it, and Japanese text wraps between glyphs where there
+  are no spaces. `text-width.test.ts` pins the estimate to the browser measurements. Labels may be
+  in any script; ids stay ASCII.
+- **Transitions bend around states.** The diagram compiler's edge router (v13) is shared
+  (`compile/route.ts`) and the state-machine compiler uses it: a transition that would run through
+  a bystander state bends around it, its label picks a spot no state or earlier label holds, and
+  the token follows the bend. A writer had fixed this by reordering `states` until it happened not
+  to collide; the guide now says list order breaks ties in `lr` / `tb`, and the overlap hint says
+  so too. The router prefers the shorter detour, and near a tie the side the destination lies on.
+- **Geometry.** A stroke hidden under a filled shape drawn between it and a text (a heap's edge
+  under the value on a slot) is no longer a crossing. A relation's label tries the near side and
+  both ends of its line when the far side is off the canvas (a Japanese label beside the leftmost
+  lane was 40px past the edge).
+- Report: `docs/reports/2026-09-07-anim-ir-v15.md`.
+
 ## 0.13.0 — 2026-09-07
 
 **`vlmkit-anim`: the layer for explaining a concept, not only a structure.** v9 changed the

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 744 862" width="744" height="862" data-t="4760" data-duration="4760">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 747 862" width="747" height="862" data-t="4760" data-duration="4760">
 <defs><marker id="arrow-1f2328" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2328"/></marker></defs>
-<rect x="-5" y="-5" width="744" height="862" fill="#ffffff"/>
+<rect x="-5" y="-5" width="747" height="862" fill="#ffffff"/>
 <g id="title" data-shape="text" transform="translate(286 22)"><text font-size="18" fill="#1f2328" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">vlmkit — the workspace and its dependencies</tspan></text></g>
 <g id="edge-0" data-shape="path" transform="translate(135.39 456.22)"><path d="M 0 0 L 44.6 -13.4 L 150.6 -13.4 L 229.9 10.7" fill="none" stroke="#1f2328" stroke-width="1.5" marker-end="url(#arrow-1f2328)"/></g>
 <g id="edge-1" data-shape="arrow" transform="translate(0 0)"><line x1="85.18" y1="455.09" x2="271.73" y2="150.32" stroke="#1f2328" stroke-width="1.5" fill="none" marker-end="url(#arrow-1f2328)"/></g>

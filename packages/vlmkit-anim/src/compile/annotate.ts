@@ -25,7 +25,7 @@
 import { ANNOTATION_ACTIONS, type AnnotationOp, type AnnotationSide as Side, type CalloutSpec, type Diagnostic, type GroupSpec, type RelateSpec, type SnapshotSpec, type TextSpec, type ValueSpec, type Vec2 } from "../types.ts";
 import type { Builder } from "./builder.ts";
 import { boxRadius, labelWidth, wrapText } from "./builder.ts";
-import { segmentInside } from "./diagram.ts";
+import { segmentInside } from "./route.ts";
 import { strokeSegments } from "../layout.ts";
 
 type Seg = [Vec2, Vec2];
@@ -826,25 +826,34 @@ export class Annotations {
       const vertical = Math.abs(u[1]) > Math.abs(u[0]);
       const gap = vertical ? 8 : 12;
       const fs = T.fontSize - 2;
-      const anchor = vertical ? (n[0] * outward > 0 ? "start" : "end") : "middle";
+      type Anchor = "start" | "end" | "middle";
+      const sideAnchor = (dir: number): Anchor => (vertical ? (n[0] * dir > 0 ? "start" : "end") : "middle");
       const lw = labelWidth(spec.label, fs) - fs * 1.6;
       const lh = fs * 1.3;
       // Off the line's far side at its middle — unless text already sits there (ed, v12: the arc's label on
-      // B's readout under the node row); then further out, then off the line's quarter points.
+      // B's readout under the node row); then further out, then off the line's quarter points. Then the same
+      // on the near side, and past either end along the line — a relation drawn beside the leftmost lane has
+      // no canvas on its far side at all (ic, v15: a Japanese label 40px past the edge, shortened to fit).
       // Quarter points along the chord (an arc's label candidates sit off the chord, still on its far side).
       const quarter = (f: number): Vec2 => [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f];
-      const candidates: Vec2[] = [gap, gap * 2.5, gap * 4].flatMap((g) =>
-        [mid, quarter(0.25), quarter(0.75)].map((pt): Vec2 => [pt[0] + n[0] * g * outward, pt[1] + n[1] * g * outward]),
-      );
-      const boxOf = (pt: Vec2): Box => ({ x: anchor === "start" ? pt[0] : anchor === "end" ? pt[0] - lw : pt[0] - lw / 2, y: pt[1] - lh / 2, w: lw, h: lh });
+      const side = (dir: number) =>
+        [gap, gap * 2.5, gap * 4].flatMap((g) =>
+          [mid, quarter(0.25), quarter(0.75)].map((pt) => ({ pt: [pt[0] + n[0] * g * dir, pt[1] + n[1] * g * dir] as Vec2, anchor: sideAnchor(dir) })),
+        );
+      const ends = [
+        { pt: [p[0] - u[0] * (gap + lh), p[1] - u[1] * (gap + lh)] as Vec2, anchor: "middle" as Anchor },
+        { pt: [q[0] + u[0] * (gap + lh), q[1] + u[1] * (gap + lh)] as Vec2, anchor: "middle" as Anchor },
+      ];
+      const candidates = [...side(outward), ...side(-outward), ...ends];
+      const boxOf = (c: { pt: Vec2; anchor: Anchor }): Box => ({ x: c.anchor === "start" ? c.pt[0] : c.anchor === "end" ? c.pt[0] - lw : c.pt[0] - lw / 2, y: c.pt[1] - lh / 2, w: lw, h: lh });
       const strokes = this.strokesAt(t);
       const covered = (bx: Box) =>
         this.b.nodes.some((nd) => (nd.shape === "text" || nd.text !== undefined) && (this.b.valueAt(nd.id, "opacity", t) ?? 1) !== 0 && intersects(this.nodeBox(nd.id, t), bx)) ||
         this.crossedBy(bx, strokes) >= 8;
       const inCanvas = (bx: Box) => bx.x >= 0 && bx.y >= 0 && bx.x + bx.w <= this.b.width + this.extraWidth() && bx.y + bx.h <= this.b.height + this.extraH - CAPTION_BAND;
-      const pos = candidates.find((pt) => inCanvas(boxOf(pt)) && !covered(boxOf(pt))) ?? candidates.find((pt) => inCanvas(boxOf(pt))) ?? candidates[0];
+      const chosen = candidates.find((c) => inCanvas(boxOf(c)) && !covered(boxOf(c))) ?? candidates.find((c) => inCanvas(boxOf(c))) ?? candidates[0];
       // Haloed: the relation's own line runs right past its label, and another edge may cross it.
-      this.b.node({ id: labelId, shape: "text", pos, text: spec.label, fontSize: fs, color, anchor, halo: true, opacity: 0 });
+      this.b.node({ id: labelId, shape: "text", pos: chosen.pt, text: spec.label, fontSize: fs, color, anchor: chosen.anchor, halo: true, opacity: 0 });
     }
     for (const nodeId of ids) this.b.set(nodeId, "opacity", 1, t);
     this.relations.set(id, ids);

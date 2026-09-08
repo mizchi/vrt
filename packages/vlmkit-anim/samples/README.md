@@ -19,6 +19,7 @@ test — `samples.test.ts` only checks that every fixture is represented here.
 | [list-linked](#list-linked) | list | 10 | 6.0s |
 | [matrix-edit-distance](#matrix-edit-distance) | matrix | 12 | 6.6s |
 | [matrix-vector-clock](#matrix-vector-clock) | matrix | 11 | 6.0s |
+| [modules-checkout-ja](#modules-checkout-ja) | modules | 3 | 1.3s |
 | [modules-web-service](#modules-web-service) | modules | 6 | 3.4s |
 | [queue-print-jobs](#queue-print-jobs) | queue | 6 | 3.5s |
 | [sort-bubble](#sort-bubble) | sort | 31 | 12.3s |
@@ -100,7 +101,7 @@ Six assets, two protocols — 7 steps, 2200ms, 40 nodes
 
 ## diagram-cdn
 
-`diagram` — [`fixtures/diagram-cdn.json`](../fixtures/diagram-cdn.json) · 9 steps · 5.5s · GIF 344 KB
+`diagram` — [`fixtures/diagram-cdn.json`](../fixtures/diagram-cdn.json) · 9 steps · 5.5s · GIF 345 KB
 
 ![diagram-cdn animation](./diagram-cdn.gif)
 
@@ -266,7 +267,7 @@ Edit distance: cat → cut — 12 steps, 6600ms, 32 nodes
 
 ## matrix-vector-clock
 
-`matrix` — [`fixtures/matrix-vector-clock.json`](../fixtures/matrix-vector-clock.json) · 11 steps · 6.0s · GIF 462 KB
+`matrix` — [`fixtures/matrix-vector-clock.json`](../fixtures/matrix-vector-clock.json) · 11 steps · 6.0s · GIF 463 KB
 
 ![matrix-vector-clock animation](./matrix-vector-clock.gif)
 
@@ -287,6 +288,25 @@ Vector clocks — 11 steps, 6000ms, 38 nodes
  9. [ 4560ms] ordered
 10. [ 5160ms]   clock = max(clock, v)
 11. [ 5760ms] (end)
+```
+
+</details>
+
+## modules-checkout-ja
+
+`modules` — [`fixtures/modules-checkout-ja.json`](../fixtures/modules-checkout-ja.json) · 3 steps · 1.3s · GIF 169 KB
+
+![modules-checkout-ja animation](./modules-checkout-ja.gif)
+
+<details><summary>Contact sheet (every step) and narration</summary>
+
+![modules-checkout-ja contact sheet](./modules-checkout-ja.sheet.png)
+
+```
+注文処理の依存関係 — 3 steps, 1260ms, 28 nodes
+ 1. [    0ms] 注文処理の依存関係
+ 2. [  350ms] この二本の非同期な依存が結果整合性の理由 · 支払いと注文の両方がここで非同期になる
+ 3. [ 1050ms] (end)
 ```
 
 </details>
@@ -421,7 +441,7 @@ Insertion sort — 21 steps, 8250ms, 16 nodes
 
 ## stack-brackets
 
-`stack` — [`fixtures/stack-brackets.json`](../fixtures/stack-brackets.json) · 7 steps · 4.1s · GIF 349 KB
+`stack` — [`fixtures/stack-brackets.json`](../fixtures/stack-brackets.json) · 7 steps · 4.1s · GIF 342 KB
 
 ![stack-brackets animation](./stack-brackets.gif)
 
@@ -444,7 +464,7 @@ Matching brackets with a stack — 7 steps, 4070ms, 9 nodes
 
 ## state-tcp
 
-`state-machine` — [`fixtures/state-tcp.json`](../fixtures/state-tcp.json) · 7 steps · 5.8s · GIF 401 KB
+`state-machine` — [`fixtures/state-tcp.json`](../fixtures/state-tcp.json) · 7 steps · 5.8s · GIF 365 KB
 
 ![state-tcp animation](./state-tcp.gif)
 

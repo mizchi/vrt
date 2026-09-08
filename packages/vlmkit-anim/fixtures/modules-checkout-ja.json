@@ -1,0 +1,25 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "注文処理の依存関係",
+  "modules": [
+    { "id": "web", "label": "ストアフロント" },
+    { "id": "gateway", "label": "APIゲートウェイ" },
+    { "id": "checkout", "label": "決済フロー" },
+    { "id": "inventory", "label": "在庫管理サービス" },
+    { "id": "payments", "label": "支払い" },
+    { "id": "orders", "label": "注文記録" },
+    { "id": "db", "label": "データベース" },
+    { "id": "queue", "label": "メッセージキュー" }
+  ],
+  "deps": [["web","gateway"],["gateway","checkout"],["checkout","inventory"],["checkout","payments"],["checkout","orders"],["inventory","db"],["orders","db"],["orders","queue"],["payments","queue"]],
+  "groups": [
+    { "id": "frontend", "label": "フロントエンド層", "modules": ["web","gateway"] },
+    { "id": "domain", "label": "ドメイン層（業務ロジック）", "modules": ["checkout","inventory","payments","orders"] },
+    { "id": "platform", "label": "プラットフォーム", "modules": ["db","queue"] }
+  ],
+  "sequence": [
+    { "highlight": ["payments->queue", "orders->queue"], "caption": "この二本の非同期な依存が結果整合性の理由" },
+    { "callout": { "at": "queue", "text": "支払いと注文の両方がここで非同期になる" }, "ms": 0 }
+  ]
+}

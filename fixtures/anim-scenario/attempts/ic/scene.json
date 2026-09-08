@@ -1,0 +1,60 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "distributed",
+  "title": "決済のタイムアウトと再試行",
+  "nodes": [
+    {"id": "order", "label": "注文サービス"},
+    {"id": "gateway", "label": "決済ゲートウェイ"},
+    {"id": "card", "label": "カード会社"}
+  ],
+  "messages": [
+    {
+      "from": "order",
+      "to": "gateway",
+      "label": "課金リクエスト1",
+      "caption": "課金要求（冪等キー: A1）を送る"
+    },
+    {
+      "from": "gateway",
+      "to": "card",
+      "label": "オーソリ",
+      "caption": "ゲートウェイがカード会社へオーソリを送る"
+    },
+    {
+      "from": "card",
+      "to": "gateway",
+      "label": "承認",
+      "caption": "カード会社が承認を返す"
+    },
+    {
+      "from": "gateway",
+      "to": "order",
+      "label": "課金完了",
+      "lost": true,
+      "caption": "ゲートウェイから注文サービスへの課金完了の応答が失われる"
+    },
+    {
+      "after": "課金完了",
+      "delay": 1500,
+      "from": "order",
+      "to": "gateway",
+      "label": "課金リクエスト2",
+      "caption": "タイムアウト後、同じ冪等キーで課金要求を再送する"
+    },
+    {
+      "relate": {
+        "from": "課金リクエスト1",
+        "to": "課金リクエスト2",
+        "label": "A1（同一）",
+        "style": "line"
+      },
+      "ms": 0
+    },
+    {
+      "from": "gateway",
+      "to": "order",
+      "label": "課金完了応答",
+      "caption": "ゲートウェイは同じキーを見て、課金を繰り返さず課金完了（既存）を返す"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-animation-eval",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Frame-sampled animation evaluation for web pages: pause every Web Animation, seek deterministic sample points, and report visible effect, settle time, reduced-motion behaviour and uncontrolled motion. The measurement behind `vlmkit check animation` and `vlmkit-anim eval`.",
   "license": "MIT",
   "author": "mizchi",

@@ -16,6 +16,7 @@
  */
 
 import { sampleTimes } from "./render-svg.ts";
+import { textWidth } from "./text-width.ts";
 import { currentStep, sampleFrame, type NodeState } from "./timeline.ts";
 import type { Timeline, TimelineNode } from "./types.ts";
 
@@ -102,7 +103,8 @@ function textBox(n: TimelineNode, st: NodeState, pos: [number, number]): LayoutB
   if (text === undefined || String(text) === "") return undefined;
   const lines = String(text).split("\n");
   const fs = n.fontSize ?? 14;
-  const w = Math.max(...lines.map((l) => l.length)) * fs * 0.55;
+  // Latin at 0.55 em, CJK and emoji at 1 em — a Japanese label is not 60% of its width (v15).
+  const w = textWidth(String(text), fs, 0.55);
   const h = lines.length * fs * 1.2;
   const anchor = n.shape === "text" ? n.anchor ?? "middle" : "middle";
   const left = anchor === "start" ? pos[0] : anchor === "end" ? pos[0] - w : pos[0] - w / 2;
@@ -159,6 +161,15 @@ export function strokeSegments(n: TimelineNode, pos: [number, number]): Segment[
 }
 
 /** Length of the part of a segment that lies inside a box (Liang–Barsky). */
+/** The rectangle two boxes share, or nothing. */
+function clipBox(a: LayoutBox, b: LayoutBox): LayoutBox | undefined {
+  const x = Math.max(a.x, b.x);
+  const y = Math.max(a.y, b.y);
+  const x1 = Math.min(a.x + a.w, b.x + b.w);
+  const y1 = Math.min(a.y + a.h, b.y + b.h);
+  return x1 > x && y1 > y ? { id: b.id, x, y, w: x1 - x, h: y1 - y } : undefined;
+}
+
 function insideLength(seg: Segment, b: LayoutBox): number {
   const [[x0, y0], [x1, y1]] = seg;
   const dx = x1 - x0;
@@ -209,6 +220,8 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
   const frame = sampleFrame(tl, t);
   const texts: LayoutBox[] = [];
   const fills: LayoutBox[] = [];
+  /** Every filled box, the moving ones included: what hides a stroke at this instant, whatever it is doing. */
+  const allFills: LayoutBox[] = [];
   const strokes: { node: TimelineNode; segs: Segment[] }[] = [];
   const byId = new Map(tl.nodes.map((n) => [n.id, n]));
   for (const n of tl.nodes) {
@@ -219,7 +232,9 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
     if (tb) texts.push(tb);
     // A filled box that is on its way somewhere (a matrix token leaving its source cell at the start of a
     // beat) is where the animation wants it for an instant, not a layout defect.
-    const fb = inMotion(tl, n.id, t) ? undefined : filledBox(n, st, pos);
+    const anyFill = filledBox(n, st, pos);
+    if (anyFill) allFills.push(anyFill);
+    const fb = inMotion(tl, n.id, t) ? undefined : anyFill;
     if (fb) fills.push(fb);
     // Strokes that are drawn (a dashed-in line at the start of its beat is not yet there) and hold still.
     if (st.opacity >= 0.5 && !inMotion(tl, n.id, t) && (st.dash === undefined || st.dash >= 0.5)) {
@@ -258,16 +273,32 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
   }
   // A line through a text: an edge across a container label, a dependency under a callout (v13). The text's
   // own edge, a callout's own pointer and siblings in one annotation group are not crossings.
+  const order = new Map(tl.nodes.map((n, i) => [n.id, i]));
   for (const tb of texts) {
     const tn = byId.get(tb.id)!;
     if (tn.halo) continue; // a haloed label breaks the line around itself: sitting on lines is its job
+    const textIndex = order.get(tb.id)!;
     for (const s of strokes) {
       if (s.node.id === tb.id || related(tl, tn, s.node)) continue;
       // A callout's pointer has to reach an interior cell through its neighbours — a thin line over a labelled
       // box is what a hand-drawn callout does too. Over a free-standing text (a header, a label) it is a defect.
       if (/^callout-.*-arrow$/.test(s.node.id) && tn.shape !== "text") continue;
+      // A filled shape drawn after the stroke and before the text hides the stroke where they meet: a heap's
+      // tree edge runs centre to centre under the slot circles, and the value drawn on a circle is not crossed
+      // by the part of the edge the circle covers (v15: digits measured wider and this started to count).
+      const strokeIndex = order.get(s.node.id)!;
+      // The text's own fill counts only where the stroke ends under it (the token on a heap slot); a stroke that
+      // runs on through a labelled box is the v13 defect — the arrow vanishing behind a module — and stays counted.
+      const endsUnder = (fb: LayoutBox) => s.segs.some(([p, q]) => [p, q].some(([x, y]) => x >= fb.x && x <= fb.x + fb.w && y >= fb.y && y <= fb.y + fb.h));
+      const covers = allFills
+        .filter((fb) => order.get(fb.id)! > strokeIndex && order.get(fb.id)! <= textIndex && (fb.id !== tb.id || endsUnder(fb)))
+        .map((fb) => clipBox(tb, fb))
+        .filter((c): c is LayoutBox => !!c);
       let inside = 0;
-      for (const seg of s.segs) inside += insideLength(seg, tb);
+      for (const seg of s.segs) {
+        inside += insideLength(seg, tb);
+        for (const c of covers) inside -= insideLength(seg, c);
+      }
       if (inside >= minCross) issues.push({ kind: "crossed", nodes: [tb.id, s.node.id], texts: [tb.text ?? "", ""], amount: Math.round(inside) });
     }
   }

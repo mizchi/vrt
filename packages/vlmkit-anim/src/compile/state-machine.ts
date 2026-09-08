@@ -7,6 +7,7 @@
 import type { StateMachineScene, Timeline } from "../types.ts";
 import { Builder, along, labelWidth, trimEdge } from "./builder.ts";
 import { layoutNodes } from "./layout.ts";
+import { placeEdgeLabel, polylineLegs, routeAround } from "./route.ts";
 
 export function compileStateMachine(scene: StateMachineScene): Timeline {
   const states = scene.states.map((s) => (typeof s === "string" ? { id: s } : s));
@@ -38,6 +39,25 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
 
   // Transitions first so states draw over the arrow ends.
   const seen = new Map<string, { k: number; n: [number, number] }>();
+  // A state in the way of a transition is a box the transition bends around (ib, v15: 支払い完了 → 返金済み ran
+  // straight through 出荷準備中 and its label sat on the state; the diagram compiler had routed since v13).
+  const blockers = states.map((s) => {
+    const p = pos.get(s.id)!;
+    const r = radius.get(s.id)! + 4;
+    return { id: s.id, box: { x: p[0] - r, y: p[1] - r, w: 2 * r, h: 2 * r } };
+  });
+  /** Each transition's centre line, for the token to follow. */
+  const edgePts = new Map<number, [number, number][]>();
+  /** Where labels and states already are, so a bent transition's label goes somewhere else. */
+  const occupied: { x: number; y: number; w: number; h: number }[] = blockers.map((bl) => bl.box);
+  const labelBox = (p: [number, number], text: string): { x: number; y: number; w: number; h: number } => {
+    const lw = labelWidth(text, T.fontSize - 2) - (T.fontSize - 2) * 1.6;
+    const lh = (T.fontSize - 2) * 1.3;
+    return { x: p[0] - lw / 2, y: p[1] - lh / 2, w: lw, h: lh };
+  };
+  // Straight transitions first (their labels are fixed by the pair rule), then the bent ones, whose labels
+  // pick a spot the straight ones have not taken.
+  const bent: { tr: (typeof scene.transitions)[number]; i: number; pts: [number, number][]; p: [number, number]; label: string }[] = [];
   scene.transitions.forEach((tr, i) => {
     const a = pos.get(tr.from)!;
     const c = pos.get(tr.to)!;
@@ -50,6 +70,17 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
       const d = `M ${a[0] - 12} ${a[1] - ra + 4} C ${a[0] - 40} ${a[1] - ra - 50}, ${a[0] + 40} ${a[1] - ra - 50}, ${a[0] + 12} ${a[1] - ra + 4}`;
       b.node({ id, shape: "path", d, stroke: T.nodeStroke, fill: "none" });
       b.node({ id: `${id}-label`, shape: "text", pos: [a[0], a[1] - ra - 48], text: label, fontSize: T.fontSize - 2, color: T.text, halo: true });
+      edgePts.set(i, [a, a]);
+      return;
+    }
+    const centres = routeAround(a, c, blockers, new Set([tr.from, tr.to]));
+    if (centres.length > 2) {
+      // Bent: a path through the waypoints, trimmed at the two circles; drawn after the straight ones.
+      const [p] = trimEdge(a, centres[1], ra + 2, 0);
+      const [, q] = trimEdge(centres[centres.length - 2], c, 0, rc + 6);
+      const pts: [number, number][] = [p, ...centres.slice(1, -1), q];
+      edgePts.set(i, pts);
+      bent.push({ tr, i, pts, p, label });
       return;
     }
     // Parallel edges (a→b and b→a) share one perpendicular, fixed by the first of
@@ -68,10 +99,23 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
     const pp: [number, number] = [p[0] + nx * off, p[1] + ny * off];
     const qq: [number, number] = [q[0] + nx * off, q[1] + ny * off];
     b.node({ id, shape: "arrow", points: [pp, qq], stroke: T.nodeStroke });
+    edgePts.set(i, [pp, qq]);
     const mid = along(pp, qq, 0.5);
     const labelOff = pair.k === 0 ? -13 : off + 13;
-    b.node({ id: `${id}-label`, shape: "text", pos: [mid[0] + nx * labelOff, mid[1] + ny * labelOff], text: label, fontSize: T.fontSize - 2, color: T.text, halo: true });
+    const lp: [number, number] = [mid[0] + nx * labelOff, mid[1] + ny * labelOff];
+    b.node({ id: `${id}-label`, shape: "text", pos: lp, text: label, fontSize: T.fontSize - 2, color: T.text, halo: true });
+    occupied.push(labelBox(lp, label));
   });
+  for (const { i, pts, p, label } of bent) {
+    const id = `tr-${i}`;
+    const r = (v: number) => Math.round(v * 10) / 10;
+    const d = pts.map((pt, k) => `${k === 0 ? "M" : "L"} ${r(pt[0] - p[0])} ${r(pt[1] - p[1])}`).join(" ");
+    b.node({ id, shape: "path", pos: p, d, head: true, fill: "none", stroke: T.nodeStroke });
+    const probe = labelBox([0, 0], label);
+    const lp = placeEdgeLabel(pts, probe.w, probe.h, occupied);
+    b.node({ id: `${id}-label`, shape: "text", pos: lp, text: label, fontSize: T.fontSize - 2, color: T.text, halo: true });
+    occupied.push(labelBox(lp, label));
+  }
 
   for (const s of states) {
     const p = pos.get(s.id)!;
@@ -134,7 +178,18 @@ export function compileStateMachine(scene: StateMachineScene): Timeline {
     b.set(`tr-${hit.index}`, "stroke", T.accent);
     const t0 = b.t;
     const t1 = b.advance();
-    b.tween("token", "pos", pos.get(next)!, t0, t1);
+    // The token follows the transition's centre line — leg by leg when the arrow bends around a state.
+    const pts = [pos.get(cur)!, ...(edgePts.get(hit.index) ?? []).slice(1, -1), pos.get(next)!];
+    if (pts.length === 2) b.tween("token", "pos", pos.get(next)!, t0, t1);
+    else {
+      const { legs, total } = polylineLegs(pts);
+      let at = t0;
+      pts.slice(1).forEach((pt, k) => {
+        const end = k === legs.length - 1 ? t1 : at + ((t1 - t0) * legs[k]) / total;
+        b.tween("token", "pos", pt, at, end, "linear");
+        at = end;
+      });
+    }
     b.set(`state-${cur}`, "fill", T.node, t0 + (t1 - t0) * 0.5);
     b.set(`state-${next}`, "fill", T.accent, t1);
     b.set(`tr-${hit.index}`, "stroke", T.nodeStroke, t1);

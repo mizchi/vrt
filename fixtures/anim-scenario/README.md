@@ -84,6 +84,14 @@ dependency, gc highlighted the wrong edge): each still-figure brief now ships a
 briefs; the sheet's verdict on each first attempt, and how many rounds the
 sheet's own lines take to clear, are the metrics.
 
+v15 (2026-09-07) is the first round in **Japanese**: `ja-modules-checkout`
+(the request walk with Japanese labels and its fact sheet), `ja-state-order`
+(an order's state machine) and `ja-distributed-payment` (a payment timeout and
+idempotent retry). The round exists because every width estimate counted a CJK
+glyph as 0.6 em; the briefs ask writers to open their own SVG and say whether a
+label looks like it overflows, because the geometry's green had been a lie
+(writers `ia`–`ic`).
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from
@@ -91,4 +99,4 @@ v11 also whether every dependent literal (readout text, message label,
 caption arithmetic) was updated — the checker cannot read arithmetic, so that
 is a hand count.
 Reports: `docs/reports/2026-09-04-anim-ir-v*.md`, `docs/reports/2026-09-05-anim-ir-v{9,10,11,12}.md`,
-`docs/reports/2026-09-06-anim-ir-v{13,14}.md`.
+`docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`.
