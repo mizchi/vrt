@@ -193,7 +193,9 @@ green-but-wrong pictures in one line each; four writers with fact sheets were fo
 wrong final highlight on the first run), `docs/reports/2026-09-07-anim-ir-v15.md` (labels in Japanese: a CJK glyph
 is one em and every width estimate had said 0.6, so `layout`'s green was a lie on Japanese figures; measured against
 Chromium, fixed in one module; the state-machine compiler learned the diagram's edge routing when a writer's only
-fix for a transition through a state was to reorder the list).
+fix for a transition through a state was to reorder the list), `docs/reports/2026-09-08-anim-ir-v16.md` (a still's
+own vocabulary: `tone` on modules and dependencies, `"style": "implements"`, `relate` `"style": "equals"` — the two
+asks the v13 writers left open, drawn by two writers on a brief that needs all three).
 
 ## Measuring Gate / Rule Execution Cost
 

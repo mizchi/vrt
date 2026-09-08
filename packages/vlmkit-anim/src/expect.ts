@@ -189,7 +189,7 @@ export function checkExpectation(exp: Expectation, scene: Scene, tl: Timeline): 
       if (!known) out.push(err(`expect.highlighted`, `"${key}" is not in the picture, so it cannot be highlighted`, edge ? `add ["${edge[0]}", "${edge[1]}"] to "${depsField}" first` : `add "${key}" to "${nodesField}" or "groups" first`));
       else if (!litNow.has(key)) out.push(err(`expect.highlighted`, `${edge ? depWord : "id"} ${JSON.stringify(key)} is not highlighted in the final frame`, `add {"highlight": ${JSON.stringify(key)}} to "sequence" (after any "unhighlight" of it)`));
     }
-    for (const key of litNow) if (!want.has(key)) out.push(err(`sequence`, `${JSON.stringify(key)} is highlighted in the final frame but the facts do not point at it`, `the facts highlight ${exp.highlighted.length ? exp.highlighted.map((h) => JSON.stringify(h)).join(", ") : "nothing"}; unhighlight ${JSON.stringify(key)} or take it out of the "highlight" step`));
+    for (const key of litNow) if (!want.has(key)) out.push(err(`sequence`, `${JSON.stringify(key)} is highlighted in the final frame but the facts do not point at it`, `the facts highlight ${exp.highlighted.length ? exp.highlighted.map((h) => JSON.stringify(h)).join(", ") : "nothing"}; unhighlight ${JSON.stringify(key)}, take it out of the "highlight" step, or drop its "tone": "accent"`));
   }
 
   // Groups: each named container holds exactly its members; no container the facts do not know.
