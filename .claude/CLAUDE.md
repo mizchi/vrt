@@ -203,7 +203,10 @@ shifts — and a callout's pointer goes round labelled boxes; three writers reco
 (fact sheets for the walked kinds — a graph's visit order and path, a state machine's transitions and end state, a
 distributed scene's messages and lost ones — and `vlmkit-anim facts` writing one from a directory's import graph; the
 four writers' sheets all matched, and every further round was a compiler defect the round fixed: the token on a short
-label, a 35px circle of four states, labels on states, a distance label under an edge).
+label, a 35px circle of four states, labels on states, a distance label under an edge), `docs/reports/2026-09-08-anim-ir-v19.md`
+(two kinds — `flowchart` with decision diamonds, labelled ways out, a walked path and loops round the outside, and `gantt`
+with bars on a unit axis, dependencies, a cursor, cascading slips — both flowchart writers green on the first write; the
+gantt writer's five rounds were one callout that a moving cursor label walked under, fixed in the compiler).
 
 ## Measuring Gate / Rule Execution Cost
 

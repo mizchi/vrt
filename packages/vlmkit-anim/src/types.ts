@@ -774,14 +774,16 @@ export interface GanttTask {
   after?: string[];
   /** A diamond at `start` instead of a bar. */
   milestone?: boolean;
+  /** Who does it: drawn small inside the bar (or after it when the bar is short). */
+  owner?: string;
 }
 
 /** Every op may carry `caption` and `ms`. */
 export type GanttOp =
   /** Move the time cursor to `advance` (absolute, in units): bars the cursor passes fill, tasks it is inside light up, done ones settle. */
   | { advance: number; caption?: string; ms?: number }
-  /** A task's dates change: its bar stretches or moves; dependents are not moved (say so with another `slip`). */
-  | { slip: { task: string; start?: number; end?: number }; caption?: string; ms?: number }
+  /** A task's dates change: its bar stretches or moves. With `cascade`, every dependent that would now start before it ends moves by the same amount, and theirs after them. */
+  | { slip: { task: string; start?: number; end?: number; cascade?: boolean }; caption?: string; ms?: number }
   /** Colour a task by what happened to it: `late` (the bad colour), `blocked` (muted), `done` (ok) — read by the check. */
   | { status: { task: string; state: "late" | "blocked" | "done" }; caption?: string; ms?: number }
   | { note: string; ms?: number }

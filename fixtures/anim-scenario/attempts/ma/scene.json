@@ -1,0 +1,46 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "flowchart",
+  "title": "Checkout",
+  "nodes": [
+    { "id": "start", "label": "cart", "shape": "terminal" },
+    { "id": "login", "label": "logged in?", "shape": "decision" },
+    { "id": "signin", "label": "sign in" },
+    { "id": "address", "label": "enter address" },
+    { "id": "stock", "label": "all in stock?", "shape": "decision" },
+    { "id": "remove", "label": "remove missing item" },
+    { "id": "pay", "label": "pay" },
+    { "id": "paid", "label": "payment ok?", "shape": "decision" },
+    { "id": "retry", "label": "retry card" },
+    { "id": "done", "label": "order placed", "shape": "terminal" }
+  ],
+  "edges": [
+    ["start", "login"],
+    { "from": "login", "to": "signin", "label": "no" },
+    { "from": "login", "to": "address", "label": "yes" },
+    ["signin", "address"],
+    ["address", "stock"],
+    { "from": "stock", "to": "remove", "label": "no" },
+    ["remove", "stock"],
+    { "from": "stock", "to": "pay", "label": "yes" },
+    ["pay", "paid"],
+    { "from": "paid", "to": "retry", "label": "no" },
+    ["retry", "pay"],
+    { "from": "paid", "to": "done", "label": "yes" }
+  ],
+  "start": "start",
+  "walk": [
+    "login",
+    "signin",
+    "address",
+    "stock",
+    "remove",
+    "stock",
+    "pay",
+    "paid",
+    "retry",
+    "pay",
+    "paid",
+    "done"
+  ]
+}

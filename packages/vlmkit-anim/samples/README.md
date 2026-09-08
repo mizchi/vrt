@@ -178,7 +178,7 @@ Retry with a cap — 9 steps, 7210ms, 20 nodes
 
 ## gantt-release
 
-`gantt` — [`fixtures/gantt-release.json`](../fixtures/gantt-release.json) · 7 steps · 4.9s · GIF 303 KB
+`gantt` — [`fixtures/gantt-release.json`](../fixtures/gantt-release.json) · 7 steps · 4.9s · GIF 321 KB
 
 ![gantt-release animation](./gantt-release.gif)
 
@@ -187,12 +187,12 @@ Retry with a cap — 9 steps, 7210ms, 20 nodes
 ![gantt-release contact sheet](./gantt-release.sheet.png)
 
 ```
-Release 1.2 — 7 steps, 4900ms, 39 nodes
+Release 1.2 — 7 steps, 4900ms, 41 nodes
  1. [    0ms] Release 1.2
  2. [  420ms] day 3: Build starts; Design finishes
  3. [ 1330ms] Day 6: build is halfway
- 4. [ 2240ms] A dependency breaks: build slips a day
- 5. [ 3150ms] QA cannot start on day 8
+ 4. [ 2240ms] A dependency breaks: build slips a day, and everything after it
+ 5. [ 3150ms] QA starts a day late
  6. [ 3710ms] day 11: QA, Ship start; Build, QA finish
  7. [ 4620ms] end
 ```

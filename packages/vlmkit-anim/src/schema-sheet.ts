@@ -250,8 +250,8 @@ export const EXAMPLES: Examples = {
     ops: [
       { advance: 3 },
       { advance: 6, caption: "Day 6: build is halfway" },
-      { slip: { task: "build", end: 9 }, caption: "A dependency breaks: build slips a day" },
-      { status: { task: "qa", state: "late" }, caption: "QA cannot start on day 8" },
+      { slip: { task: "build", end: 9, cascade: true }, caption: "A dependency breaks: build slips a day, and everything after it" },
+      { status: { task: "qa", state: "late" }, caption: "QA starts a day late" },
       { advance: 11 },
     ],
   },
@@ -507,14 +507,16 @@ Each hop is one step captioned "<from> → <to>", or "<question>: <answer> → <
 to an earlier node; the arrow bends round what is in its way. The check warns about a decision with one way out, an unlabelled way
 out of a decision, a node the walk never reaches, and a walk that stops at a node with a way out.`,
   gantt: `kind: gantt — tasks as bars on a time axis, dependencies, a cursor that moves through the plan
-  "tasks": [ {"id", "label", "start", "end", "lane", "after": ["id", …], "milestone": true} ]
+  "tasks": [ {"id", "label", "start", "end", "lane", "after": ["id", …], "milestone": true, "owner"} ]
                                    required; start / end in units (a label, not a clock); lane groups rows into a band;
-                                   after draws an arrow from each prerequisite's end; milestone = a diamond at start (no end)
+                                   after draws an arrow from each prerequisite's end; milestone = a diamond at start (no end);
+                                   owner is drawn small inside the bar
   "unit": "day"                    the axis's word, default day      "tick": n   axis step, default a 1-2-5 step
   "from", "to": numbers            axis range, default 0 .. the latest end
-  "ops": [ {"advance": t} | {"slip": {"task", "start", "end"}} | {"status": {"task", "state": "late" | "blocked" | "done"}} | {"note": "…"} ]
+  "ops": [ {"advance": t} | {"slip": {"task", "start", "end", "cascade": true}} | {"status": {"task", "state": "late" | "blocked" | "done"}} | {"note": "…"} ]
                                    advance moves the cursor to t (bars fill as it passes; a step says who starts and who finishes);
-                                   slip moves a task's dates (dependents stay — slip them too); status colours a task by what happened
+                                   slip moves a task's dates — with cascade, dependents that would now start too early move with it;
+                                   status colours a task by what happened
 The check warns when a task starts before something it depends on ends, when the cursor never reaches a task's end, and errors
 when the cursor goes backwards.`,
   diagram: `kind: diagram — boxes and arrows, narrated in beats

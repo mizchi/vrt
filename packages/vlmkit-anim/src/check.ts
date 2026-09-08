@@ -528,7 +528,7 @@ export function checkLayout(tl: Timeline): Diagnostic[] {
     const where = `at step ${first.step?.index ?? "?"} (${Math.round(first.t)}ms)${more ? ` and ${more} later step(s)` : ""}`;
     const annotation = issue.nodes.some((id) => /^(value|callout|snapshot|group|text|relate)-/.test(id));
     const hint = annotation
-      ? "the compiler placed this annotation — try another `side`, a shorter label, or anchor it at a different thing (the node instead of the edge), and report it if nothing helps"
+      ? "the compiler placed this annotation — try another `side`, a shorter label, or anchor it at a different thing (the node instead of the edge); when the thing in the way moves there later (a cursor, a token), hide the annotation before that beat with `null` — and report it if nothing helps"
       : "move one of them, shorten the text, or widen the canvas — in a laid-out kind (state-machine, graph, modules, diagram) try another `layout`, or reorder the nodes list: ties in `lr` / `tb` follow it";
     if (issue.kind === "clipped") out.push(warn(`nodes(${issue.nodes[0]})`, `"${issue.texts[0]}" runs ${issue.amount}px past the canvas edge ${where}`, hint));
     else if (issue.kind === "crossed") {

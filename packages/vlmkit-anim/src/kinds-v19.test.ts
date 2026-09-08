@@ -92,7 +92,12 @@ describe("gantt", () => {
     const meta = tl.meta as { cursor: number; finalTasks: Record<string, [number, number]>; status: Record<string, string> };
     assert.equal(meta.cursor, 11);
     assert.deepEqual(meta.finalTasks.build, [3, 9]);
+    // `cascade`: QA and Ship moved with Build's slip; Design did not.
+    assert.deepEqual(meta.finalTasks.qa, [9, 11]);
+    assert.deepEqual(meta.finalTasks.ship, [11, 11]);
+    assert.deepEqual(meta.finalTasks.design, [0, 3]);
     assert.equal(meta.status.qa, "late");
+    assert.ok(tl.nodes.some((n) => n.id === "owner-build" && n.text === "Mia"));
     const captions = (tl.steps ?? []).map((st) => st.caption);
     assert.ok(captions.includes("day 3: Build starts; Design finishes"), captions.join(" | "));
     const end = sampleFrame(tl, timelineDuration(tl));
@@ -113,6 +118,10 @@ describe("gantt", () => {
     const early: GanttScene = { ...s, tasks: s.tasks.map((t) => (t.id === "qa" ? { ...t, start: 7 } : t)) };
     const d1 = checkAnimation(compileScene(early), early);
     assert.ok(d1.some((d) => /"QA" starts at 7 but depends on "Build", which ends at 8/.test(d.message)), formatDiagnostics(d1));
+    const noCascade: GanttScene = { ...s, ops: [{ slip: { task: "build", end: 9 } }, { advance: 11 }] };
+    const tlN = compileScene(noCascade);
+    assert.deepEqual((tlN.meta as { finalTasks: Record<string, [number, number]> }).finalTasks.qa, [8, 10], "without cascade the dependent stays");
+    assert.ok(checkAnimation(tlN, noCascade).some((d) => /"QA" starts at 8 but depends on "Build", which ends at 9/.test(d.message)) === false, "the plan check reads the tasks as written, not the slip");
     const short: GanttScene = { ...s, ops: [{ advance: 5 }] };
     const d2 = checkAnimation(compileScene(short), short);
     assert.ok(d2.some((d) => /the cursor stops at 5; "Build" ends at 8/.test(d.message)), formatDiagnostics(d2));

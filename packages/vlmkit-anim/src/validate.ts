@@ -716,7 +716,8 @@ function validateGantt(ctx: Ctx, doc: Obj): void {
     doc.tasks.forEach((t, i) => {
       const path = `tasks[${i}]`;
       if (!ctx.object(t, path)) return;
-      ctx.keys(t, path, ["id", "label", "start", "end", "lane", "after", "milestone"]);
+      ctx.keys(t, path, ["id", "label", "start", "end", "lane", "after", "milestone", "owner"]);
+      if (t.owner !== undefined) ctx.string(t.owner, `${path}.owner`);
       const s = ctx.number(t.start, `${path}.start`);
       if (t.end !== undefined && ctx.number(t.end, `${path}.end`) && s && (t.end as number) < (t.start as number)) ctx.error(`${path}.end`, `"${String(t.id)}" ends at ${t.end as number}, before it starts at ${t.start as number}`);
       if (t.end === undefined && t.milestone !== true) ctx.error(`${path}.end`, `"${String(t.id)}" has no "end": give it one, or make it a milestone with "milestone": true`);
@@ -743,7 +744,8 @@ function validateGantt(ctx: Ctx, doc: Obj): void {
       } else if ("slip" in op) {
         ctx.keys(op, path, ["slip", "caption", "ms"]);
         if (ctx.object(op.slip, `${path}.slip`)) {
-          ctx.keys(op.slip, `${path}.slip`, ["task", "start", "end"]);
+          ctx.keys(op.slip, `${path}.slip`, ["task", "start", "end", "cascade"]);
+          if (op.slip.cascade !== undefined && typeof op.slip.cascade !== "boolean") ctx.error(`${path}.slip.cascade`, "cascade takes true/false");
           ctx.ref(op.slip.task, `${path}.slip.task`, taskIds, "task");
           if (op.slip.start !== undefined) ctx.number(op.slip.start, `${path}.slip.start`);
           if (op.slip.end !== undefined) ctx.number(op.slip.end, `${path}.slip.end`);

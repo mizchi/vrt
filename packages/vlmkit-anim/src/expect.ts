@@ -565,13 +565,13 @@ export const EXPECT_SHEET = `expect — the facts a scene must show, for \`check
   graph
   nodes        ids drawn, exactly these
   edges        "a->b" — in that direction when "directed", either way otherwise ("a<->b" says so); exactly these
-  visited      the nodes in the order the walk visits them ("visit" ops, or the algorithm from "start")
+  visited      the nodes in the order the walk visits them ("visit" ops, or the algorithm from "start"; start first)
   path         the nodes of the path lit at the end, in order (the last "path" op, or dijkstra's route to "goal")
   labels       {"node": "text"}: the label beside a node at the end
   highlighted  the nodes lit by "highlight" in the final frame, and nothing else (visited nodes are green, not lit)
 
   flowchart
-  nodes, edges ("a->b" or "a->b:yes" — with the answer, it must match), visited (the walk from start), end (where it stops)
+  nodes, edges ("a->b" or "a->b:yes" — with the answer, it must match), visited (start first, then every hop), end (where it stops)
 
   state-machine
   states       ids drawn, exactly these          initial   the state the token starts in

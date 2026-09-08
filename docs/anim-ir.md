@@ -558,7 +558,8 @@ visited nodes turn green, the current one the accent colour. The check warns
 about a decision with one way out (a question with one answer is a step), a way
 out of a decision without a label, a node the walk never reaches, and a walk
 that stops at a node with a way out. A fact sheet (`check --expect`) for a
-flowchart has `nodes`, `edges` (`"a->b"` or `"a->b:yes"`), `visited` and `end`.
+flowchart has `nodes`, `edges` (`"a->b"` or `"a->b:yes"`), `visited` (`start`
+first, then every hop) and `end`.
 
 ## kind: gantt
 
@@ -577,8 +578,8 @@ flowchart has `nodes`, `edges` (`"a->b"` or `"a->b:yes"`), `visited` and `end`.
   "ops": [
     { "advance": 3 },
     { "advance": 6, "caption": "Day 6: build is halfway" },
-    { "slip": { "task": "build", "end": 9 }, "caption": "A dependency breaks: build slips a day" },
-    { "status": { "task": "qa", "state": "late" }, "caption": "QA cannot start on day 8" },
+    { "slip": { "task": "build", "end": 9, "cascade": true }, "caption": "A dependency breaks: build slips a day, and everything after it" },
+    { "status": { "task": "qa", "state": "late" }, "caption": "QA starts a day late" },
     { "advance": 11 }
   ]
 }
@@ -586,10 +587,10 @@ flowchart has `nodes`, `edges` (`"a->b"` or `"a->b:yes"`), `visited` and `end`.
 
 | field | |
 |---|---|
-| `tasks` | required: `{"id", "label", "start", "end", "lane", "after": ["id", …], "milestone": true}`. `start` / `end` are in `unit`s — a number line, not a calendar. `lane` groups rows into a labelled band (tasks without one each get a row); `after` draws an arrow from each prerequisite's end to this start, and the check warns when this starts before one of them ends; a `milestone` is a diamond at `start` and has no `end` |
+| `tasks` | required: `{"id", "label", "start", "end", "lane", "after": ["id", …], "milestone": true, "owner"}`. `start` / `end` are in `unit`s — a number line, not a calendar. `lane` groups rows into a labelled band (tasks without one each get a row); `after` draws an arrow from each prerequisite's end to this start, and the check warns when this starts before one of them ends; a `milestone` is a diamond at `start` and has no `end`; `owner` is drawn small inside the bar (after it when the bar is short) |
 | `unit` | the axis's word — `day` (default), `week`, `sprint`, `ms` |
 | `tick`, `from`, `to` | axis step and range; default a 1-2-5 step over 0 … the latest end |
-| `ops` | `{"advance": t}` moves the time cursor to `t`: bars fill as it passes, a task it enters lights, one it leaves settles green, and the step says who starts and who finishes (`day 3: Build starts; Design finishes`). `{"slip": {"task", "start", "end"}}` moves a task's dates (its bar stretches; the arrows touching it fade — dependents do not move, slip them too). `{"status": {"task", "state": "late" \| "blocked" \| "done"}}` colours a task by what happened to it. `{"note": "…"}` and every annotation op. All take `caption` and `ms` |
+| `ops` | `{"advance": t}` moves the time cursor to `t`: bars fill as it passes, a task it enters lights, one it leaves settles green, and the step says who starts and who finishes (`day 3: Build starts; Design finishes`). `{"slip": {"task", "start", "end", "cascade": true}}` moves a task's dates (its bar stretches; the arrows touching it fade). Without `cascade` dependents stay where they were — slip them too, or say the plan absorbed it; with it, every dependent that would now start before this ends moves by that much, and theirs after them, and the step names them (`Build slips: 3–8 → 3–9; QA, Ship move with it`). `{"status": {"task", "state": "late" \| "blocked" \| "done"}}` colours a task by what happened to it. `{"note": "…"}` and every annotation op. All take `caption` and `ms` |
 
 The check warns when a task starts before something it depends on ends, when
 the cursor stops before a task's end (the viewer never sees it finish), and

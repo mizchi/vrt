@@ -4,16 +4,71 @@
   "title": "Release 1.2",
   "unit": "day",
   "tasks": [
-    { "id": "design", "label": "Design", "start": 0, "end": 3, "lane": "UX" },
-    { "id": "build", "label": "Build", "start": 3, "end": 8, "lane": "Eng", "after": ["design"] },
-    { "id": "qa", "label": "QA", "start": 8, "end": 10, "lane": "QA", "after": ["build"] },
-    { "id": "ship", "label": "Ship", "start": 10, "milestone": true, "lane": "QA", "after": ["qa"] }
+    {
+      "id": "design",
+      "label": "Design",
+      "start": 0,
+      "end": 3,
+      "lane": "UX"
+    },
+    {
+      "id": "build",
+      "label": "Build",
+      "start": 3,
+      "end": 8,
+      "lane": "Eng",
+      "after": [
+        "design"
+      ],
+      "owner": "Mia"
+    },
+    {
+      "id": "qa",
+      "label": "QA",
+      "start": 8,
+      "end": 10,
+      "lane": "QA",
+      "after": [
+        "build"
+      ],
+      "owner": "Lee"
+    },
+    {
+      "id": "ship",
+      "label": "Ship",
+      "start": 10,
+      "milestone": true,
+      "lane": "QA",
+      "after": [
+        "qa"
+      ]
+    }
   ],
   "ops": [
-    { "advance": 3 },
-    { "advance": 6, "caption": "Day 6: build is halfway" },
-    { "slip": { "task": "build", "end": 9 }, "caption": "A dependency breaks: build slips a day" },
-    { "status": { "task": "qa", "state": "late" }, "caption": "QA cannot start on day 8" },
-    { "advance": 11 }
+    {
+      "advance": 3
+    },
+    {
+      "advance": 6,
+      "caption": "Day 6: build is halfway"
+    },
+    {
+      "slip": {
+        "task": "build",
+        "end": 9,
+        "cascade": true
+      },
+      "caption": "A dependency breaks: build slips a day, and everything after it"
+    },
+    {
+      "status": {
+        "task": "qa",
+        "state": "late"
+      },
+      "caption": "QA starts a day late"
+    },
+    {
+      "advance": 11
+    }
   ]
 }

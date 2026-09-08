@@ -19,6 +19,9 @@ Dates are YYYY-MM-DD.
   fill as it passes and the step says who starts and who finishes), `slip` a task's dates, or set a
   `status` (`late` / `blocked` / `done`). The check warns when a task starts before something it
   depends on ends and when the cursor never reaches a task's end; it errors when time runs backwards.
+- From the writers: `slip` takes `cascade: true` (dependents that would now start too early move with the
+  task, and the step names them — one writer had hand-derived three slips for one cause); tasks take an
+  `owner`; the cursor's label rides the cursor under the axis instead of the band annotations land in.
 - Report: `docs/reports/2026-09-08-anim-ir-v19.md`.
 
 ## 0.17.0 — 2026-09-08
