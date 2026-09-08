@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 Dates are YYYY-MM-DD.
 
+## 0.16.0 — 2026-09-08
+
+**`vlmkit-anim`: the asked side is where the annotation goes.**
+
+- **The canvas grows on any side.** A `callout` or `value` asked `left` of the leftmost module, or
+  `above` the top one, used to land wherever the canvas already had room — the canvas could only
+  grow at the bottom, so "left" of the entry point became "above" or "right". Now the asked side is
+  honoured when it is clear, and the canvas grows there to make the room; the Builder shifts every
+  root node and position keyframe (and a matrix's slot table) by the growth. Growth on a side other
+  than the asked one is still the last resort, after every side on the canvas as it stands.
+- **A callout's pointer goes round labelled boxes** — and free-standing labels — in its way, on the
+  shared edge router, and only when the detour crosses less than the straight line did (a bend that
+  clears the cells but cuts a row letter stays straight). A callout on a bent edge points at the
+  middle of the edge's line rather than at its first end, which is what routed the pointer round
+  the very module the edge left.
+- **`check` reports a stated `side` that was not honoured** — `the callout at "diagnostics" asked for
+  \`above\` and landed \`below\`: a line runs through that spot` — with the hint to ask for the landed
+  side or make room. Two of three writers had found the substitution only by measuring their SVG by
+  hand; the third read it wrong. The default side is a preference and moves silently.
+- `check`'s stats line says `scene N B (minified)`; the guide says an `ms: 0` annotation becomes
+  visible at its beat's end, so a frame at the step's start does not show it yet.
+- Report: `docs/reports/2026-09-08-anim-ir-v17.md`.
+
 ## 0.15.0 — 2026-09-08
 
 **`vlmkit-anim`: a still figure's own vocabulary for colour and kinship.**

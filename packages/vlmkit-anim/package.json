@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-anim",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Declarative explanatory animation IR: a semantic Scene IR (sorting, arrays with pointers, stacks, queues, linked lists, state machines, heaps, binary search trees, distributed systems, matrices, graphs, charts, concept diagrams, vector; several of them composed in panes; value / callout / snapshot / group / text / relate annotations over named anchors in every kind) compiled to a keyframe Timeline IR, rendered by a tiny SVG + Web Animations web component or sampled headlessly to SVG frames, GIF and video.",
   "license": "MIT",
   "author": "mizchi",

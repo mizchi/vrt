@@ -98,6 +98,15 @@ one brief, `modules-adapters-still`, that needs all of it: five things a
 reader must see in the figure itself, with a fact sheet that fixes what may be
 lit (writers `ja`, `jb`).
 
+v17 (2026-09-08) is about **where an annotation lands**: the canvas can now grow
+on any side to honour the `side` a writer asked for, and a callout's pointer
+goes round labelled boxes. Two briefs — `compiler-pipeline-still` (a module map
+on an architecture the guide's examples do not use, with three callouts each
+asked for on a named side, and its fact sheet) and `matrix-lcs-readouts` (a DP
+table with readouts asked `right` of rows and callouts `above` and `left` of
+cells) — ask each writer to record, per annotation, the side asked and the side
+it landed on, read off the SVG (writers `ka`–`kc`).
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from
@@ -106,4 +115,4 @@ caption arithmetic) was updated — the checker cannot read arithmetic, so that
 is a hand count.
 Reports: `docs/reports/2026-09-04-anim-ir-v*.md`, `docs/reports/2026-09-05-anim-ir-v{9,10,11,12}.md`,
 `docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`,
-`docs/reports/2026-09-08-anim-ir-v16.md`.
+`docs/reports/2026-09-08-anim-ir-v{16,17}.md`.

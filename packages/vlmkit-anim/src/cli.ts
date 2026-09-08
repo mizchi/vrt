@@ -340,7 +340,7 @@ export async function runAnimCli(argv: string[]): Promise<number> {
         console.log(`${ok ? "✓" : "✗"} ${basename(file)} (${stats.kind}): ${errs} error(s), ${warns} warning(s)`);
         const ann = stats.annotations ? ` · annotations: ${stats.annotations.drawn} drawn, ${stats.annotations.onScreen} on screen at the end` : "";
         console.log(`  ${stats.durationMs}ms · ${stats.steps} steps (${stats.captions} captioned) · ${stats.nodes} nodes · ${stats.tracks} tracks / ${stats.keyframes} keyframes${ann}`);
-        if (stats.sceneBytes) console.log(`  scene ${stats.sceneBytes} B → timeline ${stats.timelineBytes} B (×${stats.expansion})`);
+        if (stats.sceneBytes) console.log(`  scene ${stats.sceneBytes} B (minified) → timeline ${stats.timelineBytes} B (×${stats.expansion})`);
         if (expect) console.log(`  facts ${basename(expect.file)}: ${expect.compared} — ${expect.ok ? "all as drawn" : "see above"}`);
         console.log(`  next: vlmkit-anim explain ${file} · vlmkit-anim render ${file} --step N · vlmkit-anim html ${file} --out page.html`);
       }

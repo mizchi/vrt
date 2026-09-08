@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-capture",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Playwright + Crater capture infrastructure for VRT — viewport discovery, multi-route capture, prescanner.",
   "license": "MIT",
   "author": "mizchi",

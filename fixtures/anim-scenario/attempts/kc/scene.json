@@ -1,0 +1,23 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "matrix",
+  "title": "LCS(AB, BA) = 1",
+  "rowLabels": ["∅", "A", "B"],
+  "colLabels": ["∅", "B", "A"],
+  "cells": [
+    [0, 0, 0],
+    [0, null, null],
+    [0, null, null]
+  ],
+  "ops": [
+    { "callout": { "at": "0,0", "text": "empty prefixes share nothing: 0" }, "caption": "Every empty-prefix cell starts at 0" },
+    { "callout": null, "caption": "Now fill the rest of the table" },
+    { "set": { "cell": [1, 1], "value": 0, "from": [[0, 1], [1, 0]] }, "caption": "A ≠ B: max(above, left) = max(0, 0)" },
+    { "set": { "cell": [1, 2], "value": 1, "from": [[0, 1]] }, "caption": "A = A: copy the diagonal + 1" },
+    { "value": { "id": "rowA", "label": "A", "text": "[0, 0, 1]", "at": "row:A", "side": "right" }, "ms": 0 },
+    { "set": { "cell": [2, 1], "value": 1, "from": [[1, 0]] }, "caption": "B = B: copy the diagonal + 1" },
+    { "set": { "cell": [2, 2], "value": 1, "from": [[1, 2], [2, 1]] }, "caption": "B ≠ A: max(above, left) = max(1, 1)" },
+    { "value": { "id": "rowB", "label": "B", "text": "[0, 1, 1]", "at": "row:B", "side": "right" }, "ms": 0 },
+    { "callout": { "at": "2,2", "text": "the answer: one letter in common", "side": "left" }, "ms": 0 }
+  ]
+}

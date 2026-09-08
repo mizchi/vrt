@@ -1,0 +1,22 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": ["lexer", "parser", "typeck", "lower", "codegen", "diagnostics", "symbols"],
+  "deps": [
+    "parser->lexer",
+    "typeck->parser",
+    "typeck->symbols",
+    "lower->typeck",
+    "lower->symbols",
+    "codegen->lower",
+    "parser->diagnostics",
+    "typeck->diagnostics"
+  ],
+  "forbidden": ["codegen->parser"],
+  "highlighted": ["typeck->symbols"],
+  "groups": {
+    "frontend": ["lexer", "parser"],
+    "middle": ["typeck", "lower"],
+    "backend": ["codegen"],
+    "shared": ["diagnostics", "symbols"]
+  }
+}
