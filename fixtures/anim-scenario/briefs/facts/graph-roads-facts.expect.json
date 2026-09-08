@@ -1,0 +1,8 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "nodes": ["S", "A", "B", "C", "D", "T"],
+  "edges": ["S<->A", "S<->B", "A<->B", "A<->C", "B<->C", "B<->D", "C<->T", "D<->T"],
+  "visited": ["S", "A", "B", "C", "T", "D"],
+  "path": ["S", "A", "B", "C", "T"],
+  "labels": { "S": "0", "A": "2", "B": "4", "C": "5", "T": "7", "D": "8" }
+}

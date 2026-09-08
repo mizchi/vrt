@@ -1,0 +1,9 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "states": ["idle", "has-coin", "vending", "sold-out"],
+  "transitions": ["idle->has-coin:coin", "has-coin->idle:refund", "has-coin->vending:select", "vending->idle:dispensed", "vending->sold-out:last-item"],
+  "initial": "idle",
+  "final": ["sold-out"],
+  "visited": ["idle", "has-coin", "idle", "has-coin", "vending", "idle", "has-coin", "vending", "sold-out"],
+  "end": "sold-out"
+}

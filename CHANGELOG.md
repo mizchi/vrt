@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 Dates are YYYY-MM-DD.
 
+## 0.17.0 — 2026-09-08
+
+**`vlmkit-anim`: fact sheets for the walked kinds, and one written from the code.**
+
+- **`check --expect` reads `graph`, `state-machine` and `distributed` scenes.** A graph sheet has
+  `nodes`, `edges` (`"a->b"`, either way on an undirected graph, `"a<->b"` says so), `visited` (the
+  order of visits), `path` (the nodes lit at the end) and `labels`; a state-machine sheet has
+  `states`, `transitions` (`"a->b:event"`), `initial`, `final`, `visited` and `end`; a distributed
+  sheet has `nodes`, `messages` in order (`"a->b:label"`), `lost` and each node's final `status`.
+  Each fact is read from where its truth is — the scene, the compiled walk, the final frame — and
+  a sheet field the kind does not have is one error, not silence.
+- **`vlmkit-anim facts <dir> [--depth 1] [--tests] [--out f.json]`** writes a fact sheet from a
+  directory's import graph: the entries at that depth are the modules, every relative import
+  crossing between two of them a dependency. A module map drawn by hand from reading the code is
+  then checked against the code, not against the writer's memory of it.
+- Report: `docs/reports/2026-09-08-anim-ir-v18.md`.
+
 ## 0.16.0 — 2026-09-08
 
 **`vlmkit-anim`: the asked side is where the annotation goes.**

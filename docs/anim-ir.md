@@ -18,7 +18,9 @@ This page is the complete writing guide. Every JSON block on it passes
    vlmkit-anim render scene.json --at 2300   …at a time — what a step's own fade-in has drawn is only visible past its start
    vlmkit-anim frames scene.json --out dir [--png]   every step as a file, for looking at
    vlmkit-anim sheet scene.json --out sheet.png      every step on ONE labelled image — what to show a vision model
-   vlmkit-anim check scene.json --expect facts.json  …and the figure against its facts: modules, dependencies "a->b", forbidden ones, what is lit, group members
+   vlmkit-anim check scene.json --expect facts.json  …and the figure against its facts: modules, dependencies "a->b", forbidden ones, what is lit, group members;
+                                                     a graph's visits and path, a state machine's transitions and end state, a distributed scene's messages and lost ones
+   vlmkit-anim facts src --depth 1 --out f.json      a fact sheet from a directory's import graph, for a map drawn by hand from the code
    vlmkit-anim layout scene.json                     texts on texts, under boxes, past the edge, lines through texts — per step (check warns about these too)
    vlmkit-anim review scene.json --out dir           the sheet + a review brief for a vision model or an agent; --answers its JSON scores it
 5. vlmkit-anim html scene.json --out page.html       the playable page
@@ -664,12 +666,29 @@ vlmkit-anim check scene.json --expect facts.json
 | `groups` | `{"id": ["member", …]}`: each container holds exactly these members; a drawn group the list does not have is an error |
 
 Every field is optional and an absent field is not checked; a present one is
-checked exactly, both ways. Fact sheets for the four still-figure briefs are in
+checked exactly, both ways. Fact sheets for the still-figure briefs are in
 `fixtures/anim-scenario/briefs/facts/`; `vlmkit-anim repo` writes the
 workspace's own as `repo.expect.json`, so a map drawn by hand from the
-`package.json` files is checked against them rather than against itself.
-`vlmkit-anim schema --kind expect` prints the field list. The check applies to
-`modules` and `diagram`; other kinds have their own semantic checks.
+`package.json` files is checked against them rather than against itself, and
+`vlmkit-anim facts src --depth 1 --out src.expect.json` writes one from a
+directory's **import graph** — the entries at that depth are the modules, every
+relative import crossing between two of them a dependency — so a map drawn by
+hand from reading the code is checked against the code.
+`vlmkit-anim schema --kind expect` prints the field list.
+
+The walked kinds have sheets of their own, read from where each truth is: the
+scene for what is declared, the compiled walk for what it did, the final frame
+for what the reader sees.
+
+| kind | fields | |
+|---|---|---|
+| `graph` | `nodes`, `edges`, `visited`, `path`, `labels`, `highlighted` | `edges` are `"a->b"` — in that direction when `directed`, either way otherwise (`"a<->b"` says so). `visited` is the order of visits (the `visit` ops, or the algorithm's from `start`); `path` the nodes lit at the end, in order; `labels` `{"node": "text"}` what stands beside a node at the end; `highlighted` the nodes lit by `highlight` (a visited node is green, not lit) |
+| `state-machine` | `states`, `transitions`, `initial`, `final`, `visited`, `end` | `transitions` are `"a->b"` or `"a->b:event"` — with the event it must match. `final` are the states drawn with the double ring; `visited` the states the token walks, from `initial`; `end` where it stops, lit in the final frame |
+| `distributed` | `nodes`, `messages`, `lost`, `status` | `messages` are `"a->b"` or `"a->b:label"` in the order written (notes and annotations skipped); `lost` the ones that never land, and no other; `status` `{"node": "down"}` read from the final frame |
+
+A sheet field the kind does not have is one error saying so; the rest is
+compared. Other kinds (sort, matrix, chart, …) have their own semantic checks
+and no sheet yet.
 
 ## kind: vector
 

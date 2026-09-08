@@ -1,0 +1,38 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "batch-prescan",
+    "capture-config",
+    "capturer",
+    "cloudflare-quick-actions",
+    "crater-client",
+    "crater-smoke",
+    "crater-wasm",
+    "detection-types",
+    "gates",
+    "index",
+    "playwright-analyzer",
+    "playwright-launch-error",
+    "prescanner",
+    "route-capture",
+    "viewport-discovery"
+  ],
+  "deps": [
+    "batch-prescan->crater-client",
+    "crater-smoke->crater-client",
+    "gates->crater-smoke",
+    "index->batch-prescan",
+    "index->capture-config",
+    "index->cloudflare-quick-actions",
+    "index->crater-client",
+    "index->crater-smoke",
+    "index->crater-wasm",
+    "index->detection-types",
+    "index->playwright-analyzer",
+    "index->playwright-launch-error",
+    "index->prescanner",
+    "index->viewport-discovery",
+    "prescanner->detection-types",
+    "route-capture->capture-config"
+  ]
+}

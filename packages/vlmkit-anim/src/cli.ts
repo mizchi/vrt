@@ -16,6 +16,7 @@
  *   review    the contact sheet + a review brief for a vision model (or an agent); scores its JSON against `layout`
  *   repo      generate the workspace's architecture map (scene + GIF + sheet + markdown) from its package.json files
  *   pr        generate the change map of a commit range: areas touched per commit, import edges, running counts
+ *   facts     write a fact sheet (`check --expect`) from a directory's import graph: its entries as modules, imports as deps
  *   schema    the cheat sheet for one kind, the shared annotation ops (--kind annotations), or the index
  *
  * `check` is the command an agent runs after every edit; everything it prints
@@ -32,6 +33,7 @@ import { animStats, checkAnimation, explain } from "./check.ts";
 import { compileScene, SceneValidationError } from "./compile/index.ts";
 import { checkExpectation, EXPECT_SHEET, formatCompared, validateExpectation, type Expectation } from "./expect.ts";
 import { changeMapScene, workspaceExpectation, workspaceScene } from "./generators/git.ts";
+import { importFacts } from "./generators/imports.ts";
 import { renderFrameSvg, sampleTimes } from "./render-svg.ts";
 import { RUNTIME_SOURCE, renderEmbedHtml } from "./runtime.ts";
 import { currentStep, timelineDuration } from "./timeline.ts";
@@ -96,6 +98,12 @@ Commands
                                   with the dependencies that place them there. Writes <out>/repo.scene.json,
                                   repo.gif, repo.sheet.png, repo.md (the explain text with both images embedded)
                                   and repo.expect.json (the fact sheet a hand-drawn map is checked against).
+  facts <dir> [--depth 1] [--tests] [--out facts.expect.json]
+                                  The directory's import graph as a fact sheet for \`check --expect\`: the entries
+                                  at --depth are the modules (a directory is one module, a file is one), and every
+                                  relative import that crosses from one to another is a dependency "a->b". Test
+                                  files are skipped unless --tests. Prints the sheet when --out is not given, so a
+                                  map drawn by hand from the code is checked against the code.
   pr --base <ref> [--head HEAD] [--root .] [--out dir] [--title T] [--name pr] [--no-images]
                                   The change map of base..head: one beat per commit, the areas it touched light
                                   up, import edges between changed areas, running file / line counts. Same four
@@ -252,6 +260,24 @@ export async function runAnimCli(argv: string[]): Promise<number> {
     if (json) console.log(JSON.stringify(report, null, 2));
     else console.log(evaluator.formatAnimationEvalReport(report));
     return report.issues.some((issue) => issue.severity === "suspect") ? 1 : 0;
+  }
+
+  if (verb === "facts") {
+    const dir = positionals[0];
+    if (!dir) throw new UsageError("vlmkit-anim facts needs a directory: vlmkit-anim facts src --depth 1 --out src.expect.json");
+    const facts = importFacts(dir, { depth: readInt(rest, "--depth", { min: 1 }), tests: hasFlag(rest, "--tests") });
+    const out = readFlag(rest, "--out");
+    const text = JSON.stringify(facts.expectation, null, 2) + "\n";
+    if (out) {
+      await mkdir(dirname(resolve(out)), { recursive: true });
+      await writeFile(out, text);
+    }
+    const modules = facts.expectation.modules?.length ?? 0;
+    const deps = facts.expectation.deps?.length ?? 0;
+    if (json) console.log(JSON.stringify({ dir, out, files: facts.files, imports: facts.imports, modules, deps, members: facts.members, expectation: facts.expectation }, null, 2));
+    else if (out) console.log(`${out}: ${modules} module(s), ${deps} dependenc${deps === 1 ? "y" : "ies"} from ${facts.files} file(s) (${facts.imports} imports followed)\n  next: vlmkit-anim check scene.json --expect ${out}`);
+    else process.stdout.write(text);
+    return 0;
   }
 
   if (verb === "repo" || verb === "pr") {

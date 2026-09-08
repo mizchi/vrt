@@ -1,0 +1,18 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "nodes": ["coord", "p1", "p2"],
+  "messages": [
+    "coord->p1:prepare",
+    "coord->p2:prepare",
+    "p1->coord:yes",
+    "p2->coord:yes",
+    "coord->p1:commit",
+    "coord->p2:commit",
+    "p1->coord:ack",
+    "p2->coord:ack",
+    "coord->p2:commit again",
+    "p2->coord:ack again"
+  ],
+  "lost": ["p2->coord:ack"],
+  "status": { "coord": "leader", "p1": "up", "p2": "busy" }
+}

@@ -150,6 +150,8 @@ vlmkit-anim html scene.json --out page.html         # <vlm-anim> runtime inline;
 vlmkit-anim video scene.json --out demo.gif --width 480   # GIF encoded in-process; .mp4/.webm run ffmpeg or leave frames + the command
 vlmkit-anim eval page.html                          # the shared frame-sampled evaluator on an emitted page (same report as `vlmkit check animation`)
 vlmkit-anim check scene.json --expect facts.json    # …and the figure against its facts (modules, deps "a->b", forbidden, highlighted in the final frame, group members) — a green check on a wrong picture was v13's finding
+vlmkit-anim check walk.json --expect facts.json     # …a graph's visit order and path, a state machine's transitions / end state, a distributed scene's messages and lost ones (v18)
+vlmkit-anim facts packages/x/src --depth 1 --out x.expect.json   # a fact sheet from a directory's import graph: a map drawn by hand from the code is checked against the code
 vlmkit-anim layout scene.json                       # texts on texts / under boxes / past the edge / lines through texts, per step, from the timeline (also warnings in `check`)
 vlmkit-anim review scene.json --out dir [--model M | --answers a.json]   # contact sheet + review brief for a vision model or an agent; scores its JSON against `layout`
 vlmkit-anim repo --out docs/diagrams --name vlmkit-architecture   # the workspace drawn layer by layer (pnpm anim:diagrams regenerates docs/diagrams/)

@@ -133,7 +133,7 @@ describe("expect: what else it reads", () => {
   it("any other kind is one error: the facts have nothing to compare with", () => {
     const sort: Scene = { format: SCENE_FORMAT, kind: "sort", values: [3, 1, 2], algorithm: "bubble" };
     const msgs = messages({ format: EXPECT_FORMAT, deps: ["a->b"] }, sort);
-    assert.deepEqual(msgs, ['--expect reads a "modules" or "diagram" scene; this scene is a "sort"']);
+    assert.deepEqual(msgs, ['--expect reads a "modules", "diagram", "graph", "state-machine", "distributed" scene; this scene is a "sort"']);
   });
 
   it("an absent field is not checked: an empty sheet passes anything and says so", () => {
