@@ -66,7 +66,8 @@ describe("state-machine: a transition bends around a state in its way (ib, v15)"
     // The token still walks it: the trace's キャンセル要求 from paid lands on refunded.
     const end = sampleFrame(tl, timelineDuration(tl));
     const refunded = tl.nodes.find((n) => n.id === "state-refunded")!;
-    assert.deepEqual(end.get("token")!.pos.map(Math.round), refunded.pos!.map(Math.round));
+    // The token rests on the top of the state's rim (v18: at the centre it covered a short label).
+    assert.deepEqual(end.get("token")!.pos.map(Math.round), [Math.round(refunded.pos![0]), Math.round(refunded.pos![1] - refunded.r!)]);
   });
 
   it("the writer's reordered scene stays clean too", () => {

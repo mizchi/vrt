@@ -107,7 +107,13 @@ export function checkTimeline(tl: Timeline): Diagnostic[] {
   // count and nothing else complains (v9: five long-labelled states laid out `lr` gave 4266px).
   const WIDE = 2000;
   if (width > WIDE || height > WIDE) {
-    out.push(warn("canvas", `the canvas is ${width}×${height}: on a 1280px-wide screen it shrinks to ${Math.round((1280 / Math.max(width, height)) * 100)}% and labels stop being legible`, 'use "layout": "tb" or "circle", shorten labels, or split the scene'));
+    // Which side is over, by how much, and the layouts this kind has (ld, v18: the percentage was computed off the
+    // larger side while the text said "wide", and "circle" was offered to a modules scene that has no circle).
+    const over = width >= height ? "width" : "height";
+    const shrink = Math.round(Math.min(1280 / width, 720 / height) * 100);
+    const kind = tl.meta?.kind;
+    const layouts = kind === "modules" || kind === "diagram" ? '"layout": "tb" or "lr"' : kind === "state-machine" || kind === "graph" ? '"layout": "tb", "lr" or "circle"' : "another layout";
+    out.push(warn("canvas", `the canvas is ${width}×${height}: its ${over} is over ${WIDE}px, so on a 1280×720 screen it shrinks to ${shrink}% and labels stop being legible`, `bring the ${over} under ${WIDE}px: ${layouts}, shorter labels, or split the scene`));
   }
   // Steps without captions are legal but explain nothing.
   const steps = tl.steps ?? [];
@@ -526,9 +532,15 @@ export function checkLayout(tl: Timeline): Diagnostic[] {
       : "move one of them, shorten the text, or widen the canvas — in a laid-out kind (state-machine, graph, modules, diagram) try another `layout`, or reorder the nodes list: ties in `lr` / `tb` follow it";
     if (issue.kind === "clipped") out.push(warn(`nodes(${issue.nodes[0]})`, `"${issue.texts[0]}" runs ${issue.amount}px past the canvas edge ${where}`, hint));
     else if (issue.kind === "crossed") {
+      // In the kind's own words (la, v18: the modules wording — "that layer", "one group" — fired on a graph).
+      const kind = tl.meta?.kind;
       const edgeHint = annotation
         ? hint
-        : "an edge runs through a box that is not one of its ends — reorder the modules in that layer, put the two in one group, or shorten the label so the layout has room";
+        : kind === "graph"
+          ? "an edge runs through a text that is not one of its ends — the `circle` layout follows the `nodes` list, so reorder it, pin the node with `pos`, or try `layout`: `lr` / `tb` / `grid`"
+          : kind === "state-machine"
+            ? "a transition runs through a state or a label that is not one of its ends — reorder `states` (ties in `lr` / `tb` follow the list) or try another `layout`"
+            : "an edge runs through a box that is not one of its ends — reorder the modules in that layer, put the two in one group, or shorten the label so the layout has room";
       out.push(warn(`nodes(${issue.nodes[0]})`, `"${issue.texts[0]}" has a line through it (${issue.nodes[1]}, ${issue.amount}px) ${where}`, edgeHint));
     } else {
       const other = issue.texts[1] ? `"${issue.texts[1]}"` : issue.nodes[1];

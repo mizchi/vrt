@@ -107,6 +107,17 @@ table with readouts asked `right` of rows and callouts `above` and `left` of
 cells) — ask each writer to record, per annotation, the side asked and the side
 it landed on, read off the SVG (writers `ka`–`kc`).
 
+v18 (2026-09-08) gives the walked kinds fact sheets — a graph's visit order and
+path, a state machine's transitions with events and its end state, a distributed
+scene's messages in order and which are lost — and adds `vlmkit-anim facts`, a
+sheet written from a directory's import graph. Four briefs, one per sheet:
+`graph-roads-facts` (Dijkstra on a road map; the sheet fixes the visit order),
+`state-vending-facts` (a trace the sheet fixes state by state),
+`distributed-2pc-facts` (two-phase commit with one lost ack, checked message by
+message) and `imports-capture-map` (`packages/vlmkit-capture/src` drawn from its
+source and checked against `facts/imports-capture-map.expect.json`, which the
+tool wrote from the same imports) — writers `la`–`ld`.
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from
@@ -115,4 +126,4 @@ caption arithmetic) was updated — the checker cannot read arithmetic, so that
 is a hand count.
 Reports: `docs/reports/2026-09-04-anim-ir-v*.md`, `docs/reports/2026-09-05-anim-ir-v{9,10,11,12}.md`,
 `docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`,
-`docs/reports/2026-09-08-anim-ir-v{16,17}.md`.
+`docs/reports/2026-09-08-anim-ir-v{16,17,18}.md`.

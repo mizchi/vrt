@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-plan",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Planner contract for Playwright test generation: turns a user story, seed test, PRD, and UI observations into a Markdown test plan.",
   "license": "MIT",
   "author": "mizchi",

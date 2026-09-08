@@ -1,0 +1,30 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "state-machine",
+  "title": "Vending machine: the last item",
+  "canvas": { "width": 1800, "height": 700 },
+  "states": [
+    { "id": "idle", "pos": [120, 200] },
+    { "id": "has-coin", "pos": [600, 150] },
+    { "id": "vending", "pos": [1050, 350] },
+    { "id": "sold-out", "final": true, "pos": [1400, 550] }
+  ],
+  "initial": "idle",
+  "transitions": [
+    { "from": "idle", "to": "has-coin", "on": "coin" },
+    { "from": "has-coin", "to": "idle", "on": "refund" },
+    { "from": "has-coin", "to": "vending", "on": "select" },
+    { "from": "vending", "to": "idle", "on": "dispensed" },
+    { "from": "vending", "to": "sold-out", "on": "last-item" }
+  ],
+  "trace": [
+    "coin",
+    "refund",
+    "coin",
+    "select",
+    "dispensed",
+    "coin",
+    "select",
+    "last-item"
+  ]
+}

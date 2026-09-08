@@ -63,7 +63,13 @@ export function compileDistributed(scene: DistributedScene): Timeline {
       for (const nd of nodes) free.set(nd.id, Math.max(free.get(nd.id) ?? 0, lands)); // everyone waits
       continue;
     }
-    if (m.label !== undefined) landed.set(m.label, lands);
+    // An anchor is the label, or `from->to:label` / `from->to` when the label is used more than once (lc, v18: every
+    // label in a two-participant commit is sent twice, and a note had to stand in for the timeout).
+    if (m.label !== undefined) {
+      landed.set(m.label, lands);
+      landed.set(`${m.from}->${m.to}:${m.label}`, lands);
+    }
+    landed.set(`${m.from}->${m.to}`, lands);
     free.set(m.from, Math.max(free.get(m.from) ?? 0, lands));
     if (!m.lost) free.set(m.to, Math.max(free.get(m.to) ?? 0, lands));
   }

@@ -1,0 +1,19 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "graph",
+  "title": "Shortest route S → T",
+  "nodes": ["S", "A", "D", "C", "B", "T"],
+  "edges": [
+    { "from": "S", "to": "A", "weight": 2 },
+    { "from": "S", "to": "B", "weight": 5 },
+    { "from": "A", "to": "B", "weight": 2 },
+    { "from": "A", "to": "C", "weight": 6 },
+    { "from": "B", "to": "C", "weight": 1 },
+    { "from": "B", "to": "D", "weight": 5 },
+    { "from": "C", "to": "T", "weight": 2 },
+    { "from": "D", "to": "T", "weight": 1 }
+  ],
+  "algorithm": "dijkstra",
+  "start": "S",
+  "goal": "T"
+}

@@ -1,0 +1,78 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "packages/vlmkit-capture/src — modules and their relative imports",
+  "modules": [
+    "index",
+    "capturer",
+    { "id": "playwright-analyzer", "label": "pw-analyzer" },
+    { "id": "playwright-launch-error", "label": "pw-launch-err" },
+    { "id": "route-capture", "label": "route-cap" },
+    { "id": "viewport-discovery", "label": "viewport" },
+    { "id": "cloudflare-quick-actions", "label": "cf-actions" },
+    { "id": "capture-config", "label": "cap-config" },
+    { "id": "crater-client", "label": "cr-client" },
+    { "id": "crater-smoke", "label": "cr-smoke" },
+    { "id": "crater-wasm", "label": "cr-wasm" },
+    { "id": "batch-prescan", "label": "batch-pre" },
+    "prescanner",
+    "gates",
+    { "id": "detection-types", "label": "det-types" }
+  ],
+  "deps": [
+    ["route-capture", "capture-config"],
+    ["crater-smoke", "crater-client"],
+    ["index", "capture-config"],
+    ["index", "viewport-discovery"],
+    ["index", "playwright-launch-error"],
+    ["index", "cloudflare-quick-actions"],
+    ["index", "playwright-analyzer"],
+    ["index", "prescanner"],
+    ["index", "crater-client"],
+    ["index", "crater-wasm"],
+    ["index", "crater-smoke"],
+    ["index", "detection-types"],
+    ["index", "batch-prescan"],
+    ["gates", "crater-smoke"],
+    ["prescanner", "detection-types"],
+    ["batch-prescan", "crater-client"]
+  ],
+  "groups": [
+    {
+      "id": "public",
+      "label": "public surface",
+      "modules": ["index"]
+    },
+    {
+      "id": "playwright",
+      "label": "Playwright side",
+      "modules": [
+        "capturer",
+        "playwright-analyzer",
+        "playwright-launch-error",
+        "route-capture",
+        "viewport-discovery",
+        "cloudflare-quick-actions",
+        "capture-config"
+      ]
+    },
+    {
+      "id": "crater",
+      "label": "Crater side",
+      "modules": [
+        "crater-client",
+        "crater-smoke",
+        "crater-wasm",
+        "batch-prescan",
+        "prescanner",
+        "gates"
+      ]
+    },
+    {
+      "id": "shared",
+      "label": "shared types",
+      "modules": ["detection-types"]
+    }
+  ],
+  "layout": "tb"
+}

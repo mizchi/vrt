@@ -96,6 +96,12 @@ function orderLayers(ordered: string[][], edges: [string, string][]): void {
   }
 }
 
+/** The ring radius on which `n` boxes of `size` sit without touching: the chord between neighbours is the size plus a gap. */
+export function circleRadius(n: number, size: number): number {
+  if (n <= 1) return 0;
+  return Math.ceil((size + 12) / (2 * Math.sin(Math.PI / n)));
+}
+
 export function layoutNodes(input: LayoutInput, mode: LayoutMode): Map<string, [number, number]> {
   const { ids, width, height, nodeW, nodeH } = input;
   const pos = new Map<string, [number, number]>(input.fixed);
@@ -107,7 +113,9 @@ export function layoutNodes(input: LayoutInput, mode: LayoutMode): Map<string, [
   if (mode === "circle") {
     const cx = width / 2;
     const cy = height / 2;
-    const r = Math.max(10, Math.min(width, height) / 2 - Math.max(nodeW, nodeH));
+    // Wide enough that neighbours on the ring do not touch (lb, v18: four states on a 270px frame were laid on
+    // a 35px ring, every state on every other); the compilers size the canvas from `circleRadius` first.
+    const r = Math.max(10, Math.min(width, height) / 2 - Math.max(nodeW, nodeH), circleRadius(free.length, Math.max(nodeW, nodeH)));
     free.forEach((id, i) => {
       const a = -Math.PI / 2 + (2 * Math.PI * i) / free.length;
       pos.set(id, [Math.round(cx + r * Math.cos(a)), Math.round(cy + r * Math.sin(a))]);
