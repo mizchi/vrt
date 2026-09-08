@@ -1,0 +1,203 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "diagram",
+  "title": "PR #140: vlmkit-anim 0.18.0: kinds `flowchart` and `gantt` (anim-ir v19)",
+  "layout": "grid",
+  "canvas": {
+    "width": 1283,
+    "height": 438
+  },
+  "nodes": [
+    {
+      "id": "fixtures/anim-scenario",
+      "label": "fixtures/anim-scenario",
+      "hidden": true
+    },
+    {
+      "id": "anim/src",
+      "label": "anim/src",
+      "hidden": true
+    },
+    {
+      "id": "anim/samples",
+      "label": "anim/samples",
+      "hidden": true
+    },
+    {
+      "id": "root",
+      "label": "root",
+      "hidden": true
+    },
+    {
+      "id": "anim/fixtures",
+      "label": "anim/fixtures",
+      "hidden": true
+    },
+    {
+      "id": ".claude",
+      "label": ".claude",
+      "hidden": true
+    },
+    {
+      "id": "docs",
+      "label": "docs",
+      "hidden": true
+    },
+    {
+      "id": ".apm/skills",
+      "label": ".apm/skills",
+      "hidden": true
+    },
+    {
+      "id": "examples/vlmkit-intro-page",
+      "label": "examples/vlmkit-intro-page",
+      "hidden": true
+    },
+    {
+      "id": "ai",
+      "label": "ai",
+      "hidden": true
+    },
+    {
+      "id": "anim",
+      "label": "anim",
+      "hidden": true
+    },
+    {
+      "id": "animation-eval",
+      "label": "animation-eval",
+      "hidden": true
+    },
+    {
+      "id": "capture",
+      "label": "capture",
+      "hidden": true
+    },
+    {
+      "id": "other (9 areas)",
+      "label": "other (9 areas)",
+      "hidden": true
+    }
+  ],
+  "edges": [],
+  "sequence": [
+    {
+      "show": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "caption": "1/2 vlmkit-anim 0.18.0: kinds `flowchart` and `gantt` (anim-ir v19, impleme…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 42
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1320 −31"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".claude",
+        "root",
+        "docs",
+        "other (9 areas)",
+        "fixtures/anim-scenario",
+        "anim/fixtures",
+        "anim/samples",
+        "anim/src"
+      ],
+      "caption": "2/2 anim-ir v19: the writers' attempts, cascading slips, task owners, the r…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 55
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+2497 −63"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".claude",
+        "root",
+        "docs",
+        "other (9 areas)",
+        "fixtures/anim-scenario",
+        "anim/fixtures",
+        "anim/samples",
+        "anim/src"
+      ],
+      "ms": 0
+    },
+    {
+      "note": "2 commits · 55 files · +2497 −63 · 14 areas, 0 import edges between them"
+    }
+  ]
+}
