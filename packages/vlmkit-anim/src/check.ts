@@ -12,6 +12,7 @@
 
 import { moduleCycles } from "./compile/modules.ts";
 import { layoutReport, type LayoutFrame, type LayoutIssue } from "./layout.ts";
+import type { Placement } from "./compile/annotate.ts";
 import { sampleFrame, timelineDuration, worldPos } from "./timeline.ts";
 import { compileScene } from "./compile/index.ts";
 import type { Diagnostic, Scene, Timeline } from "./types.ts";
@@ -537,8 +538,24 @@ export function checkLayout(tl: Timeline): Diagnostic[] {
   return out;
 }
 
+/**
+ * Annotations whose asked `side` was not honoured (v17). The compiler moves a note when its spot would cover a
+ * text, run through a line or leave the canvas by too much; two writers found out only by measuring the SVG.
+ * A warning, not an error: the picture is clean, but it is not the one the writer asked for.
+ */
+export function checkPlacements(tl: Timeline): Diagnostic[] {
+  const notes = (tl.meta as { placements?: Placement[] } | undefined)?.placements ?? [];
+  return notes.map((p) =>
+    warn(
+      `${p.path}.${p.op}.side`,
+      `the ${p.op} at "${p.at}" asked for \`${p.asked}\` and landed \`${p.landed}\`: ${p.reason}`,
+      `if ${p.landed} reads fine, ask for it (or drop \`side\`) and this goes away; otherwise make room on the ${p.asked}: a shorter text, or anchor it at a thing whose ${p.asked} side is free`,
+    ),
+  );
+}
+
 export function checkAnimation(tl: Timeline, scene?: Scene): Diagnostic[] {
-  let out = [...checkTimeline(tl), ...checkLayout(tl)];
+  let out = [...checkTimeline(tl), ...checkLayout(tl), ...checkPlacements(tl)];
   if (!scene) return out;
   // A module map without a sequence is a still figure by design: that nothing moves is not a warning.
   if (scene.kind === "modules" && !(scene.sequence ?? []).length) out = out.filter((d) => d.path !== "tracks");

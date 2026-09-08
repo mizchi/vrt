@@ -25,7 +25,7 @@
 import { ANNOTATION_ACTIONS, type AnnotationOp, type AnnotationSide as Side, type CalloutSpec, type Diagnostic, type GroupSpec, type RelateSpec, type SnapshotSpec, type TextSpec, type ValueSpec, type Vec2 } from "../types.ts";
 import type { Builder } from "./builder.ts";
 import { boxRadius, labelWidth, wrapText } from "./builder.ts";
-import { segmentInside } from "./route.ts";
+import { routeAround, segmentInside } from "./route.ts";
 import { strokeSegments } from "../layout.ts";
 
 type Seg = [Vec2, Vec2];
@@ -56,6 +56,16 @@ const PANEL_GAP = 16;
  * is sized for a wrapped one — eb's readout, grown onto a 32px band, sat on the second line of its caption.
  */
 const CAPTION_BAND = 64;
+
+/** An annotation that asked for one side and landed on another, and why. Carried in `Timeline.meta.placements`. */
+export interface Placement {
+  path: string;
+  op: "value" | "callout" | "text";
+  at: string;
+  asked: Side;
+  landed: Side;
+  reason: string;
+}
 
 interface Box {
   x: number;
@@ -109,6 +119,10 @@ export class Annotations {
   private panelNeed = PANEL_WIDTH;
   /** Height a relation asked for below the kind's own canvas, when a level line missed fitting by a little. */
   private extraH = 0;
+  /** Room an annotation asked for past the top / left / right edge (v17): the Builder shifts the picture to make it. */
+  private extraTop = 0;
+  private extraLeft = 0;
+  private extraRight = 0;
   private serial = 0;
 
   private readonly b: Builder;
@@ -126,14 +140,38 @@ export class Annotations {
     return [...this.anchors.keys()];
   }
 
-  /** Extra canvas width the panel needs; 0 when nothing used it. */
+  /** Extra canvas width the panel needs (and any growth past the right edge); 0 when nothing used it. */
   extraWidth(): number {
-    return this.panelUsed ? this.panelNeed + PANEL_GAP : 0;
+    return (this.panelUsed ? this.panelNeed + PANEL_GAP : 0) + this.extraRight;
   }
 
-  /** Extra canvas height a relation needed; 0 when none did. */
+  /** Extra canvas height a relation or an annotation needed below; 0 when none did. */
   extraHeight(): number {
     return this.extraH;
+  }
+
+  /** Room asked for above the canvas; the Builder shifts everything down by it. */
+  extraTopHeight(): number {
+    return this.extraTop;
+  }
+
+  /** Room asked for left of the canvas; the Builder shifts everything right by it. */
+  extraLeftWidth(): number {
+    return this.extraLeft;
+  }
+
+  // The canvas as it stands, growth included: annotations may sit anywhere within these bounds.
+  private x0(): number {
+    return -this.extraLeft;
+  }
+  private y0(): number {
+    return -this.extraTop;
+  }
+  private x1(): number {
+    return this.b.width + this.extraWidth();
+  }
+  private y1(): number {
+    return this.b.height + this.extraH - CAPTION_BAND;
   }
 
   /** True when `op` was an annotation op and has been applied at `t`. */
@@ -206,9 +244,36 @@ export class Annotations {
         const [p, q] = n.points ?? [[0, 0], [0, 0]];
         return union(box(cx + p[0], cy + p[1], 0, 0), box(cx + q[0], cy + q[1], 0, 0));
       }
+      case "path": {
+        // A bent edge (v15 routing) is its waypoints, not the point it starts from: a callout on one used to
+        // point at the edge's first end, and (v17) route its pointer round the very module the edge leaves.
+        const segs = strokeSegments(n, [cx, cy]);
+        if (!segs.length) return box(cx, cy, 0, 0);
+        return segs.flatMap((sg) => [box(sg[0][0], sg[0][1], 0, 0), box(sg[1][0], sg[1][1], 0, 0)]).reduce(union);
+      }
       default:
         return box(cx, cy, 0, 0);
     }
+  }
+
+  /** The point half-way along a stroke node (line, arrow, path) by length; undefined for anything else. */
+  private strokeMid(id: string, t: number): Vec2 | undefined {
+    const n = this.b.nodes.find((x) => x.id === id);
+    if (!n || (n.shape !== "line" && n.shape !== "arrow" && n.shape !== "path")) return undefined;
+    const [x, y] = (this.b.valueAt(id, "pos", t) as Vec2 | undefined) ?? [0, 0];
+    const [px, py] = n.parent ? ((this.b.valueAt(n.parent, "pos", t) as Vec2 | undefined) ?? [0, 0]) : [0, 0];
+    const segs = strokeSegments(n, [x + px, y + py]);
+    if (!segs.length) return undefined;
+    const lens = segs.map((sg) => Math.hypot(sg[1][0] - sg[0][0], sg[1][1] - sg[0][1]));
+    let rest = lens.reduce((a, l) => a + l, 0) / 2;
+    for (let k = 0; k < segs.length; k++) {
+      if (rest <= lens[k] || k === segs.length - 1) {
+        const f = lens[k] ? Math.min(1, rest / lens[k]) : 0;
+        return [segs[k][0][0] + (segs[k][1][0] - segs[k][0][0]) * f, segs[k][0][1] + (segs[k][1][1] - segs[k][0][1]) * f];
+      }
+      rest -= lens[k];
+    }
+    return undefined;
   }
 
   private anchorBox(name: string, t: number, path: string): Box {
@@ -220,8 +285,8 @@ export class Annotations {
     const dx = n[0] * sign;
     const dy = n[1] * sign;
     // The panel, when something used it, widens the canvas to the right; the caption owns the bottom band.
-    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? this.b.width + this.extraWidth() - (b.x + b.w) : b.x;
-    return dy > 0 ? this.b.height + this.extraH - CAPTION_BAND - (b.y + b.h) : b.y;
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? this.x1() - (b.x + b.w) : b.x - this.x0();
+    return dy > 0 ? this.y1() - (b.y + b.h) : b.y - this.y0();
   }
 
   /**
@@ -376,6 +441,20 @@ export class Annotations {
 
   /** The side `placeBeside` last chose, for a pointer that has to leave the box on that side. */
   private placedSide: Side = "above";
+  /** Why the asked side was not clear on the last `placeBeside`, when it was not; undefined when it was taken. */
+  private lastReason: string | undefined;
+  /** Every annotation whose asked `side` was not the one it landed on (v17): `check` reports them. */
+  private readonly placements: Placement[] = [];
+
+  placementNotes(): Placement[] {
+    return this.placements;
+  }
+
+  /** Record a side that was asked for and not honoured, with what was in the way. */
+  private notePlacement(path: string, op: Placement["op"], at: string, asked: Side | undefined): void {
+    if (!asked || asked === this.placedSide) return;
+    this.placements.push({ path, op, at, asked, landed: this.placedSide, reason: this.lastReason ?? "no clear spot there" });
+  }
 
   private placeBeside(target: Box, w: number, h: number, side: Side, gap: number, own: Set<string>, t: number, pointer = false): Vec2 {
     const order: Side[] = [side, ...(["above", "right", "below", "left"] as Side[]).filter((s) => s !== side)];
@@ -412,8 +491,7 @@ export class Annotations {
       return s;
     };
     // Inside the canvas as it stands, panel included when something opened it.
-    const inside = (box: Box): boolean =>
-      box.x >= 0 && box.y >= 0 && box.x + box.w <= this.b.width + this.extraWidth() && box.y + box.h <= this.b.height + this.extraH - CAPTION_BAND;
+    const inside = (box: Box): boolean => box.x >= this.x0() && box.y >= this.y0() && box.x + box.w <= this.x1() && box.y + box.h <= this.y1();
     const boxAt = (cx: number, cy: number): Box => ({ x: cx - w / 2, y: cy - h / 2, w, h });
     // A spot inside the panel takes panel rows, so the readouts stacked there later start below it (ec, v12:
     // a callout moved into the panel and the code block was laid over it).
@@ -429,16 +507,57 @@ export class Annotations {
     // A box above or below slides sideways to stay on the canvas (and one beside slides up or down): a wide
     // callout on a node at the left edge is otherwise never "inside" on the side it was asked for, and lands
     // on whatever is to the right (fc, v13).
-    const W = this.b.width + this.extraWidth();
-    const H = this.b.height + this.extraH - CAPTION_BAND;
+    const X0 = this.x0();
+    const Y0 = this.y0();
+    const W = this.x1();
+    const H = this.y1();
     const slid = (cx: number, cy: number, s: Side): Box => {
       const box = boxAt(cx, cy);
-      if (s === "above" || s === "below") box.x = Math.max(0, Math.min(W - box.w, box.x));
-      else box.y = Math.max(0, Math.min(H - box.h, box.y));
+      if (s === "above" || s === "below") box.x = Math.max(X0, Math.min(W - box.w, box.x));
+      else box.y = Math.max(Y0, Math.min(H - box.h, box.y));
       return box;
     };
+    // A spot just past an edge: how far past it the box reaches on that side (it must be inside on the others),
+    // and how bad the spot is. Growth is bounded — a note a whole picture away is not beside anything.
+    const pastEdge = (s: Side, k: number): { box: Box; need: number; bad: number } | undefined => {
+      const step = s === "above" || s === "below" ? h + 6 : w + 6;
+      const [cx, cy] = this.beside(target, w, h, s, gap + k * step);
+      const box = slid(cx, cy, s);
+      const need = s === "below" ? box.y + box.h - H : s === "above" ? Y0 - box.y : s === "left" ? X0 - box.x : box.x + box.w - W;
+      const othersInside =
+        (s === "below" || s === "above" ? box.x >= X0 && box.x + box.w <= W : box.y >= Y0 && box.y + box.h <= H) &&
+        (s === "below" ? box.y >= Y0 : s === "above" ? box.y + box.h <= H : s === "left" ? box.x + box.w <= W : box.x >= X0);
+      if (!othersInside || need > 120 || (s === "right" && this.panelUsed)) return undefined;
+      return { box, need, bad: badness(box) };
+    };
+    // What stands in the way on the asked side, in the writer's words: `check` reports it when the annotation
+    // lands elsewhere (ka, kc, v17: two of four asked sides were swapped and nothing said so).
+    const reason = (box: Box): string | undefined => {
+      const visible = (n: (typeof this.b.nodes)[number]) => !own.has(n.id) && (this.b.valueAt(n.id, "opacity", t) ?? 1) !== 0;
+      const covered = this.b.nodes.find((n) => (n.shape === "text" || n.text !== undefined) && visible(n) && intersects(this.nodeBox(n.id, t), box));
+      if (covered) return `it would cover "${covered.text ?? covered.id}"`;
+      if (this.crossedBy(box, strokes) >= 8) return "a line runs through that spot";
+      if (pointer) {
+        const through = this.b.nodes.find((n) => (n.shape === "text" || n.text !== undefined) && visible(n) && segmentInside([[box.x + box.w / 2, box.y + box.h / 2], tc], this.nodeBox(n.id, t)) > 6);
+        if (through) return `its pointer would run through "${through.text ?? through.id}"`;
+      }
+      if (!inside(box)) {
+        const past = Math.max(X0 - box.x, box.x + box.w - W, Y0 - box.y, box.y + box.h - H);
+        return `it lies ${Math.round(past)}px past the canvas edge, more than the canvas grows for one note`;
+      }
+      return undefined;
+    };
+    {
+      const [cx, cy] = this.beside(target, w, h, side, gap);
+      this.lastReason = reason(slid(cx, cy, side));
+    }
     let best: { box: Box; side: Side; score: number; need: number } | undefined;
-    for (let k = 0; k < 4; k++) {
+    // The side the writer asked for, when it is clear but lies just past the canvas edge, wins over a clear spot
+    // on another side (v17): "left" of the entry module means left, and the canvas grows to make the room — not
+    // "above" because that happened to fit. Before, the asked side was honoured only when the canvas already had it.
+    const askedPast = pastEdge(side, 0);
+    if (askedPast && askedPast.need > 0 && askedPast.bad === 0) best = { box: askedPast.box, side, score: 0, need: askedPast.need };
+    for (let k = 0; k < 4 && !best; k++) {
       for (const s of order) {
         const step = s === "above" || s === "below" ? h + 6 : w + 6;
         const [cx, cy] = this.beside(target, w, h, s, gap + k * step);
@@ -452,19 +571,35 @@ export class Annotations {
         if (!best || score < best.score) best = { box, side: s, score, need: 0 };
       }
     }
-    // Nothing clear on the canvas as it stands: the bottom edge can grow. A spot below that covers no text is
-    // worth the height it needs, within reason — and beats a spot on the canvas that covers one.
-    for (let k = 0; k < 4; k++) {
-      const [cx, cy] = this.beside(target, w, h, "below", gap + k * (h + 6));
-      const box = slid(cx, cy, "below");
-      const need = box.y + box.h + CAPTION_BAND - (this.b.height + this.extraH);
-      if (box.x < 0 || box.x + box.w > W || need > 120) continue;
-      const score = badness(box) + Math.max(0, need) / 10;
-      if (score >= 1000) continue;
-      if (!best || score < best.score) best = { box, side: "below", score, need };
+    // Nothing clear on the canvas as it stands: an edge can grow. A spot past an edge that covers no text is
+    // worth the room it needs, within reason — and beats a spot on the canvas that covers one. The asked side
+    // first, then below (v11), then above, left and right (v17: fd's callout on a module at the top-left corner
+    // had nowhere on the canvas, and the canvas could only grow down). The right edge grows only while the
+    // readout panel is not there. A clear spot on the asked side wins outright — "right" of a row means the
+    // canvas grows to the right, not that a readout lands above the title because that needed fewer pixels.
+    const growable: Side[] = [side, "below", "above", "left", "right"].filter((s, i, a) => a.indexOf(s) === i) as Side[];
+    for (const s of growable) {
+      if (best?.score === 0) break;
+      for (let k = 0; k < 4; k++) {
+        const c = pastEdge(s, k);
+        if (!c) continue;
+        if (c.bad === 0 && s === side) {
+          best = { box: c.box, side: s, score: 0, need: c.need };
+          break;
+        }
+        const score = c.bad + Math.max(0, c.need) / 10 + (s === "below" ? 0 : 1);
+        if (score >= 1000) continue;
+        if (!best || score < best.score) best = { box: c.box, side: s, score, need: c.need };
+      }
     }
     if (best) {
-      if (best.need > 0) this.extraH += Math.ceil(best.need);
+      if (best.need > 0) {
+        const grow = Math.ceil(best.need);
+        if (best.side === "below") this.extraH += grow;
+        else if (best.side === "above") this.extraTop += grow;
+        else if (best.side === "left") this.extraLeft += grow;
+        else this.extraRight += grow;
+      }
       this.placedSide = best.side;
       return take(best.box);
     }
@@ -508,6 +643,7 @@ export class Annotations {
       const w = labelWidth(`${label}: ${text}`, T.fontSize - 1);
       const h = T.fontSize * 1.4;
       const [cx, cy] = this.placeBeside(target, w, h, side, 10, new Set(this.anchors.get(spec.at) ?? []), t);
+      this.notePlacement(path, "value", spec.at, spec.side);
       // Haloed: a readout beside a node sits where lifelines and edges run, and reads over them.
       this.b.node({ id: labelId, shape: "text", pos: [cx - w / 2, cy], text: `${label}:`, fontSize: T.fontSize - 2, color: T.muted, anchor: "start", halo: true, opacity: 0 });
       const lx = cx - w / 2 + labelWidth(`${label}:`, T.fontSize - 2) - (T.fontSize - 2) * 1.2;
@@ -537,8 +673,13 @@ export class Annotations {
     let target = this.anchorBox(spec.at, t, `${path}.callout.at`);
     // An edge or a message is pointed at by its middle: "beside" the whole span of a diagonal would be far
     // from the line the callout is about.
-    const anchored = this.resolve(spec.at, `${path}.callout.at`).map((nid) => this.b.nodes.find((n) => n.id === nid)?.shape);
-    if (anchored.length && anchored.every((s) => s === "line" || s === "arrow" || s === "path")) target = box(target.x + target.w / 2, target.y + target.h / 2, 16, 16);
+    // The middle by length, so a bent edge is pointed at on the line, not at the centre of its bounding box.
+    const anchoredIds = this.resolve(spec.at, `${path}.callout.at`);
+    const anchored = anchoredIds.map((nid) => this.b.nodes.find((n) => n.id === nid)?.shape);
+    if (anchored.length && anchored.every((s) => s === "line" || s === "arrow" || s === "path")) {
+      const mid = anchoredIds.length === 1 ? this.strokeMid(anchoredIds[0], t) : undefined;
+      target = mid ? box(mid[0], mid[1], 16, 16) : box(target.x + target.w / 2, target.y + target.h / 2, 16, 16);
+    }
     const asked = spec.side ?? "above";
     const fs = T.fontSize - 1;
     // A callout wider than the picture has nowhere to go: every spot is off-canvas, and the unchecked fallback
@@ -549,6 +690,7 @@ export class Annotations {
     const w = labelWidth(text, fs);
     const h = fs * 1.9 + (lines - 1) * fs * 1.2;
     const [cx, cy] = this.placeBeside(target, w, h, asked, 26, new Set(this.anchors.get(spec.at) ?? []), t, true);
+    this.notePlacement(path, "callout", spec.at, spec.side);
     const side = this.placedSide;
     const k = this.serial++;
     const ids = [`callout-${id}-${k}-box`, `callout-${id}-${k}-text`, `callout-${id}-${k}-arrow`];
@@ -562,7 +704,33 @@ export class Annotations {
     const to: Vec2 = side === "above" ? [tx, target.y - 3] : side === "below" ? [tx, target.y + target.h + 3] : side === "left" ? [target.x - 3, ty] : [target.x + target.w + 3, ty];
     this.b.node({ id: ids[0], shape: "rect", pos: [cx, cy], size: [w, h], rx: 6, fill: T.accent, stroke: T.nodeStroke, strokeWidth: 1, opacity: 0 });
     this.b.node({ id: ids[1], shape: "text", pos: [cx, cy], text, fontSize: fs, color: T.nodeStroke, opacity: 0 });
-    this.b.node({ id: ids[2], shape: "arrow", points: [[from[0] - cx, from[1] - cy], [to[0] - cx, to[1] - cy]], pos: [cx, cy], stroke: T.nodeStroke, strokeWidth: 1.5, opacity: 0 });
+    // The pointer goes round a labelled box in its way rather than through it (hc, v14: a wrapped callout's
+    // pointer crossed the `events` module on its way to the edge it was about). The target's own nodes and the
+    // callout's box are not in the way.
+    const targetIds = new Set(this.resolve(spec.at, `${path}.callout.at`));
+    // Free-standing labels (a matrix's row letters, a lane name) block it too: routed round the cells only, the
+    // pointer ran through "B" and "C" instead.
+    const blockers = this.b.nodes
+      .filter((nd) => (nd.shape === "text" || ((nd.shape === "rect" || nd.shape === "circle" || nd.shape === "ellipse") && nd.text !== undefined)) && !targetIds.has(nd.id) && !ids.includes(nd.id) && (this.b.valueAt(nd.id, "opacity", t) ?? 1) !== 0)
+      .map((nd) => ({ id: nd.id, box: this.nodeBox(nd.id, t) }));
+    // …and only when the detour runs through less than the straight line did: a bend that clears the cells
+    // but cuts a row letter on the way back is worse than a straight pointer over the cells (a free-standing
+    // label counts four times a labelled box, as in placement).
+    const through = (pts: Vec2[]): number => {
+      let cost = 0;
+      for (const bl of blockers) {
+        const weight = this.b.nodes.find((nd) => nd.id === bl.id)?.shape === "text" ? 4 : 1;
+        for (let k = 0; k + 1 < pts.length; k++) cost += segmentInside([pts[k], pts[k + 1]], bl.box) * weight;
+      }
+      return cost;
+    };
+    const routed = routeAround(from, to, blockers, new Set());
+    const route = routed.length > 2 && through(routed) < through([from, to]) ? routed : [from, to];
+    if (route.length > 2) {
+      const r = (v: number) => Math.round(v * 10) / 10;
+      const d = route.map((pt, k) => `${k === 0 ? "M" : "L"} ${r(pt[0] - from[0])} ${r(pt[1] - from[1])}`).join(" ");
+      this.b.node({ id: ids[2], shape: "path", pos: from, d, head: true, fill: "none", stroke: T.nodeStroke, strokeWidth: 1.5, opacity: 0 });
+    } else this.b.node({ id: ids[2], shape: "arrow", points: [[from[0] - cx, from[1] - cy], [to[0] - cx, to[1] - cy]], pos: [cx, cy], stroke: T.nodeStroke, strokeWidth: 1.5, opacity: 0 });
     for (const nodeId of ids) this.b.set(nodeId, "opacity", 1, t);
     this.callouts.set(id, ids);
   }
@@ -657,6 +825,7 @@ export class Annotations {
     let cy: number;
     if (spec.at) {
       [cx, cy] = this.placeBeside(this.anchorBox(spec.at, t, `${path}.text.at`), w, h, spec.side ?? "right", 14, new Set(this.anchors.get(spec.at) ?? []), t);
+      this.notePlacement(path, "text", spec.at, spec.side);
     } else {
       const rows = Math.ceil(h / 24);
       const [px, py] = this.panelSlot(rows + 1);
@@ -734,7 +903,7 @@ export class Annotations {
     const fits = (sign: 1 | -1, off: number): boolean => {
       const at: Vec2 = [ca[0] + n[0] * off * sign, ca[1] + n[1] * off * sign];
       const lo = 24;
-      return at[0] >= lo && at[0] <= this.b.width + this.extraWidth() - lo && at[1] >= lo && at[1] <= this.b.height + this.extraH - CAPTION_BAND - lo;
+      return at[0] >= this.x0() + lo && at[0] <= this.x1() - lo && at[1] >= this.y0() + lo && at[1] <= this.y1() - lo;
     };
     const [offPlus, offMinus] = [clearance(1), clearance(-1)];
     let outward: 1 | -1 = offPlus <= offMinus ? 1 : -1;
@@ -775,7 +944,7 @@ export class Annotations {
         // line, bulging on the side with more room by just enough to clear what it crosses.
         ({ u, n, p, q } = straight);
         const m: Vec2 = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-        const onCanvas = (pt: Vec2) => pt[0] >= 12 && pt[0] <= this.b.width + this.extraWidth() - 12 && pt[1] >= 12 && pt[1] <= this.b.height + this.extraH - CAPTION_BAND;
+        const onCanvas = (pt: Vec2) => pt[0] >= this.x0() + 12 && pt[0] <= this.x1() - 12 && pt[1] >= this.y0() + 12 && pt[1] <= this.y1();
         // The side with more room first; if its apex would leave the canvas, the other side; if both would
         // (a long diagonal across a layered map), the straight line — crossing a box beats drawing off-canvas.
         // A side whose arc clears everything wins over one that still crosses something (the callout beside
@@ -860,7 +1029,7 @@ export class Annotations {
       const covered = (bx: Box) =>
         this.b.nodes.some((nd) => (nd.shape === "text" || nd.text !== undefined) && (this.b.valueAt(nd.id, "opacity", t) ?? 1) !== 0 && intersects(this.nodeBox(nd.id, t), bx)) ||
         this.crossedBy(bx, strokes) >= 8;
-      const inCanvas = (bx: Box) => bx.x >= 0 && bx.y >= 0 && bx.x + bx.w <= this.b.width + this.extraWidth() && bx.y + bx.h <= this.b.height + this.extraH - CAPTION_BAND;
+      const inCanvas = (bx: Box) => bx.x >= this.x0() && bx.y >= this.y0() && bx.x + bx.w <= this.x1() && bx.y + bx.h <= this.y1();
       const chosen = candidates.find((c) => inCanvas(boxOf(c)) && !covered(boxOf(c))) ?? candidates.find((c) => inCanvas(boxOf(c))) ?? candidates[0];
       // Haloed: the relation's own line runs right past its label, and another edge may cross it.
       this.b.node({ id: labelId, shape: "text", pos: chosen.pt, text: spec.label, fontSize: fs, color, anchor: chosen.anchor, halo: true, opacity: 0 });

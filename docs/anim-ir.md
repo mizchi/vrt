@@ -768,10 +768,28 @@ invariant a loop keeps — is a `text` block **without** `at`: it goes to the
 panel and stays there, referenceable, while the picture moves. `at` is for a
 block that belongs to one thing.
 
+**Where `side` puts it.** `side` is honoured: a callout or readout asked
+`left` of the leftmost module lands left, and the canvas grows on that side
+to make the room (the picture moves right or down by the same amount — every
+side can grow, not only the bottom). The compiler moves it only when the asked
+spot would cover another text or run through a line; then it tries the other
+sides, nearest first, and grows an edge when nothing on the canvas is clear.
+A callout's pointer goes round a labelled box in its way rather than through
+it, and a callout on an edge points at the middle of the edge's line, bends
+included. A **stated** `side` that could not be honoured is a `check` warning
+naming the annotation, both sides and what was in the way (`asked for \`above\`
+and landed \`below\`: it would cover "Vector clocks"`); the default side is a
+preference, not an ask, and moves silently. So state `side` when it matters,
+and when the warning comes either ask for the side it landed on or make room —
+a shorter text, a different anchor — never a coordinate.
+
 Every annotation op takes `caption` (replaces the generated one) and `ms`.
 `"ms": 0` applies it **inside the previous beat** — the way to have "best so
 far = 10" appear at the moment the reveal it belongs to happens, with its
-caption joined to that beat's. Joined means appended with ` · `, never
+caption joined to that beat's. "The moment" is the beat's **end**: the readout
+becomes visible when the motion it belongs to completes, so a frame rendered at
+that step's start (`render --step N`, the contact sheet) does not show it yet
+and the next frame does. Joined means appended with ` · `, never
 replaced, and an explicit `caption` on the folded op is joined the same way:
 `{"note": "A has a local event"}` followed by `{"value": {"id": "vecA",
 "text": "[1,0,0]"}, "ms": 0, "caption": "A: [0,0,0] → [1,0,0]"}` narrates as

@@ -195,7 +195,9 @@ is one em and every width estimate had said 0.6, so `layout`'s green was a lie o
 Chromium, fixed in one module; the state-machine compiler learned the diagram's edge routing when a writer's only
 fix for a transition through a state was to reorder the list), `docs/reports/2026-09-08-anim-ir-v16.md` (a still's
 own vocabulary: `tone` on modules and dependencies, `"style": "implements"`, `relate` `"style": "equals"` — the two
-asks the v13 writers left open, drawn by two writers on a brief that needs all three).
+asks the v13 writers left open, drawn by two writers on a brief that needs all three), `docs/reports/2026-09-08-anim-ir-v17.md`
+(where an annotation lands: the canvas grows on the side the writer asked for — left and above included, the picture
+shifts — and a callout's pointer goes round labelled boxes; three writers record asked side against landed side).
 
 ## Measuring Gate / Rule Execution Cost
 

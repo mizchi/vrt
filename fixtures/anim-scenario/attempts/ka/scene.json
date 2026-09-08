@@ -1,0 +1,28 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "Compiler pipeline",
+  "modules": ["lexer", "parser", "typeck", "lower", "codegen", "diagnostics", "symbols"],
+  "deps": [
+    ["parser", "lexer"],
+    ["typeck", "parser"],
+    { "from": "typeck", "to": "symbols", "tone": "accent" },
+    ["lower", "typeck"],
+    ["lower", "symbols"],
+    ["codegen", "lower"],
+    ["parser", "diagnostics"],
+    ["typeck", "diagnostics"],
+    { "from": "codegen", "to": "parser", "style": "forbidden", "label": "never" }
+  ],
+  "groups": [
+    { "id": "frontend", "label": "frontend", "modules": ["lexer", "parser"] },
+    { "id": "middle", "label": "middle", "modules": ["typeck", "lower"] },
+    { "id": "backend", "label": "backend", "modules": ["codegen"] },
+    { "id": "shared", "label": "shared", "modules": ["diagnostics", "symbols"] }
+  ],
+  "sequence": [
+    { "callout": { "id": "note-entry", "at": "lexer", "side": "left", "text": "source text enters here" } },
+    { "callout": { "id": "note-exit", "at": "codegen", "side": "right", "text": "machine code leaves here" } },
+    { "callout": { "id": "note-diag", "at": "diagnostics", "side": "above", "text": "every phase may report here; none may read it" } }
+  ]
+}

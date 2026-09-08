@@ -37,7 +37,8 @@ describe("annotations: value", () => {
       { snapshot: { of: "row:C", label: "C before its event" } },
       { set: { cell: [2, 2], value: 1 }, caption: "C's concurrent event" },
       { value: { id: "vC", label: "C", text: "[0,0,1]", at: "row:C", side: "right" }, ms: 0 },
-      { callout: { at: "0,0", text: "A's event", side: "above" } },
+      // No `side`: above the top-left cell is the title, and a stated side that cannot be honoured is a warning (v17).
+      { callout: { at: "0,0", text: "A's event" } },
       { group: { around: ["row:A", "row:B"], label: "ordered" } },
       { callout: null, caption: "…" },
     ],

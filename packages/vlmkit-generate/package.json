@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-generate",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Generator contract for Playwright tests: turns a Markdown plan and generation rules into a Playwright spec source file.",
   "license": "MIT",
   "author": "mizchi",
