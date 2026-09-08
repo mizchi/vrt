@@ -1,0 +1,256 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "diagram",
+  "title": "PR #137: anim: a still figure's own vocabulary — tone, implements, relate equals (v16, release 0.15.0)",
+  "layout": "grid",
+  "canvas": {
+    "width": 1283,
+    "height": 438
+  },
+  "nodes": [
+    {
+      "id": "anim/src",
+      "label": "anim/src",
+      "hidden": true
+    },
+    {
+      "id": "fixtures/anim-scenario",
+      "label": "fixtures/anim-scenario",
+      "hidden": true
+    },
+    {
+      "id": "anim/samples",
+      "label": "anim/samples",
+      "hidden": true
+    },
+    {
+      "id": "root",
+      "label": "root",
+      "hidden": true
+    },
+    {
+      "id": "docs",
+      "label": "docs",
+      "hidden": true
+    },
+    {
+      "id": "docs/reports",
+      "label": "docs/reports",
+      "hidden": true
+    },
+    {
+      "id": ".apm/skills",
+      "label": ".apm/skills",
+      "hidden": true
+    },
+    {
+      "id": "examples/vlmkit-intro-page",
+      "label": "examples/vlmkit-intro-page",
+      "hidden": true
+    },
+    {
+      "id": "ai",
+      "label": "ai",
+      "hidden": true
+    },
+    {
+      "id": "anim/fixtures",
+      "label": "anim/fixtures",
+      "hidden": true
+    },
+    {
+      "id": "anim",
+      "label": "anim",
+      "hidden": true
+    },
+    {
+      "id": "animation-eval",
+      "label": "animation-eval",
+      "hidden": true
+    },
+    {
+      "id": "capture",
+      "label": "capture",
+      "hidden": true
+    },
+    {
+      "id": "other (9 areas)",
+      "label": "other (9 areas)",
+      "hidden": true
+    }
+  ],
+  "edges": [],
+  "sequence": [
+    {
+      "show": [
+        ".apm/skills",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".apm/skills",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "caption": "1/4 anim: a still's own vocabulary — tone on modules / nodes / dependencies…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 33
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+321 −76"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".apm/skills",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "show": [
+        "docs/reports"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "other (9 areas)",
+        "docs/reports",
+        "fixtures/anim-scenario",
+        "anim/src"
+      ],
+      "caption": "2/4 anim: v16 report skeleton, scenario README paragraph, CLAUDE.md pointer…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 36
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+376 −79"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "other (9 areas)",
+        "docs/reports",
+        "fixtures/anim-scenario",
+        "anim/src"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "fixtures/anim-scenario"
+      ],
+      "caption": "3/4 anim-scenario: v16 attempts ja and jb (adapters still), both green with…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 42
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+650 −79"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "fixtures/anim-scenario"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "docs",
+        "docs/reports"
+      ],
+      "caption": "4/4 anim: v16 report complete (ja, jb: one round each, every field found in…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 42
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+728 −81"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "docs",
+        "docs/reports"
+      ],
+      "ms": 0
+    },
+    {
+      "note": "4 commits · 42 files · +728 −81 · 14 areas, 0 import edges between them"
+    }
+  ]
+}
