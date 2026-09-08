@@ -1,0 +1,232 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "diagram",
+  "title": "PR #139: vlmkit-anim 0.17.0: fact sheets for graph / state-machine / distributed, `facts` from an import graph (anim-ir v18)",
+  "layout": "grid",
+  "canvas": {
+    "width": 1283,
+    "height": 438
+  },
+  "nodes": [
+    {
+      "id": "fixtures/anim-scenario",
+      "label": "fixtures/anim-scenario",
+      "hidden": true
+    },
+    {
+      "id": "anim/src",
+      "label": "anim/src",
+      "hidden": true
+    },
+    {
+      "id": "anim/samples",
+      "label": "anim/samples",
+      "hidden": true
+    },
+    {
+      "id": "root",
+      "label": "root",
+      "hidden": true
+    },
+    {
+      "id": ".claude",
+      "label": ".claude",
+      "hidden": true
+    },
+    {
+      "id": "docs",
+      "label": "docs",
+      "hidden": true
+    },
+    {
+      "id": ".apm/skills",
+      "label": ".apm/skills",
+      "hidden": true
+    },
+    {
+      "id": "examples/vlmkit-intro-page",
+      "label": "examples/vlmkit-intro-page",
+      "hidden": true
+    },
+    {
+      "id": "ai",
+      "label": "ai",
+      "hidden": true
+    },
+    {
+      "id": "anim",
+      "label": "anim",
+      "hidden": true
+    },
+    {
+      "id": "animation-eval",
+      "label": "animation-eval",
+      "hidden": true
+    },
+    {
+      "id": "capture",
+      "label": "capture",
+      "hidden": true
+    },
+    {
+      "id": "core",
+      "label": "core",
+      "hidden": true
+    },
+    {
+      "id": "other (8 areas)",
+      "label": "other (8 areas)",
+      "hidden": true
+    }
+  ],
+  "edges": [],
+  "sequence": [
+    {
+      "show": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "core",
+        "other (8 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "core",
+        "other (8 areas)"
+      ],
+      "caption": "1/3 vlmkit-anim 0.17.0: fact sheets for graph / state-machine / distributed…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 33
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+989 −53"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "core",
+        "other (8 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "fixtures/anim-scenario"
+      ],
+      "caption": "2/3 anim-scenario v18: writer scenes la–ld, first drafts (logs and figures …"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 37
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1233 −53"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "fixtures/anim-scenario"
+      ],
+      "ms": 0
+    },
+    {
+      "show": [
+        "anim/samples"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".claude",
+        "root",
+        "docs",
+        "other (8 areas)",
+        "fixtures/anim-scenario",
+        "anim/samples",
+        "anim/src"
+      ],
+      "caption": "3/3 anim-ir v18: the writers' attempts, the compiler defects they found, an…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 57
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+2913 −140"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".claude",
+        "root",
+        "docs",
+        "other (8 areas)",
+        "fixtures/anim-scenario",
+        "anim/samples",
+        "anim/src"
+      ],
+      "ms": 0
+    },
+    {
+      "note": "3 commits · 57 files · +2913 −140 · 14 areas, 0 import edges between them"
+    }
+  ]
+}
