@@ -1,0 +1,37 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "state-machine",
+  "title": "EC注文の状態遷移",
+  "states": [
+    {"id": "accepted", "label": "受付済み"},
+    {"id": "payment_pending", "label": "支払い待ち"},
+    {"id": "payment_complete", "label": "支払い完了"},
+    {"id": "shipping_prep", "label": "出荷準備中"},
+    {"id": "shipped", "label": "出荷済み"},
+    {"id": "delivery_complete", "label": "配達完了"},
+    {"id": "cancelled", "label": "キャンセル済み", "final": true},
+    {"id": "refunded", "label": "返金済み", "final": true}
+  ],
+  "initial": "accepted",
+  "layout": "tb",
+  "transitions": [
+    {"from": "accepted", "to": "payment_pending", "on": "注文確定", "note": "/ 確認メール送信"},
+    {"from": "payment_pending", "to": "payment_complete", "on": "入金確認", "note": "/ 配送手配開始"},
+    {"from": "payment_pending", "to": "cancelled", "on": "期限切れ", "note": "/ キャンセル通知"},
+    {"from": "payment_complete", "to": "shipping_prep", "on": "ピッキング開始", "note": "/ ピッキング指示"},
+    {"from": "shipping_prep", "to": "shipped", "on": "発送", "note": "/ 発送通知メール"},
+    {"from": "shipped", "to": "delivery_complete", "on": "受領", "note": "/ 受領確認メール"},
+    {"from": "payment_complete", "to": "refunded", "on": "キャンセル要求", "note": "/ 返金処理開始"},
+    {"from": "shipping_prep", "to": "refunded", "on": "キャンセル要求", "note": "/ 返金処理開始"}
+  ],
+  "trace": [
+    {"on": "注文確定", "caption": "注文が受け付けられました。"},
+    {"on": "入金確認", "caption": "お客様からの入金を確認しました。"},
+    {"on": "ピッキング開始", "caption": "倉庫でピッキングが開始されます。"},
+    {"on": "発送", "caption": "商品が発送されました。"},
+    {"on": "受領", "caption": "お客様が商品を受け取りました。"},
+    {"note": "別の経路: 支払い完了からのキャンセル要求"},
+    {"goto": "payment_complete", "caption": "支払い完了状態からキャンセルの可能性も示します。"},
+    {"on": "キャンセル要求", "caption": "キャンセル要求があると返金処理に進みます。"}
+  ]
+}
