@@ -280,3 +280,62 @@ describe("wrapText", () => {
     assert.equal(wrapText("supercalifragilisticexpialidocious", fs, 60), "supercalifragilisticexpialidocious");
   });
 });
+
+describe("modules: v16 — a still's own colour vocabulary", () => {
+  const fixture = (): ModulesScene => JSON.parse(readFileSync(new URL("../fixtures/modules-ports-adapters.json", import.meta.url), "utf-8")) as ModulesScene;
+  const nodeOf = (tl: ReturnType<typeof compileScene>, id: string) => tl.nodes.find((n) => n.id === id)!;
+
+  it("tone on a dependency colours its stroke and label without a sequence (gb)", () => {
+    const tl = compileScene(fixture());
+    const accent = nodeOf(tl, "edge-3");
+    assert.equal(accent.stroke, "#f59e0b");
+    assert.equal(nodeOf(tl, "edge-3-label").color, "#f59e0b");
+    assert.equal(nodeOf(tl, "edge-0").stroke, "#1f2328", "an untoned dependency keeps the plain stroke");
+  });
+
+  it("tone on a module: accent fills it, muted greys its outline and label", () => {
+    const tl = compileScene(fixture());
+    assert.equal(nodeOf(tl, "domain").fill, "#f59e0b");
+    assert.equal(nodeOf(tl, "memory").stroke, "#9ca3af");
+    assert.equal(nodeOf(tl, "memory").color, "#9ca3af");
+    assert.equal(nodeOf(tl, "postgres").fill, "#ffffff");
+  });
+
+  it("implements is dashed with a hollow head, laid out like a real dependency, and rendered with an outlined marker", () => {
+    const tl = compileScene(fixture());
+    const impl = nodeOf(tl, "edge-5");
+    assert.equal(impl.dashed, true);
+    assert.equal(impl.head, "hollow");
+    assert.ok(moduleLayers(fixture()).get("postgres")! > moduleLayers(fixture()).get("port")!, "the adapter sits above the port it implements");
+    const svg = renderFrameSvg(tl, timelineDuration(tl));
+    assert.match(svg, /<marker id="arrow-hollow-[a-z0-9]+"[^>]*><path d="M 1 1 L 11 6 L 1 11 z" fill="#ffffff" stroke="#1f2328"/);
+    assert.match(svg, /marker-end="url\(#arrow-hollow-/);
+  });
+
+  it("relate equals draws a double line with no head (ga: substitutable)", () => {
+    const tl = compileScene(fixture());
+    const lines = tl.nodes.filter((n) => /^relate-main-\d+(-2)?$/.test(n.id));
+    assert.equal(lines.length, 2);
+    for (const l of lines) assert.ok(l.shape === "line" || (l.shape === "path" && !l.head), `${l.id} is ${l.shape} with head ${l.head}`);
+    const [a, b] = lines;
+    assert.ok(Math.hypot(a.pos![0] - b.pos![0], a.pos![1] - b.pos![1]) > 3 && Math.hypot(a.pos![0] - b.pos![0], a.pos![1] - b.pos![1]) < 5, "the twin is 4px along the normal");
+  });
+
+  it("the fixture is clean: no layout issue, no crossing, and the validator accepts every new field", () => {
+    const s = fixture();
+    const diags = validateScene(s);
+    assert.deepEqual(diags, [], formatDiagnostics(diags));
+    const tl = compileScene(s);
+    assert.deepEqual(checkAnimation(tl, s).filter((d) => d.severity === "error"), []);
+    assert.equal(layoutReport(tl).totals.framesWithIssues, 0, formatLayoutIssues(layoutReport(tl)));
+  });
+
+  it("the validator names a bad tone and a bad style", () => {
+    const s = fixture();
+    const bad = validateScene({ ...s, modules: [...s.modules, { id: "x", tone: "loud" as never }], deps: [...s.deps!, { from: "x", to: "port", style: "wavy" as never, tone: "red" as never }] });
+    const msgs = bad.map((d) => d.path);
+    assert.ok(msgs.some((p) => p.endsWith("modules[7].tone")), msgs.join("\n"));
+    assert.ok(msgs.some((p) => p.endsWith("deps[8].style")));
+    assert.ok(msgs.some((p) => p.endsWith("deps[8].tone")));
+  });
+});

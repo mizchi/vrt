@@ -50,7 +50,7 @@ export interface TimelineNode {
   /** path data, local coordinates. */
   d?: string;
   /** path: draw an arrowhead at its end (what `arrow` does for a straight line). */
-  head?: boolean;
+  head?: boolean | "hollow";
   /** text content (shape `text`) or a label centred in any other shape. */
   text?: string;
   fontSize?: number;
@@ -244,15 +244,19 @@ export interface TextSpec {
  * documents (an index, a cell, a node id, a state, a value).
  */
 /** A labelled line or arrow between two anchors, drawn edge to edge whatever lies between them; `null` removes every relation. */
+/** A colour role rather than a colour: `accent` (the theme's highlight), `bad` (what must not be), `muted` (an aside). */
+export type Tone = "accent" | "bad" | "muted";
+export const TONES: readonly Tone[] = ["accent", "bad", "muted"];
+
 export interface RelateSpec {
   id?: string;
   from: string;
   to: string;
   label?: string;
-  /** `arrow` (default, from → to) or a plain `line`. */
-  style?: "arrow" | "line";
+  /** `arrow` (default, from → to), a plain `line`, or `equals` — a double line: the two are equivalent / substitutable. */
+  style?: "arrow" | "line" | "equals";
   /** Colour role: `accent` (default), `bad` (a relation that must not exist), `muted` (an aside). */
-  tone?: "accent" | "bad" | "muted";
+  tone?: Tone;
 }
 
 export const ANNOTATION_ACTIONS = ["value", "callout", "snapshot", "group", "text", "relate"] as const;
@@ -298,6 +302,8 @@ export interface DiagramNode {
   /** Explicit position overrides the layout. */
   pos?: Vec2;
   fill?: string;
+  /** Colour role for a still: `accent` fills the box, `bad` / `muted` colour its outline and label. */
+  tone?: Tone;
   /** Hidden until a `show` step reveals it. Default: visible from t=0. */
   hidden?: boolean;
 }
@@ -307,15 +313,18 @@ export interface DiagramEdge {
   to: string;
   label?: string;
   /**
-   * `arrow` (default), plain `line`, `dashed` (an optional or weak edge, still laid out), or `forbidden`
-   * (dashed in the `bad` colour, drawn but ignored by the layout — the dependency that must not exist).
+   * `arrow` (default), plain `line`, `dashed` (an optional or weak edge, still laid out), `implements` (dashed
+   * with a hollow head: a realisation of an interface, still laid out), or `forbidden` (dashed in the `bad`
+   * colour, drawn but ignored by the layout — the dependency that must not exist).
    */
   style?: EdgeStyle;
+  /** Colour role for a still, without a `highlight` step: `accent`, `bad`, `muted` (stroke and label). */
+  tone?: Tone;
   hidden?: boolean;
 }
 
-export type EdgeStyle = "arrow" | "line" | "dashed" | "forbidden";
-export const EDGE_STYLES: readonly EdgeStyle[] = ["arrow", "line", "dashed", "forbidden"];
+export type EdgeStyle = "arrow" | "line" | "dashed" | "implements" | "forbidden";
+export const EDGE_STYLES: readonly EdgeStyle[] = ["arrow", "line", "dashed", "implements", "forbidden"];
 
 /** One narrated beat of a diagram. Exactly one action key per step. */
 export type DiagramStep =
@@ -352,12 +361,14 @@ export interface DiagramScene extends SceneBase {
 export interface ModuleDef {
   id: string;
   label?: string;
+  /** Colour role for a still: `accent` fills the box, `bad` / `muted` colour its outline and label. */
+  tone?: Tone;
   /** Hidden until a `show` step reveals it. */
   hidden?: boolean;
 }
 
-/** `["a", "b"]` (a depends on b) or the long form. */
-export type ModuleDep = readonly [string, string] | { from: string; to: string; label?: string; style?: EdgeStyle; hidden?: boolean };
+/** `["a", "b"]` (a depends on b) or the long form; `tone` colours one dependency in a still without a sequence. */
+export type ModuleDep = readonly [string, string] | { from: string; to: string; label?: string; style?: EdgeStyle; tone?: Tone; hidden?: boolean };
 
 export interface ModuleGroup {
   id: string;

@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-markup",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "VLM-driven markup tooling for VRT: component extract, design-token / theme-parity / i18n-stress / palette checks, dep-graph, selector heal, smoke runner.",
   "license": "MIT",
   "author": "mizchi",

@@ -4,7 +4,7 @@
  * edge, relabel, or just pause on a note.
  */
 
-import type { DiagramScene, Timeline } from "../types.ts";
+import type { DiagramScene, Timeline, Tone } from "../types.ts";
 import { Builder, along, boxRadius, labelWidth, trimEdge } from "./builder.ts";
 import { layoutNodes } from "./layout.ts";
 
@@ -14,6 +14,10 @@ export { segmentInside } from "./route.ts";
 export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modules" = "diagram"): Timeline {
   const b = new Builder(scene, { width: 640, height: 360, stepMs: 700 });
   const T = b.theme;
+  // Colour roles for a still (gb, v13, v14: "no colour field on deps edges — colouring one edge requires reaching
+  // into the beat/sequence/highlight machinery on what is supposed to be a motion-free still figure").
+  const toneStroke = (tone: Tone | undefined, plain: string): string => (tone === "accent" ? T.accent : tone === "bad" ? T.bad : tone === "muted" ? T.muted : plain);
+  const nodeFill = (n: { fill?: string; tone?: Tone }): string => n.fill ?? (n.tone === "accent" ? T.accent : T.node);
   const ids = scene.nodes.map((n) => n.id);
   const fixed = new Map<string, [number, number]>();
   for (const n of scene.nodes) if (n.pos) fixed.set(n.id, n.pos);
@@ -171,23 +175,25 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
   const edgeStroke = new Map<string, string>();
   for (const g of edgeGeom) {
     const { e, id, p, q, pts } = g;
-    const stroke = e.style === "forbidden" ? T.bad : T.nodeStroke;
+    const stroke = toneStroke(e.tone, e.style === "forbidden" ? T.bad : T.nodeStroke);
     edgeEnds.set(`${e.from}->${e.to}`, pts);
     edgeId.set(`${e.from}->${e.to}`, id);
     edgeStroke.set(id, stroke);
-    const dashed = e.style === "dashed" || e.style === "forbidden" ? true : undefined;
+    const dashed = e.style === "dashed" || e.style === "implements" || e.style === "forbidden" ? true : undefined;
+    // A realisation of an interface carries a hollow head (UML), so it reads as "implements", not "calls".
+    const head = e.style === "line" ? false : e.style === "implements" ? ("hollow" as const) : true;
     if (pts.length === 2) {
-      b.node({ id, shape: e.style === "line" ? "line" : "arrow", points: [p, q], stroke, dashed, opacity: e.hidden ? 0 : 1 });
+      b.node({ id, shape: e.style === "line" ? "line" : "arrow", points: [p, q], stroke, dashed, ...(head === "hollow" ? { head } : {}), opacity: e.hidden ? 0 : 1 });
     } else {
       // A bent edge is a path through its waypoints, drawn from its first point.
       const r = (v: number) => Math.round(v * 10) / 10;
       const d = pts.map((pt, k) => `${k === 0 ? "M" : "L"} ${r(pt[0] - p[0])} ${r(pt[1] - p[1])}`).join(" ");
-      b.node({ id, shape: "path", pos: p, d, head: e.style !== "line", fill: "none", stroke, dashed, opacity: e.hidden ? 0 : 1 });
+      b.node({ id, shape: "path", pos: p, d, head, fill: "none", stroke, dashed, opacity: e.hidden ? 0 : 1 });
     }
     if (g.label) {
       // An edge label sits on a line by design: the halo breaks the line around the glyphs, so an edge that
       // crosses it stays a readable label rather than a struck-through one.
-      b.node({ id: `${id}-label`, shape: "text", pos: g.labelPos, text: g.label, fontSize: T.fontSize - 2, color: e.style === "forbidden" ? T.bad : T.text, halo: true, opacity: e.hidden ? 0 : 1 });
+      b.node({ id: `${id}-label`, shape: "text", pos: g.labelPos, text: g.label, fontSize: T.fontSize - 2, color: toneStroke(e.tone, e.style === "forbidden" ? T.bad : T.text), halo: true, opacity: e.hidden ? 0 : 1 });
     }
   }
   for (const n of scene.nodes) {
@@ -199,12 +205,12 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
       shape,
       pos: p,
       ...(shape === "circle" ? { r: s[0] / 2 } : { size: s, rx: 6 }),
-      fill: n.fill ?? T.node,
-      stroke: T.nodeStroke,
+      fill: nodeFill(n),
+      stroke: n.tone === "bad" ? T.bad : n.tone === "muted" ? T.muted : T.nodeStroke,
       strokeWidth: 1.5,
       text: n.label ?? n.id,
       fontSize: T.fontSize,
-      color: T.text,
+      color: n.tone === "bad" ? T.bad : n.tone === "muted" ? T.muted : T.text,
       opacity: n.hidden ? 0 : 1,
     });
   }
@@ -264,7 +270,7 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
           if (b.has(`${eid}-label`)) b.set(`${eid}-label`, "color", on ? T.accent : T.text, t0);
           continue;
         }
-        const original = scene.nodes.find((n) => n.id === id)?.fill;
+        const original = nodeFill(scene.nodes.find((n) => n.id === id)!);
         const fill = on ? color : original ?? color;
         if (b.valueAt(id, "fill", t0) !== fill) b.set(id, "fill", fill, t0);
       }

@@ -540,8 +540,8 @@ sequence never reveals.
 
 | field | |
 |---|---|
-| `nodes` | required: `{"id", "label", "shape": rect \| circle \| ellipse, "pos": [x, y], "fill", "hidden": true}` |
-| `edges` | `{"from", "to", "label", "style": arrow \| line, "hidden": true}` |
+| `nodes` | required: `{"id", "label", "shape": rect \| circle \| ellipse, "pos": [x, y], "fill", "tone", "hidden": true}`; `tone` is `accent` (fills the box), `bad` or `muted` (outline and label) — a colour role for a still, without a `highlight` step |
+| `edges` | `{"from", "to", "label", "style": arrow \| line \| dashed \| implements \| forbidden, "tone", "hidden": true}`; `implements` is dashed with a hollow head (realises an interface, still laid out); `tone` colours one edge `accent` \| `bad` \| `muted` |
 | `layout` | `lr` (default) \| `tb` \| `grid` \| `circle`; nodes with `pos` are pinned |
 | `sequence` | one action per step + optional `caption`, `ms`: `{"show": id \| [ids]}` `{"hide": …}` `{"highlight": …}` `{"unhighlight": …}` `{"flow": "a->b"}` (token travels along an existing edge, either direction) `{"note": "…"}` (captioned pause) `{"relabel": {"id", "text"}}` |
 
@@ -578,8 +578,8 @@ a caption band. With a `sequence` it is walked in beats like a `diagram`.
 
 | field | |
 |---|---|
-| `modules` | required: ids, or `{"id", "label", "hidden"}` |
-| `deps` | `["a", "b"]` reads **a depends on b**: the arrow runs a → b and a sits above b. Long form `{"from", "to", "label", "style", "hidden"}`; `style` is `arrow` (default), `line` (no head), `dashed` (an optional or weak dependency — still laid out) or **`forbidden`** (dashed, in the `bad` colour, labelled ✗ unless you label it: drawn, but ignored by the layout and the cycle check — the import that must not exist, shown next to the ones that do) |
+| `modules` | required: ids, or `{"id", "label", "tone", "hidden"}`; `tone` is `accent` (the box is filled — the module the figure is about), `bad` or `muted` (outline and label; a test double, a deprecated module) |
+| `deps` | `["a", "b"]` reads **a depends on b**: the arrow runs a → b and a sits above b. Long form `{"from", "to", "label", "style", "tone", "hidden"}`; `style` is `arrow` (default), `line` (no head), `dashed` (an optional or weak dependency — still laid out), `implements` (dashed with a hollow head: the module realises an interface — still laid out) or **`forbidden`** (dashed, in the `bad` colour, labelled ✗ unless you label it: drawn, but ignored by the layout and the cycle check — the import that must not exist, shown next to the ones that do). `tone` colours one dependency `accent` \| `bad` \| `muted` in a still, with no sequence |
 | `groups` | `{"id", "label", "modules": [ids]}` — a container around its modules; a module is in at most one. Group ids are anchors (`callout`, `group`, `relate`) and `highlight` targets (the outline lights up) |
 | `layout` | `tb` (default, dependencies point down) or `lr` (they point right) |
 | `sequence` | optional: the `diagram` steps — `show`, `hide`, `highlight`, `unhighlight`, `flow "a->b"`, `note`, `relabel` — and every annotation op, **one action per step** plus `caption` / `ms` (a callout on the same beat as a highlight is the next step with `"ms": 0`). `show` / `hide` take module and group ids; `highlight` takes those **and an edge `"a->b"`** (the stroke and its label light up); `flow` takes an edge; the annotation ops take module ids, group ids and `"a->b"` |
@@ -599,6 +599,15 @@ the last edge and draws that arrow against the flow, which is what a cycle
 looks like — keep it if the cycle is the point, break it, or mark the edge to
 remove with `"style": "forbidden"`. The canvas is sized for the map; set
 `canvas` to override.
+
+A still has its own colour vocabulary, so nothing has to be animated to be
+pointed at: `"tone": "accent"` on a module fills it, on a dependency colours
+the arrow and its label; `"muted"` greys a test double or a legacy module;
+`"style": "implements"` draws the adapter → port arrow dashed with a hollow
+head, the way UML draws a realisation; and `{"relate": {"from": "postgres",
+"to": "memory", "style": "equals", "label": "substitutable"}}` in a one-beat
+`sequence` draws a double line between two modules that satisfy the same
+interface.
 
 The dependency someone keeps adding by mistake belongs in `deps` as
 `{"from": "domain", "to": "postgres", "style": "forbidden", "label": "never"}`:
@@ -651,7 +660,7 @@ vlmkit-anim check scene.json --expect facts.json
 | `modules` | ids that must be drawn and visible at the end. A drawn module the list does not have is an error too — the facts fix the ids, so spell them as the facts do |
 | `deps` | `"a->b"` (a depends on b): drawn, in that direction, as a real dependency. A real dependency drawn that is on neither `deps` nor `forbidden` is an error: nothing invented |
 | `forbidden` | `"a->b"`: drawn with `"style": "forbidden"`. Drawn as a real arrow it is an error — that arrow bends the layers around a lie |
-| `highlighted` | module and group ids and edges `"a->b"` that are lit in the **final frame**, and nothing else; read from the frame, so a `flow` (which lights nothing at the end) or a later `unhighlight` counts as dark |
+| `highlighted` | module and group ids and edges `"a->b"` that are lit in the **final frame**, and nothing else; read from the frame, so a `flow` (which lights nothing at the end) or a later `unhighlight` counts as dark, and a module or dependency with `"tone": "accent"` counts as lit |
 | `groups` | `{"id": ["member", …]}`: each container holds exactly these members; a drawn group the list does not have is an error |
 
 Every field is optional and an absent field is not checked; a present one is
@@ -752,7 +761,7 @@ do.
 | `{"snapshot": {"of", "label"}}` | A frozen copy, in the panel, of what the anchor shows **at this beat** — the value to compare against later, after the live one has moved on. An anchor that is several cells (a matrix row) snapshots as `[a, b, c]` |
 | `{"group": {"around": anchor \| [anchors], "label", "id"}}` / `{"group": null}` | A dashed outline around the anchors' bounding box, label at the top-left. One per `id`, like callout; `null` removes every group |
 | `{"text": {"lines": [...], "highlight", "at", "side", "id"}}` / `{"text": null}` | A multi-line block: code, a rule, a list. `highlight` is a 0-based line. Same `id` and the same number of lines updates in place and moves the highlight; a different line count redraws. Panel by default, or beside an anchor; `null` hides every block |
-| `{"relate": {"from", "to", "label", "style", "id"}}` / `{"relate": null}` | A line between two anchors — `A ≤ C`, "this came from that", "these two are concurrent". Edge to edge when nothing is in the way; when the two touch or something else sits between them (rows A and C of three, bars with bars between) it runs **beside** the pair instead, level, on the side with room — and when neither side has room (a node row with the title above and the lanes below) it **arcs** over the bystander. The bystander is never crossed and nothing is placed off the canvas; the writer never has to reorder anything for it. `style` is `arrow` (default, from → to) or `line`; `tone` is `accent` (default — amber, the same colour every highlight uses), `bad` (red and dashed: a relation that must not exist) or `muted`; the label sits beside the midpoint, haloed so a line under it stays readable. One per `id`; `null` removes every relation. Where `group` would enclose a bystander, `relate` names the pair |
+| `{"relate": {"from", "to", "label", "style", "tone", "id"}}` / `{"relate": null}` | A line between two anchors — `A ≤ C`, "this came from that", "these two are concurrent". `style` is `arrow` (default), `line` (no head) or `equals` (a double line: the two are equivalent / substitutable / satisfy the same interface); `tone` is `accent` (default), `bad` (red, dashed) or `muted`. Edge to edge when nothing is in the way; when the two touch or something else sits between them (rows A and C of three, bars with bars between) it runs **beside** the pair instead, level, on the side with room — and when neither side has room (a node row with the title above and the lanes below) it **arcs** over the bystander. The bystander is never crossed and nothing is placed off the canvas; the writer never has to reorder anything for it. `style` is `arrow` (default, from → to) or `line`; `tone` is `accent` (default — amber, the same colour every highlight uses), `bad` (red and dashed: a relation that must not exist) or `muted`; the label sits beside the midpoint, haloed so a line under it stays readable. One per `id`; `null` removes every relation. Where `group` would enclose a bystander, `relate` names the pair |
 
 A rule that governs the whole scene — the definition of ≤ on vectors, the
 invariant a loop keeps — is a `text` block **without** `at`: it goes to the

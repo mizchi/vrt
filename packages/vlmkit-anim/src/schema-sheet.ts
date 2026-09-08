@@ -289,7 +289,7 @@ Annotations (every kind, in the same op list — vlmkit-anim schema --kind annot
   {"value": {"id", "label", "text", "at"?}}  a readout that tracks a number; same id = update
   {"callout": {"at", "text"} | null}          a pointer at an anchor        {"snapshot": {"of", "label"}}  a frozen copy
   {"group": {"around": [anchors], "label"}}   an outline                    {"text": {"lines": [...], "highlight"}}  a block
-  {"relate": {"from", "to", "label"} | null}  a labelled arrow between two anchors ("style": "line" for no head)
+  {"relate": {"from", "to", "label"} | null}  a labelled arrow between two anchors ("style": "line" for no head, "equals" for a double line: substitutable)
   Anchors are what the kind documents: an index, a cell "r,c", a node id, a state, a value. "ms": 0 folds the op into the previous beat.`;
 
 const ANNOTATIONS_SHEET = `Annotations — six ops every kind accepts in its own op / sequence / trace / messages / timeline list.
@@ -305,7 +305,8 @@ They add nothing a "vector" scene could not draw by hand; the point is that you 
   {"text": {"lines": ["for i in a:", "  if i > x:"], "highlight": 1}}    a multi-line block (panel, or "at" an anchor); same id + same
                                                                           line count updates in place and moves the highlight; null hides
   {"relate": {"from": "A", "to": "B", "label": "A ≤ B"}}                  a labelled arrow from one anchor to another ("style": "line" for
-                                                                          no head; "tone": "accent" (default, amber) | "bad" (red, dashed:
+                                                                          no head, "equals" for a double line — the two are equivalent /
+                                                                          substitutable; "tone": "accent" (default, amber) | "bad" (red, dashed:
                                                                           a relation that must not exist) | "muted"); same id redraws it,
                                                                           {"relate": null} removes all.
                                                                           Where "group" would enclose a bystander, "relate" names the pair:
@@ -447,8 +448,9 @@ Give "algorithm" OR "ops". With an algorithm the check fails unless every node r
                                    default: reveal each series in order
 The check fails if a bar's final height is not its value's share of the axis, and warns about a series never revealed.`,
   diagram: `kind: diagram — boxes and arrows, narrated in beats
-  "nodes": [ {"id", "label", "shape": "rect" | "circle" | "ellipse", "pos": [x, y], "fill", "hidden": true} ]   required
-  "edges": [ {"from", "to", "label", "style": "arrow" | "line" | "dashed" | "forbidden", "hidden": true} ]   forbidden: dashed red, ignored by the layout
+  "nodes": [ {"id", "label", "shape": "rect" | "circle" | "ellipse", "pos": [x, y], "fill", "tone", "hidden": true} ]   required; "tone": "accent" fills the box, "bad" | "muted" colour outline and label
+  "edges": [ {"from", "to", "label", "style": "arrow" | "line" | "dashed" | "implements" | "forbidden", "tone", "hidden": true} ]
+             implements: dashed with a hollow head (realises an interface); forbidden: dashed red, ignored by the layout; "tone": "accent" | "bad" | "muted" colours one edge in a still
   "groups": [ {"id", "label", "nodes": [ids]} ]   containers; ids are anchors and highlight targets
   "layout": "lr" | "tb" | "grid" | "circle"   default lr; nodes with "pos" are pinned
   "sequence": [ one action per step, plus optional "caption" and "ms" ]
@@ -458,9 +460,11 @@ The check fails if a bar's final height is not its value's share of the axis, an
       {"relabel": {"id", "text"}}
 Hidden nodes stay invisible until a "show" step. A "flow" needs an edge between the two nodes.`,
   modules: `kind: modules — a module map: layers with dependencies pointing one way, containers around what belongs together (a still figure unless it has a sequence)
-  "modules": [ "id" | {"id", "label", "hidden": true} ]                       required
-  "deps":    [ ["a", "b"] | {"from", "to", "label", "style", "hidden": true} ]   ["a", "b"] reads "a depends on b": arrow a → b, a drawn above b
-             "style": "arrow" (default) | "line" (no head) | "dashed" (optional / weak, still laid out) | "forbidden" (dashed red, drawn but ignored by the layout: the import that must not exist)
+  "modules": [ "id" | {"id", "label", "tone", "hidden": true} ]               required; "tone": "accent" fills the box, "bad" | "muted" colour outline and label
+  "deps":    [ ["a", "b"] | {"from", "to", "label", "style", "tone", "hidden": true} ]   ["a", "b"] reads "a depends on b": arrow a → b, a drawn above b
+             "style": "arrow" (default) | "line" (no head) | "dashed" (optional / weak, still laid out) | "implements" (dashed, hollow head: realises an interface, still laid out)
+                      | "forbidden" (dashed red, drawn but ignored by the layout: the import that must not exist)
+             "tone":  "accent" | "bad" | "muted" — colour one dependency in a still, no sequence needed
   "groups":  [ {"id", "label", "modules": [ids]} ]                            containers; a module is in at most one; ids are anchors and highlight targets
   "layout":  "tb" | "lr"                                                      default tb (dependencies point down)
   "sequence": [ the diagram steps: show / hide / highlight (a module, a group, or an edge "a->b") / unhighlight / flow "a->b" / note / relabel, and every annotation op ]   optional

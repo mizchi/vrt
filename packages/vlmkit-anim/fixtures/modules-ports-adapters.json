@@ -1,0 +1,32 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "Ports and adapters: every dependency points inward",
+  "modules": [
+    { "id": "http", "label": "HTTP handler" },
+    { "id": "cli", "label": "CLI command" },
+    { "id": "app", "label": "application services" },
+    { "id": "domain", "label": "domain model", "tone": "accent" },
+    { "id": "port", "label": "repository port" },
+    { "id": "postgres", "label": "Postgres repository" },
+    { "id": "memory", "label": "in-memory repository", "tone": "muted" }
+  ],
+  "deps": [
+    ["http", "app"],
+    ["cli", "app"],
+    ["app", "domain"],
+    { "from": "app", "to": "port", "tone": "accent", "label": "only through the port" },
+    ["port", "domain"],
+    { "from": "postgres", "to": "port", "style": "implements" },
+    { "from": "memory", "to": "port", "style": "implements" },
+    { "from": "domain", "to": "postgres", "style": "forbidden", "label": "never" }
+  ],
+  "groups": [
+    { "id": "driving", "label": "driving side", "modules": ["http", "cli"] },
+    { "id": "core", "label": "core", "modules": ["app", "domain", "port"] },
+    { "id": "adapters", "label": "adapters", "modules": ["postgres", "memory"] }
+  ],
+  "sequence": [
+    { "relate": { "from": "postgres", "to": "memory", "style": "equals", "label": "substitutable" }, "ms": 0 }
+  ]
+}

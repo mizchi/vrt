@@ -817,8 +817,18 @@ export class Annotations {
     // import in a module map — fb, v13, wanted red and found only amber), `muted` for an aside.
     const color = spec.tone === "bad" ? T.bad : spec.tone === "muted" ? T.muted : T.accent;
     const dashed = spec.tone === "bad" ? true : undefined;
-    if (arc) this.b.node({ id: lineId, shape: "path", pos: mid, d: arc.d, head: spec.style !== "line", fill: "none", stroke: color, strokeWidth: 2, dashed, opacity: 0 });
-    else this.b.node({ id: lineId, shape: spec.style === "line" ? "line" : "arrow", pos: mid, points: [[p[0] - mid[0], p[1] - mid[1]], [q[0] - mid[0], q[1] - mid[1]]], stroke: color, strokeWidth: 2, dashed, opacity: 0 });
+    const headless = spec.style === "line" || spec.style === "equals";
+    if (arc) this.b.node({ id: lineId, shape: "path", pos: mid, d: arc.d, head: !headless, fill: "none", stroke: color, strokeWidth: 2, dashed, opacity: 0 });
+    else this.b.node({ id: lineId, shape: headless ? "line" : "arrow", pos: mid, points: [[p[0] - mid[0], p[1] - mid[1]], [q[0] - mid[0], q[1] - mid[1]]], stroke: color, strokeWidth: 2, dashed, opacity: 0 });
+    if (spec.style === "equals") {
+      // Equivalence — "these two are substitutable / satisfy the same interface" (ga, v13) — is a double line:
+      // the same stroke again, 4px along the line's normal, so the pair reads as = rather than as a connection.
+      const twinId = `${lineId}-2`;
+      ids.push(twinId);
+      const shift: Vec2 = [n[0] * 4, n[1] * 4];
+      if (arc) this.b.node({ id: twinId, shape: "path", pos: [mid[0] + shift[0], mid[1] + shift[1]], d: arc.d, fill: "none", stroke: color, strokeWidth: 2, dashed, opacity: 0 });
+      else this.b.node({ id: twinId, shape: "line", pos: [mid[0] + shift[0], mid[1] + shift[1]], points: [[p[0] - mid[0], p[1] - mid[1]], [q[0] - mid[0], q[1] - mid[1]]], stroke: color, strokeWidth: 2, dashed, opacity: 0 });
+    }
     if (spec.label) {
       const labelId = `relate-${id}-${k}-label`;
       ids.push(labelId);

@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 Dates are YYYY-MM-DD.
 
+## 0.15.0 — 2026-09-08
+
+**`vlmkit-anim`: a still figure's own vocabulary for colour and kinship.**
+
+- **`tone` on modules, nodes, dependencies and edges** — `accent` (a module is filled, an arrow and its
+  label take the highlight colour), `bad`, `muted` — a colour role for a still figure with no
+  `sequence`. Two v13 writers had reached into the beat / `highlight` machinery to colour one edge on a
+  motion-free picture. A thing with `"tone": "accent"` counts as lit for `check --expect`.
+- **`"style": "implements"`** on a dependency or edge: dashed with a hollow head, the UML realisation,
+  laid out like a real dependency — an adapter realises its port rather than calling it. The SVG
+  renderer and the runtime draw the hollow marker.
+- **`"style": "equals"`** on `relate`: a double line, no head — the two anchors are equivalent /
+  substitutable / satisfy the same interface (a v13 writer: "nothing for 'satisfies the same
+  interface as its sibling'").
+- Fixture `modules-ports-adapters` shows all three in one still. Report:
+  `docs/reports/2026-09-08-anim-ir-v16.md`.
+
 ## 0.14.0 — 2026-09-07
 
 **`vlmkit-anim`: labels in any script, and edges that go round what is in their way.**

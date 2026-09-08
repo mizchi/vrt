@@ -16,6 +16,7 @@
 import {
   ANNOTATION_ACTIONS,
   EDGE_STYLES,
+  TONES,
   NAMED_EASINGS,
   SCENE_FORMAT,
   SCENE_KINDS,
@@ -382,8 +383,9 @@ function validateModules(ctx: Ctx, doc: Obj): void {
       const path = `modules[${i}]`;
       const id = isStr(m) ? m : ctx.object(m, path) ? m.id : undefined;
       if (!isStr(m) && ctx.object(m, path)) {
-        ctx.keys(m, path, ["id", "label", "hidden"]);
+        ctx.keys(m, path, ["id", "label", "tone", "hidden"]);
         if (!isStr(m.id)) ctx.error(`${path}.id`, `a module needs a string "id"`, `"${path}": "cache" or {"id": "cache", "label": "Cache"}`);
+        if (m.tone !== undefined) ctx.enumOf(m.tone, `${path}.tone`, TONES, "tone");
       }
       if (isStr(id)) {
         if (moduleIds.includes(id)) ctx.error(path, `duplicate module id "${id}"`);
@@ -401,10 +403,11 @@ function validateModules(ctx: Ctx, doc: Obj): void {
           ctx.ref(d[1], `${path}[1]`, moduleIds, "module");
         }
       } else if (ctx.object(d, path)) {
-        ctx.keys(d, path, ["from", "to", "label", "style", "hidden"]);
+        ctx.keys(d, path, ["from", "to", "label", "style", "tone", "hidden"]);
         ctx.ref(d.from, `${path}.from`, moduleIds, "module");
         ctx.ref(d.to, `${path}.to`, moduleIds, "module");
         if (d.style !== undefined) ctx.enumOf(d.style, `${path}.style`, EDGE_STYLES, "style");
+        if (d.tone !== undefined) ctx.enumOf(d.tone, `${path}.tone`, TONES, "tone");
       }
     });
   }
@@ -447,8 +450,9 @@ function validateDiagram(ctx: Ctx, doc: Obj): void {
     doc.nodes.forEach((n, i) => {
       const path = `nodes[${i}]`;
       if (!ctx.object(n, path)) return;
-      ctx.keys(n, path, ["id", "label", "shape", "pos", "fill", "hidden"]);
+      ctx.keys(n, path, ["id", "label", "shape", "pos", "fill", "tone", "hidden"]);
       if (n.shape !== undefined) ctx.enumOf(n.shape, `${path}.shape`, ["rect", "circle", "ellipse"], "shape");
+      if (n.tone !== undefined) ctx.enumOf(n.tone, `${path}.tone`, TONES, "tone");
       if (n.pos !== undefined) ctx.vec2(n.pos, `${path}.pos`);
     });
   }
@@ -471,7 +475,8 @@ function validateDiagram(ctx: Ctx, doc: Obj): void {
     doc.edges.forEach((e, i) => {
       const path = `edges[${i}]`;
       if (!ctx.object(e, path)) return;
-      ctx.keys(e, path, ["from", "to", "label", "style", "hidden"]);
+      ctx.keys(e, path, ["from", "to", "label", "style", "tone", "hidden"]);
+      if (e.tone !== undefined) ctx.enumOf(e.tone, `${path}.tone`, TONES, "tone");
       const a = ctx.ref(e.from, `${path}.from`, nodeIds, "node");
       const b = ctx.ref(e.to, `${path}.to`, nodeIds, "node");
       if (a && b) edgeKeys.push(`${e.from as string}->${e.to as string}`);
@@ -1050,8 +1055,8 @@ function validateAnnotationOp(ctx: Ctx, op: Obj, path: string, action: string): 
       anchor(v.to, `${p}.to`);
       if (isStr(v.from) && isStr(v.to) && v.from === v.to) ctx.error(`${p}.to`, `a relation needs two different anchors, both are "${v.from}"`);
       if (v.label !== undefined && !isStr(v.label)) ctx.error(`${p}.label`, `label must be a string`);
-      if (v.style !== undefined) ctx.enumOf(v.style, `${p}.style`, ["arrow", "line"], "style");
-      if (v.tone !== undefined) ctx.enumOf(v.tone, `${p}.tone`, ["accent", "bad", "muted"], "tone");
+      if (v.style !== undefined) ctx.enumOf(v.style, `${p}.style`, ["arrow", "line", "equals"], "style");
+      if (v.tone !== undefined) ctx.enumOf(v.tone, `${p}.tone`, TONES, "tone");
       if (v.id !== undefined && !isStr(v.id)) ctx.error(`${p}.id`, `id must be a string`);
       return;
     case "text":

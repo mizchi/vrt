@@ -232,7 +232,8 @@ export const EXPECT_SHEET = `expect — the facts a modules / diagram scene must
   modules      ids that must be drawn and visible at the end; a drawn module not on the list is an error
   deps         "a->b" (a depends on b): drawn, in that direction, as a real dependency
   forbidden    "a->b": drawn with "style": "forbidden" — the dependency that must not exist
-  highlighted  module / group ids and edges "a->b" that are lit in the final frame, and nothing else
+  highlighted  module / group ids and edges "a->b" that are lit in the final frame, and nothing else — by a
+               "highlight" step or by "tone": "accent" on the module or dependency
   groups       {"id": ["member", …]}: each container holds exactly these; a drawn group not listed is an error
 
 Example
