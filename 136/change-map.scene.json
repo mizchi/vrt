@@ -1,0 +1,228 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "diagram",
+  "title": "PR #136: anim: labels in any script, transitions that bend around states (v15, release 0.14.0)",
+  "layout": "grid",
+  "canvas": {
+    "width": 1283,
+    "height": 438
+  },
+  "nodes": [
+    {
+      "id": "fixtures/anim-scenario",
+      "label": "fixtures/anim-scenario",
+      "hidden": true
+    },
+    {
+      "id": "anim/samples",
+      "label": "anim/samples",
+      "hidden": true
+    },
+    {
+      "id": "anim/src",
+      "label": "anim/src",
+      "hidden": true
+    },
+    {
+      "id": "docs",
+      "label": "docs",
+      "hidden": true
+    },
+    {
+      "id": "root",
+      "label": "root",
+      "hidden": true
+    },
+    {
+      "id": "docs/reports",
+      "label": "docs/reports",
+      "hidden": true
+    },
+    {
+      "id": "docs/diagrams",
+      "label": "docs/diagrams",
+      "hidden": true
+    },
+    {
+      "id": "anim/fixtures",
+      "label": "anim/fixtures",
+      "hidden": true
+    },
+    {
+      "id": ".apm/skills",
+      "label": ".apm/skills",
+      "hidden": true
+    },
+    {
+      "id": ".claude",
+      "label": ".claude",
+      "hidden": true
+    },
+    {
+      "id": "examples/vlmkit-intro-page",
+      "label": "examples/vlmkit-intro-page",
+      "hidden": true
+    },
+    {
+      "id": "ai",
+      "label": "ai",
+      "hidden": true
+    },
+    {
+      "id": "anim",
+      "label": "anim",
+      "hidden": true
+    },
+    {
+      "id": "other (10 areas)",
+      "label": "other (10 areas)",
+      "hidden": true
+    }
+  ],
+  "edges": [],
+  "sequence": [
+    {
+      "show": [
+        "docs",
+        "docs/diagrams",
+        "fixtures/anim-scenario",
+        "anim/fixtures",
+        "anim/samples",
+        "anim/src"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "docs",
+        "docs/diagrams",
+        "fixtures/anim-scenario",
+        "anim/fixtures",
+        "anim/samples",
+        "anim/src"
+      ],
+      "caption": "1/3 anim: text width by script — CJK glyphs are one em (v15)"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 26
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+387 −21"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "docs",
+        "docs/diagrams",
+        "fixtures/anim-scenario",
+        "anim/fixtures",
+        "anim/samples",
+        "anim/src"
+      ],
+      "ms": 0
+    },
+    {
+      "show": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs/reports",
+        "examples/vlmkit-intro-page",
+        "ai",
+        "anim",
+        "other (10 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "docs/reports",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim",
+        "anim/src",
+        "other (10 areas)"
+      ],
+      "caption": "2/3 anim: transitions bend around states; strokes hidden under a fill are n…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 61
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1434 −121"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "docs/reports",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim",
+        "anim/src",
+        "other (10 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "docs/reports",
+        "fixtures/anim-scenario"
+      ],
+      "caption": "3/3 anim-scenario: v15 confirmation attempt id (Japanese state machine, bri…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 64
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1577 −121"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "docs/reports",
+        "fixtures/anim-scenario"
+      ],
+      "ms": 0
+    },
+    {
+      "note": "3 commits · 64 files · +1577 −121 · 14 areas, 0 import edges between them"
+    }
+  ]
+}
