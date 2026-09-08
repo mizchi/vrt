@@ -1,0 +1,79 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "distributed",
+  "title": "Two-phase commit: a lost ack",
+  "nodes": [
+    {
+      "id": "coord",
+      "status": "leader"
+    },
+    "p1",
+    "p2"
+  ],
+  "messages": [
+    {
+      "from": "coord",
+      "to": "p1",
+      "label": "prepare"
+    },
+    {
+      "from": "coord",
+      "to": "p2",
+      "label": "prepare",
+      "at": "<"
+    },
+    {
+      "from": "p1",
+      "to": "coord",
+      "label": "yes"
+    },
+    {
+      "from": "p2",
+      "to": "coord",
+      "label": "yes"
+    },
+    {
+      "from": "coord",
+      "to": "p1",
+      "label": "commit"
+    },
+    {
+      "from": "coord",
+      "to": "p2",
+      "label": "commit",
+      "at": "<"
+    },
+    {
+      "from": "p1",
+      "to": "coord",
+      "label": "ack"
+    },
+    {
+      "from": "p2",
+      "to": "coord",
+      "label": "ack",
+      "lost": true
+    },
+    {
+      "from": "coord",
+      "to": "p2",
+      "label": "commit again",
+      "after": "p2->coord:ack",
+      "delay": 800,
+      "caption": "coord times out waiting for p2's ack and resends the commit"
+    },
+    {
+      "from": "p2",
+      "to": "coord",
+      "label": "ack again"
+    }
+  ],
+  "events": [
+    {
+      "after": "commit again",
+      "node": "p2",
+      "status": "busy",
+      "caption": "p2 applies the resent commit slowly"
+    }
+  ]
+}
