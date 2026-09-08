@@ -1,0 +1,20 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": ["http", "cli", "app", "domain", "port", "postgres", "memory"],
+  "deps": [
+    "http->app",
+    "cli->app",
+    "app->domain",
+    "app->port",
+    "port->domain",
+    "postgres->port",
+    "memory->port"
+  ],
+  "forbidden": ["domain->postgres"],
+  "highlighted": ["app->port"],
+  "groups": {
+    "driving": ["http", "cli"],
+    "core": ["app", "domain", "port"],
+    "adapters": ["postgres", "memory"]
+  }
+}

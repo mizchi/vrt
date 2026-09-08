@@ -20,6 +20,7 @@ test — `samples.test.ts` only checks that every fixture is represented here.
 | [matrix-edit-distance](#matrix-edit-distance) | matrix | 12 | 6.6s |
 | [matrix-vector-clock](#matrix-vector-clock) | matrix | 11 | 6.0s |
 | [modules-checkout-ja](#modules-checkout-ja) | modules | 3 | 1.3s |
+| [modules-ports-adapters](#modules-ports-adapters) | modules | 2 | 0.6s |
 | [modules-web-service](#modules-web-service) | modules | 6 | 3.4s |
 | [queue-print-jobs](#queue-print-jobs) | queue | 6 | 3.5s |
 | [sort-bubble](#sort-bubble) | sort | 31 | 12.3s |
@@ -307,6 +308,24 @@ Vector clocks — 11 steps, 6000ms, 38 nodes
  1. [    0ms] 注文処理の依存関係
  2. [  350ms] この二本の非同期な依存が結果整合性の理由 · 支払いと注文の両方がここで非同期になる
  3. [ 1050ms] (end)
+```
+
+</details>
+
+## modules-ports-adapters
+
+`modules` — [`fixtures/modules-ports-adapters.json`](../fixtures/modules-ports-adapters.json) · 2 steps · 0.6s · GIF 64 KB
+
+![modules-ports-adapters animation](./modules-ports-adapters.gif)
+
+<details><summary>Contact sheet (every step) and narration</summary>
+
+![modules-ports-adapters contact sheet](./modules-ports-adapters.sheet.png)
+
+```
+Ports and adapters: every dependency points inward — 2 steps, 560ms, 28 nodes
+ 1. [    0ms] Ports and adapters: every dependency points inward · substitutable
+ 2. [  350ms] (end)
 ```
 
 </details>

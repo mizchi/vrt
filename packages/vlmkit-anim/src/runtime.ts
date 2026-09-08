@@ -95,9 +95,13 @@ export const RUNTIME_SOURCE = String.raw`
       const defs = el("defs"); svg.appendChild(defs);
       svg.appendChild(el("rect", { width, height, fill: background || "#fff", "data-background": "true" }));
       const groups = new Map(); const shapes = new Map(); const texts = new Map(); const lengths = new Map();
-      const ensureMarker = (color) => {
-        const id = markerId(color);
+      const ensureMarker = (color, hollow) => {
+        const id = markerId(color) + (hollow ? "-hollow" : "");
         if (defs.querySelector("#" + id)) return id;
+        if (hollow) {
+          const m = el("marker", { id, viewBox: "0 0 12 12", refX: 10, refY: 6, markerWidth: 10, markerHeight: 10, orient: "auto-start-reverse" });
+          m.appendChild(el("path", { d: "M 1 1 L 11 6 L 1 11 z", fill: background || "#fff", stroke: color, "stroke-width": 1.2 })); defs.appendChild(m); return id;
+        }
         const m = el("marker", { id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: "auto-start-reverse" });
         m.appendChild(el("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: color })); defs.appendChild(m); return id;
       };
@@ -117,10 +121,10 @@ export const RUNTIME_SOURCE = String.raw`
           case "line": case "arrow": {
             const [[x1, y1], [x2, y2]] = n.points || [[0, 0], [0, 0]];
             shape = el("line", { x1, y1, x2, y2 }); lengths.set(n.id, Math.hypot(x2 - x1, y2 - y1));
-            if (n.shape === "arrow") shape.setAttribute("marker-end", "url(#" + ensureMarker(stroke) + ")");
+            if (n.shape === "arrow") shape.setAttribute("marker-end", "url(#" + ensureMarker(stroke, n.head === "hollow") + ")");
             break;
           }
-          case "path": shape = el("path", { d: n.d || "" }); if (n.head) shape.setAttribute("marker-end", "url(#" + ensureMarker(stroke) + ")"); break;
+          case "path": shape = el("path", { d: n.d || "" }); if (n.head) shape.setAttribute("marker-end", "url(#" + ensureMarker(stroke, n.head === "hollow") + ")"); break;
         }
         if (shape) {
           const isStroke = n.shape === "line" || n.shape === "arrow" || n.shape === "path";

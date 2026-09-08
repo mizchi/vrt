@@ -93,10 +93,12 @@ function dashAttrs(n: NodeState, length: number): string {
   return ` stroke-dasharray="${num(L)}" stroke-dashoffset="${num(L * (1 - n.dash))}"`;
 }
 
-/** Marker id per stroke colour: SVG markers do not inherit `stroke`. */
-function markerId(color: string): string {
-  return `arrow-${color.replace(/[^a-zA-Z0-9]/g, "")}`;
+/** Marker id per stroke colour (SVG markers do not inherit `stroke`), and per head: filled, or hollow for "implements". */
+function markerId(color: string, hollow = false): string {
+  return `arrow-${hollow ? "hollow-" : ""}${color.replace(/[^a-zA-Z0-9]/g, "")}`;
 }
+/** The set of markers a frame needs, as `colour` or `colour|hollow`. */
+const markerKey = (color: string, hollow: boolean): string => (hollow ? `${color}|hollow` : color);
 
 function shapeMarkup(n: NodeState, markers: Set<string>): string {
   const stroke = n.stroke ?? "#333";
@@ -121,16 +123,18 @@ function shapeMarkup(n: NodeState, markers: Set<string>): string {
       // The head appears with the stroke: a message sampled at the start of its beat has dash 0, and a head
       // on an undrawn line reads as "an arrowhead pointing at nothing" (a v12 reader, on a contact sheet).
       if (n.shape === "arrow" && (n.dash === undefined || n.dash >= 0.999)) {
-        markers.add(stroke);
-        marker = ` marker-end="url(#${markerId(stroke)})"`;
+        const hollow = n.head === "hollow";
+        markers.add(markerKey(stroke, hollow));
+        marker = ` marker-end="url(#${markerId(stroke, hollow)})"`;
       }
       return `<line x1="${num(x1)}" y1="${num(y1)}" x2="${num(x2)}" y2="${num(y2)}" stroke="${esc(stroke)}" stroke-width="${num(sw)}" fill="none"${marker}${dashAttrs(n, Math.hypot(x2 - x1, y2 - y1))}/>`;
     }
     case "path": {
       let marker = "";
       if (n.head) {
-        markers.add(stroke);
-        marker = ` marker-end="url(#${markerId(stroke)})"`;
+        const hollow = n.head === "hollow";
+        markers.add(markerKey(stroke, hollow));
+        marker = ` marker-end="url(#${markerId(stroke, hollow)})"`;
       }
       return `<path d="${esc(n.d ?? "")}" fill="${esc(n.fill ?? "none")}" stroke="${esc(stroke)}" stroke-width="${num(sw)}"${marker}${dashAttrs(n, pathLength(n.d ?? ""))}/>`;
     }
@@ -186,10 +190,13 @@ export function renderFrameSvg(tl: Timeline, t: number, opts: RenderOptions = {}
   const { width, height, background } = tl.canvas;
   const body = roots.map((n) => nodeMarkup(n, children, markers, background ?? "#ffffff")).join("\n");
   const defs = [...markers]
-    .map(
-      (c) =>
-        `<marker id="${markerId(c)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${esc(c)}"/></marker>`,
-    )
+    .map((key) => {
+      const [c, kind] = key.split("|");
+      // A hollow head (an "implements" edge) is the same triangle, outlined in the stroke colour over the background.
+      return kind === "hollow"
+        ? `<marker id="${markerId(c, true)}" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M 1 1 L 11 6 L 1 11 z" fill="${esc(background ?? "#ffffff")}" stroke="${esc(c)}" stroke-width="1.2"/></marker>`
+        : `<marker id="${markerId(c)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${esc(c)}"/></marker>`;
+    })
     .join("");
   let caption = "";
   if (opts.caption !== false) {

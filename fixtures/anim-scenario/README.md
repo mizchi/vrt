@@ -92,6 +92,12 @@ glyph as 0.6 em; the briefs ask writers to open their own SVG and say whether a
 label looks like it overflows, because the geometry's green had been a lie
 (writers `ia`–`ic`).
 
+v16 (2026-09-08) adds the still figure's own vocabulary — `tone` on modules
+and dependencies, `"style": "implements"`, `relate` `"style": "equals"` — and
+one brief, `modules-adapters-still`, that needs all of it: five things a
+reader must see in the figure itself, with a fact sheet that fixes what may be
+lit (writers `ja`, `jb`).
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from
@@ -99,4 +105,5 @@ v11 also whether every dependent literal (readout text, message label,
 caption arithmetic) was updated — the checker cannot read arithmetic, so that
 is a hand count.
 Reports: `docs/reports/2026-09-04-anim-ir-v*.md`, `docs/reports/2026-09-05-anim-ir-v{9,10,11,12}.md`,
-`docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`.
+`docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`,
+`docs/reports/2026-09-08-anim-ir-v16.md`.

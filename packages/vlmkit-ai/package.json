@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-ai",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "VLM / LLM clients, reasoning pipeline, and NLP helpers used by VRT to interpret diff images and natural-language intent.",
   "license": "MIT",
   "author": "mizchi",

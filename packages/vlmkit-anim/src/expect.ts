@@ -189,7 +189,7 @@ export function checkExpectation(exp: Expectation, scene: Scene, tl: Timeline): 
       if (!known) out.push(err(`expect.highlighted`, `"${key}" is not in the picture, so it cannot be highlighted`, edge ? `add ["${edge[0]}", "${edge[1]}"] to "${depsField}" first` : `add "${key}" to "${nodesField}" or "groups" first`));
       else if (!litNow.has(key)) out.push(err(`expect.highlighted`, `${edge ? depWord : "id"} ${JSON.stringify(key)} is not highlighted in the final frame`, `add {"highlight": ${JSON.stringify(key)}} to "sequence" (after any "unhighlight" of it)`));
     }
-    for (const key of litNow) if (!want.has(key)) out.push(err(`sequence`, `${JSON.stringify(key)} is highlighted in the final frame but the facts do not point at it`, `the facts highlight ${exp.highlighted.length ? exp.highlighted.map((h) => JSON.stringify(h)).join(", ") : "nothing"}; unhighlight ${JSON.stringify(key)} or take it out of the "highlight" step`));
+    for (const key of litNow) if (!want.has(key)) out.push(err(`sequence`, `${JSON.stringify(key)} is highlighted in the final frame but the facts do not point at it`, `the facts highlight ${exp.highlighted.length ? exp.highlighted.map((h) => JSON.stringify(h)).join(", ") : "nothing"}; unhighlight ${JSON.stringify(key)}, take it out of the "highlight" step, or drop its "tone": "accent"`));
   }
 
   // Groups: each named container holds exactly its members; no container the facts do not know.
@@ -232,7 +232,8 @@ export const EXPECT_SHEET = `expect — the facts a modules / diagram scene must
   modules      ids that must be drawn and visible at the end; a drawn module not on the list is an error
   deps         "a->b" (a depends on b): drawn, in that direction, as a real dependency
   forbidden    "a->b": drawn with "style": "forbidden" — the dependency that must not exist
-  highlighted  module / group ids and edges "a->b" that are lit in the final frame, and nothing else
+  highlighted  module / group ids and edges "a->b" that are lit in the final frame, and nothing else — by a
+               "highlight" step or by "tone": "accent" on the module or dependency
   groups       {"id": ["member", …]}: each container holds exactly these; a drawn group not listed is an error
 
 Example

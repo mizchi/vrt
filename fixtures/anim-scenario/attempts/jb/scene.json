@@ -1,0 +1,32 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "Ports and adapters: the adapters",
+  "modules": [
+    "http",
+    "cli",
+    "app",
+    "domain",
+    "port",
+    "postgres",
+    { "id": "memory", "tone": "muted" }
+  ],
+  "deps": [
+    ["http", "app"],
+    ["cli", "app"],
+    ["app", "domain"],
+    { "from": "app", "to": "port", "tone": "accent" },
+    ["port", "domain"],
+    { "from": "postgres", "to": "port", "style": "implements" },
+    { "from": "memory", "to": "port", "style": "implements" },
+    { "from": "domain", "to": "postgres", "style": "forbidden", "label": "forbidden" }
+  ],
+  "groups": [
+    { "id": "driving", "label": "driving", "modules": ["http", "cli"] },
+    { "id": "core", "label": "core", "modules": ["app", "domain", "port"] },
+    { "id": "adapters", "label": "adapters", "modules": ["postgres", "memory"] }
+  ],
+  "sequence": [
+    { "relate": { "from": "postgres", "to": "memory", "style": "equals", "label": "substitutable" } }
+  ]
+}
