@@ -528,7 +528,7 @@ export function checkLayout(tl: Timeline): Diagnostic[] {
     const where = `at step ${first.step?.index ?? "?"} (${Math.round(first.t)}ms)${more ? ` and ${more} later step(s)` : ""}`;
     const annotation = issue.nodes.some((id) => /^(value|callout|snapshot|group|text|relate)-/.test(id));
     const hint = annotation
-      ? "the compiler placed this annotation — try another `side`, a shorter label, or anchor it at a different thing (the node instead of the edge), and report it if nothing helps"
+      ? "the compiler placed this annotation — try another `side`, a shorter label, or anchor it at a different thing (the node instead of the edge); when the thing in the way moves there later (a cursor, a token), hide the annotation before that beat with `null` — and report it if nothing helps"
       : "move one of them, shorten the text, or widen the canvas — in a laid-out kind (state-machine, graph, modules, diagram) try another `layout`, or reorder the nodes list: ties in `lr` / `tb` follow it";
     if (issue.kind === "clipped") out.push(warn(`nodes(${issue.nodes[0]})`, `"${issue.texts[0]}" runs ${issue.amount}px past the canvas edge ${where}`, hint));
     else if (issue.kind === "crossed") {
@@ -566,6 +566,62 @@ export function checkPlacements(tl: Timeline): Diagnostic[] {
   );
 }
 
+function checkFlowchart(scene: Extract<Scene, { kind: "flowchart" }>, tl: Timeline): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const nodes = scene.nodes.map((n) => (typeof n === "string" ? { id: n, shape: "process" as const } : { id: n.id, shape: n.shape ?? ("process" as const) }));
+  const edges = scene.edges.map((e) => (Array.isArray(e) ? { from: e[0], to: e[1], label: undefined as string | undefined } : e));
+  const visited = (tl.meta?.visited as string[] | undefined) ?? [];
+  const hops = (scene.walk ?? []).filter((it) => typeof it === "string" || (typeof it === "object" && "at" in it)).length;
+  if (visited.length !== hops + 1) out.push(error("walk", `only ${Math.max(0, visited.length - 1)} of ${hops} hops could be walked`));
+  // A decision with one way out is a box; its ways out should say which answer each is.
+  for (const n of nodes) {
+    if (n.shape !== "decision") continue;
+    const outs = edges.filter((e) => e.from === n.id);
+    if (outs.length < 2) out.push(warn(`nodes(${n.id})`, `decision "${n.id}" has ${outs.length} way${outs.length === 1 ? "" : "s"} out: a question with one answer is a step`, `add the other branch to "edges", or make it a "process"`));
+    for (const e of outs) if (!e.label) out.push(warn(`edges(${e.from}->${e.to})`, `the way out of decision "${n.id}" to "${e.to}" has no label: the reader cannot tell which answer it is`, `add "label": "yes" / "no" (or the condition)`));
+  }
+  // Nodes the walk never reaches are drawn and never explained.
+  const seen = new Set(visited);
+  if (scene.walk?.length) for (const n of nodes) if (!seen.has(n.id)) out.push(warn(`nodes(${n.id})`, `node "${n.id}" is never walked: the viewer sees a box and never learns when it is reached`, `extend "walk" through it, or drop it`));
+  // A terminal with ways out, or a non-terminal end of the walk, reads oddly.
+  const last = visited[visited.length - 1];
+  const lastNode = nodes.find((n) => n.id === last);
+  if (lastNode && lastNode.shape !== "terminal" && edges.some((e) => e.from === last)) out.push(warn("walk", `the walk stops at "${last}", which has a way out: the reader is left mid-flow`, `walk on to a "terminal" node, or end the walk with a {"note": "…"} saying why it stops here`));
+  return out;
+}
+
+function checkGantt(scene: Extract<Scene, { kind: "gantt" }>, tl: Timeline): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const meta = (tl.meta ?? {}) as { cursor?: number; to?: number; finalTasks?: Record<string, [number, number]>; status?: Record<string, string> };
+  const byId = new Map(scene.tasks.map((t) => [t.id, t]));
+  // A dependent that starts before its prerequisite ends — in the plan as written.
+  for (const t of scene.tasks) {
+    for (const pre of t.after ?? []) {
+      const p = byId.get(pre);
+      if (!p) continue;
+      const preEnd = p.end ?? p.start;
+      if (t.start < preEnd) out.push(warn(`tasks(${t.id})`, `"${t.label ?? t.id}" starts at ${t.start} but depends on "${p.label ?? p.id}", which ends at ${preEnd}`, `move its start to ${preEnd} or later, or drop the dependency`));
+    }
+  }
+  // The cursor never reached some tasks: their bars stay empty and the viewer never sees them happen.
+  const ops = scene.ops ?? [];
+  const advances = ops.filter((o): o is { advance: number } => "advance" in o);
+  if (advances.length) {
+    let prev = -Infinity;
+    advances.forEach((a, i) => {
+      if (a.advance < prev) out.push(error(`ops[${ops.indexOf(a)}].advance`, `the cursor goes back from ${prev} to ${a.advance}: time runs one way`, `advance to a later time, or reorder the ops`));
+      prev = a.advance;
+      void i;
+    });
+    const cursor = meta.cursor ?? prev;
+    for (const t of scene.tasks) {
+      const end = meta.finalTasks?.[t.id]?.[1] ?? t.end ?? t.start;
+      if (end > cursor) out.push(warn(`tasks(${t.id})`, `the cursor stops at ${cursor}; "${t.label ?? t.id}" ends at ${end} and is never seen finishing`, `add {"advance": ${end}} (or later) to "ops", or say why the story stops here with a note`));
+    }
+  } else if (ops.length === 0) out.push(warn("ops", "no ops: the plan is a still image", `add {"advance": t} beats to move the cursor through it`));
+  return out;
+}
+
 export function checkAnimation(tl: Timeline, scene?: Scene): Diagnostic[] {
   let out = [...checkTimeline(tl), ...checkLayout(tl), ...checkPlacements(tl)];
   if (!scene) return out;
@@ -586,6 +642,8 @@ export function checkAnimation(tl: Timeline, scene?: Scene): Diagnostic[] {
     case "matrix": out.push(...checkMatrix(scene, tl)); break;
     case "graph": out.push(...checkGraph(scene, tl)); break;
     case "chart": out.push(...checkChart(scene, tl)); break;
+    case "flowchart": out.push(...checkFlowchart(scene, tl)); break;
+    case "gantt": out.push(...checkGantt(scene, tl)); break;
     case "vector": break;
     case "compose": out.push(...checkCompose(scene)); break;
   }

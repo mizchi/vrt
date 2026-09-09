@@ -169,10 +169,12 @@ export type SceneKind =
   | "matrix"
   | "graph"
   | "chart"
+  | "flowchart"
+  | "gantt"
   | "vector"
   | "compose";
 
-export const SCENE_KINDS: readonly SceneKind[] = ["diagram", "modules", "state-machine", "sort", "array", "stack", "queue", "list", "heap", "tree", "distributed", "matrix", "graph", "chart", "vector", "compose"];
+export const SCENE_KINDS: readonly SceneKind[] = ["diagram", "modules", "state-machine", "sort", "array", "stack", "queue", "list", "heap", "tree", "distributed", "matrix", "graph", "chart", "flowchart", "gantt", "vector", "compose"];
 
 interface SceneBase {
   format: typeof SCENE_FORMAT;
@@ -722,6 +724,84 @@ export interface GraphScene extends SceneBase {
   ops?: GraphOp[];
 }
 
+// ---- flowchart ------------------------------------------------------------
+
+/** `process` (a box, default), `decision` (a diamond: a question with labelled ways out), `terminal` (a pill: start / end), `io` (a slanted box: input / output). */
+export type FlowShape = "process" | "decision" | "terminal" | "io";
+export const FLOW_SHAPES: readonly FlowShape[] = ["process", "decision", "terminal", "io"];
+
+export interface FlowNode {
+  id: string;
+  label?: string;
+  shape?: FlowShape;
+  /** Pin this node; the rest are laid out around it. */
+  pos?: Vec2;
+}
+
+/** `{"from", "to", "label"}` — the label is the answer a decision's way out carries ("yes", "n > 0") — or the shorthand `["a", "b"]`. */
+export type FlowEdge = { from: string; to: string; label?: string } | [string, string];
+
+/**
+ * One step of the walk: the id of the next node (the hop must be an edge), `{"at": id, "caption"}` to narrate it
+ * yourself, `{"note": "…"}` for a captioned pause, or an annotation op.
+ */
+export type FlowWalkItem = string | { at: string; caption?: string; ms?: number } | { note: string; ms?: number } | AnnotationOp;
+
+export interface FlowchartScene extends SceneBase {
+  kind: "flowchart";
+  nodes: (string | FlowNode)[];
+  edges: FlowEdge[];
+  /** Where the walk starts. Default: the first node. */
+  start?: string;
+  /** The nodes visited after `start`, in order; each hop follows an edge. A decision's hop is captioned with the edge's label. */
+  walk?: FlowWalkItem[];
+  /** `tb` (default) or `lr`. */
+  layout?: "tb" | "lr";
+}
+
+// ---- gantt ----------------------------------------------------------------
+
+export interface GanttTask {
+  id: string;
+  label?: string;
+  /** In the scene's `unit`s (days, weeks, sprints — a label, not a clock). */
+  start: number;
+  /** Omitted on a milestone: a point at `start`. */
+  end?: number;
+  /** The row band this task belongs to; tasks without a lane each get their own row. */
+  lane?: string;
+  /** Tasks this one depends on: an arrow from each one's end to this one's start; the check warns when it starts before they end. */
+  after?: string[];
+  /** A diamond at `start` instead of a bar. */
+  milestone?: boolean;
+  /** Who does it: drawn small inside the bar (or after it when the bar is short). */
+  owner?: string;
+}
+
+/** Every op may carry `caption` and `ms`. */
+export type GanttOp =
+  /** Move the time cursor to `advance` (absolute, in units): bars the cursor passes fill, tasks it is inside light up, done ones settle. */
+  | { advance: number; caption?: string; ms?: number }
+  /** A task's dates change: its bar stretches or moves. With `cascade`, every dependent that would now start before it ends moves by the same amount, and theirs after them. */
+  | { slip: { task: string; start?: number; end?: number; cascade?: boolean }; caption?: string; ms?: number }
+  /** Colour a task by what happened to it: `late` (the bad colour), `blocked` (muted), `done` (ok) — read by the check. */
+  | { status: { task: string; state: "late" | "blocked" | "done" }; caption?: string; ms?: number }
+  | { note: string; ms?: number }
+  | AnnotationOp;
+
+export interface GanttScene extends SceneBase {
+  kind: "gantt";
+  tasks: GanttTask[];
+  /** The name of the time unit for the axis ("day", "week", "sprint"). Default "day". */
+  unit?: string;
+  /** Tick spacing on the axis, in units. Default: a 1-2-5 step that gives 5–10 ticks. */
+  tick?: number;
+  /** Time where the axis starts and ends. Default: 0 and the latest end (plus one tick). */
+  from?: number;
+  to?: number;
+  ops?: GanttOp[];
+}
+
 // ---- chart ----------------------------------------------------------------
 
 export interface ChartSeries {
@@ -813,6 +893,8 @@ export type Scene =
   | MatrixScene
   | GraphScene
   | ChartScene
+  | FlowchartScene
+  | GanttScene
   | VectorScene
   | ComposeScene;
 

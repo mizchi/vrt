@@ -1,0 +1,31 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "gantt",
+  "title": "Sprint 14",
+  "unit": "day",
+  "tasks": [
+    { "id": "spec", "label": "Write spec", "start": 0, "end": 2, "lane": "Product" },
+    { "id": "api", "label": "API endpoints", "start": 2, "end": 6, "lane": "Backend", "after": ["spec"] },
+    { "id": "ui", "label": "Settings screen", "start": 2, "end": 7, "lane": "Frontend", "after": ["spec"] },
+    { "id": "wire", "label": "Wire UI to API", "start": 7, "end": 9, "lane": "Frontend", "after": ["api", "ui"] },
+    { "id": "test", "label": "Regression run", "start": 9, "end": 10, "lane": "QA", "after": ["wire"] },
+    { "id": "demo", "label": "Sprint demo", "start": 10, "milestone": true, "lane": "QA", "after": ["test"] }
+  ],
+  "ops": [
+    { "advance": 2, "caption": "Day 2: spec is done — API endpoints and the Settings screen both start" },
+    { "advance": 4, "caption": "Day 4: partway through, the API turns out to need a schema change" },
+    { "slip": { "task": "api", "end": 8 }, "caption": "API endpoints slips two days, to end on day 8" },
+    { "advance": 7, "caption": "Day 7: Wire UI to API was supposed to start today, but the API isn't ready yet" },
+    { "status": { "task": "wire", "state": "late" }, "caption": "Wire UI to API can no longer start on day 7 — it depends on the API" },
+    { "slip": { "task": "wire", "start": 8, "end": 10 }, "caption": "Wire UI to API slips to days 8–10" },
+    { "callout": { "at": "wire", "text": "waited for the API" } },
+    { "advance": 9, "caption": "Day 9: Regression run was due to start today" },
+    { "callout": null, "ms": 0 },
+    { "status": { "task": "test", "state": "blocked" }, "caption": "Regression run is blocked — the wiring still isn't finished" },
+    { "slip": { "task": "test", "start": 10, "end": 11 }, "caption": "Regression run slips to days 10–11" },
+    { "advance": 10, "caption": "Day 10: the sprint demo was supposed to happen today" },
+    { "status": { "task": "demo", "state": "late" }, "caption": "Sprint demo is marked late" },
+    { "slip": { "task": "demo", "start": 11 }, "caption": "Sprint demo slips to day 11" },
+    { "advance": 11, "caption": "Day 11: wiring and the regression run finish, and the sprint demo finally happens — one day late" }
+  ]
+}

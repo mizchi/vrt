@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 675.1 417" width="675.1" height="417" data-t="7700" data-duration="12180">
+<defs><marker id="arrow-9ca3af" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"/></marker><marker id="arrow-1f2328" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2328"/></marker></defs>
+<rect x="0" y="0" width="675.1" height="417" fill="#ffffff"/>
+<g id="title" data-shape="text" transform="translate(337.55 22)"><text font-size="18" fill="#1f2328" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Sprint 14</tspan></text></g>
+<g id="axis" data-shape="line" transform="translate(0 0)"><line x1="171.1" y1="76" x2="643.1" y2="76" stroke="#9ca3af" stroke-width="1.5" fill="none"/></g>
+<g id="tick-0" data-shape="text" transform="translate(171.1 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">0</tspan></text></g>
+<g id="grid-0" data-shape="line" transform="translate(0 0)"><line x1="171.1" y1="76" x2="171.1" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="tick-1" data-shape="text" transform="translate(249.77 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">2</tspan></text></g>
+<g id="grid-1" data-shape="line" transform="translate(0 0)"><line x1="249.77" y1="76" x2="249.77" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="tick-2" data-shape="text" transform="translate(328.43 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">4</tspan></text></g>
+<g id="grid-2" data-shape="line" transform="translate(0 0)"><line x1="328.43" y1="76" x2="328.43" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="tick-3" data-shape="text" transform="translate(407.1 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">6</tspan></text></g>
+<g id="grid-3" data-shape="line" transform="translate(0 0)"><line x1="407.1" y1="76" x2="407.1" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="tick-4" data-shape="text" transform="translate(485.77 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">8</tspan></text></g>
+<g id="grid-4" data-shape="line" transform="translate(0 0)"><line x1="485.77" y1="76" x2="485.77" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="tick-5" data-shape="text" transform="translate(564.43 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">10</tspan></text></g>
+<g id="grid-5" data-shape="line" transform="translate(0 0)"><line x1="564.43" y1="76" x2="564.43" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="tick-6" data-shape="text" transform="translate(643.1 64)"><text font-size="11" fill="#9ca3af" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">12</tspan></text></g>
+<g id="grid-6" data-shape="line" transform="translate(0 0)"><line x1="643.1" y1="76" x2="643.1" y2="288" stroke="#e5e7eb" stroke-width="1.5" fill="none"/></g>
+<g id="unit" data-shape="text" transform="translate(643.1 50)"><text font-size="11" fill="#9ca3af" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">day</tspan></text></g>
+<g id="lane-Product" data-shape="rect" transform="translate(407.1 99)"><rect x="-236" y="-15" width="472" height="30" fill="#ffffff" stroke="none" stroke-width="1.5"/></g>
+<g id="lane-Product-label" data-shape="text" transform="translate(12 99)"><text font-size="13" fill="#9ca3af" text-anchor="start" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Product</tspan></text></g>
+<g id="lane-Backend" data-shape="rect" transform="translate(407.1 135)"><rect x="-236" y="-15" width="472" height="30" fill="#f9fafb" stroke="none" stroke-width="1.5"/></g>
+<g id="lane-Backend-label" data-shape="text" transform="translate(12 135)"><text font-size="13" fill="#9ca3af" text-anchor="start" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Backend</tspan></text></g>
+<g id="lane-Frontend" data-shape="rect" transform="translate(407.1 186)"><rect x="-236" y="-30" width="472" height="60" fill="#ffffff" stroke="none" stroke-width="1.5"/></g>
+<g id="lane-Frontend-label" data-shape="text" transform="translate(12 186)"><text font-size="13" fill="#9ca3af" text-anchor="start" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Frontend</tspan></text></g>
+<g id="lane-QA" data-shape="rect" transform="translate(407.1 252)"><rect x="-236" y="-30" width="472" height="60" fill="#f9fafb" stroke="none" stroke-width="1.5"/></g>
+<g id="lane-QA-label" data-shape="text" transform="translate(12 252)"><text font-size="13" fill="#9ca3af" text-anchor="start" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">QA</tspan></text></g>
+<g id="label-spec" data-shape="text" transform="translate(163.1 99)"><text font-size="13" fill="#1f2328" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Write spec</tspan></text></g>
+<g id="bar-spec" data-shape="rect" transform="translate(210.43 99)"><rect x="-39.33" y="-9" width="78.67" height="18" rx="3" fill="#ffffff" stroke="#1f2328" stroke-width="1.2"/></g>
+<g id="fill-spec" data-shape="rect" transform="translate(210.43 99)" opacity="0.9"><rect x="-39.33" y="-7" width="78.67" height="14" rx="2" fill="#22c55e" stroke="none" stroke-width="1.5"/></g>
+<g id="label-api" data-shape="text" transform="translate(163.1 135)"><text font-size="13" fill="#1f2328" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">API endpoints</tspan></text></g>
+<g id="bar-api" data-shape="rect" transform="translate(367.77 135)"><rect x="-118" y="-9" width="236" height="18" rx="3" fill="#ffffff" stroke="#1f2328" stroke-width="1.2"/></g>
+<g id="fill-api" data-shape="rect" transform="translate(367.77 135)" opacity="0.9"><rect x="-118" y="-7" width="236" height="14" rx="2" fill="#22c55e" stroke="none" stroke-width="1.5"/></g>
+<g id="label-ui" data-shape="text" transform="translate(163.1 171)"><text font-size="13" fill="#1f2328" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Settings screen</tspan></text></g>
+<g id="bar-ui" data-shape="rect" transform="translate(348.1 171)"><rect x="-98.33" y="-9" width="196.67" height="18" rx="3" fill="#ffffff" stroke="#1f2328" stroke-width="1.2"/></g>
+<g id="fill-ui" data-shape="rect" transform="translate(348.1 171)" opacity="0.9"><rect x="-98.33" y="-7" width="196.67" height="14" rx="2" fill="#22c55e" stroke="none" stroke-width="1.5"/></g>
+<g id="label-wire" data-shape="text" transform="translate(163.1 201)"><text font-size="13" fill="#1f2328" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Wire UI to API</tspan></text></g>
+<g id="bar-wire" data-shape="rect" transform="translate(525.1 201)"><rect x="-39.33" y="-9" width="78.67" height="18" rx="3" fill="#ffffff" stroke="#ef4444" stroke-width="1.2"/></g>
+<g id="fill-wire" data-shape="rect" transform="translate(505.43 201)" opacity="0.9"><rect x="-19.67" y="-7" width="39.33" height="14" rx="2" fill="#ef4444" stroke="none" stroke-width="1.5"/></g>
+<g id="label-test" data-shape="text" transform="translate(163.1 237)"><text font-size="13" fill="#1f2328" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Regression run</tspan></text></g>
+<g id="bar-test" data-shape="rect" transform="translate(544.77 237)"><rect x="-19.67" y="-9" width="39.33" height="18" rx="3" fill="#ffffff" stroke="#9ca3af" stroke-width="1.2"/></g>
+<g id="fill-test" data-shape="rect" transform="translate(525.1 237)" opacity="0.9"><rect x="0" y="-7" width="0" height="14" rx="2" fill="#9ca3af" stroke="none" stroke-width="1.5"/></g>
+<g id="label-demo" data-shape="text" transform="translate(163.1 267)"><text font-size="13" fill="#1f2328" text-anchor="end" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">Sprint demo</tspan></text></g>
+<g id="bar-demo" data-shape="path" transform="translate(564.43 267)"><path d="M 0 -9 L 9 0 L 0 9 L -9 0 Z" fill="#ffffff" stroke="#1f2328" stroke-width="1.5"/></g>
+<g id="dep-0" data-shape="path" transform="translate(249.77 99)" opacity="0.3"><path d="M 0 0 L 8.000000000000028 0 L 8.000000000000028 36 L -4 36" fill="none" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow-9ca3af)"/></g>
+<g id="dep-1" data-shape="path" transform="translate(249.77 99)"><path d="M 0 0 L 8.000000000000028 0 L 8.000000000000028 72 L -4 72" fill="none" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow-9ca3af)"/></g>
+<g id="dep-2" data-shape="path" transform="translate(407.1 135)" opacity="0.3"><path d="M 0 0 L 8 0 L 8 66 L 35.33333333333337 66" fill="none" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow-9ca3af)"/></g>
+<g id="dep-3" data-shape="path" transform="translate(446.43 171)" opacity="0.3"><path d="M 0 0 L 8 0 L 8 30 L -4 30" fill="none" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow-9ca3af)"/></g>
+<g id="dep-4" data-shape="path" transform="translate(525.1 201)" opacity="0.3"><path d="M 0 0 L 8 0 L 8 36 L -4 36" fill="none" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow-9ca3af)"/></g>
+<g id="dep-5" data-shape="path" transform="translate(564.43 237)"><path d="M 0 0 L 8 0 L 8 30 L -13 30" fill="none" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow-9ca3af)"/></g>
+<g id="cursor" data-shape="line" transform="translate(525.1 76)"><line x1="0" y1="0" x2="0" y2="212" stroke="#ef4444" stroke-width="1.5" fill="none"/></g>
+<g id="cursor-label" data-shape="text" transform="translate(525.1 302)"><text font-size="12" fill="#ef4444" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">t = 9</tspan></text></g>
+<g id="callout-main-0-box" data-shape="rect" transform="translate(525.1 340.45)" opacity="0"><rect x="-82.55" y="-12.35" width="165.1" height="24.7" rx="6" fill="#f59e0b" stroke="#1f2328" stroke-width="1"/></g>
+<g id="callout-main-0-text" data-shape="text" transform="translate(525.1 340.45)" opacity="0"><text font-size="13" fill="#1f2328" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif"><tspan x="0" y="0">waited for the API</tspan></text></g>
+<g id="callout-main-0-arrow" data-shape="arrow" transform="translate(525.1 340.45)" opacity="0"><line x1="0" y1="-12.35" x2="0" y2="-127.45" stroke="#1f2328" stroke-width="1.5" fill="none" marker-end="url(#arrow-1f2328)"/></g>
+<text font-size="14" fill="#1f2328" text-anchor="middle" font-family="system-ui, sans-serif" data-caption="true"><tspan x="337.55" y="403">Regression run slips to days 10–11</tspan></text>
+</svg>

@@ -1,0 +1,24 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "flowchart",
+  "title": "Retry with a cap",
+  "nodes": [
+    { "id": "start", "label": "request", "shape": "terminal" },
+    { "id": "send", "label": "send it" },
+    { "id": "ok", "label": "2xx?", "shape": "decision" },
+    { "id": "tries", "label": "tries < 3?", "shape": "decision" },
+    { "id": "wait", "label": "back off" },
+    { "id": "done", "label": "done", "shape": "terminal" },
+    { "id": "fail", "label": "give up", "shape": "terminal" }
+  ],
+  "edges": [
+    ["start", "send"],
+    ["send", "ok"],
+    { "from": "ok", "to": "done", "label": "yes" },
+    { "from": "ok", "to": "tries", "label": "no" },
+    { "from": "tries", "to": "wait", "label": "yes" },
+    { "from": "tries", "to": "fail", "label": "no" },
+    ["wait", "send"]
+  ],
+  "walk": ["send", "ok", "tries", "wait", "send", "ok", "done"]
+}

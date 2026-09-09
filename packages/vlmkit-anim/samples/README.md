@@ -14,6 +14,8 @@ test — `samples.test.ts` only checks that every fixture is represented here.
 | [compose-two-protocols](#compose-two-protocols) | compose | 7 | 2.2s |
 | [diagram-cdn](#diagram-cdn) | diagram | 9 | 5.5s |
 | [distributed-replication](#distributed-replication) | distributed | 8 | 3.8s |
+| [flowchart-retry](#flowchart-retry) | flowchart | 9 | 7.2s |
+| [gantt-release](#gantt-release) | gantt | 7 | 4.9s |
 | [graph-dijkstra](#graph-dijkstra) | graph | 15 | 8.4s |
 | [heap-min](#heap-min) | heap | 16 | 8.1s |
 | [list-linked](#list-linked) | list | 10 | 6.0s |
@@ -145,6 +147,54 @@ Primary-replica write with a failover — 8 steps, 3780ms, 25 nodes
  6. [ 2500ms] primary crashes
  7. [ 3000ms] client retries against the promoted replica · replica is promoted
  8. [ 3600ms] end
+```
+
+</details>
+
+## flowchart-retry
+
+`flowchart` — [`fixtures/flowchart-retry.json`](../fixtures/flowchart-retry.json) · 9 steps · 7.2s · GIF 846 KB
+
+![flowchart-retry animation](./flowchart-retry.gif)
+
+<details><summary>Contact sheet (every step) and narration</summary>
+
+![flowchart-retry contact sheet](./flowchart-retry.sheet.png)
+
+```
+Retry with a cap — 9 steps, 7210ms, 20 nodes
+ 1. [    0ms] Start at "request"
+ 2. [  490ms] request → send it
+ 3. [ 1400ms] send it → 2xx?
+ 4. [ 2310ms] 2xx?: no → tries < 3?
+ 5. [ 3220ms] tries < 3?: yes → back off
+ 6. [ 4130ms] back off → send it
+ 7. [ 5040ms] send it → 2xx?
+ 8. [ 5950ms] 2xx?: yes → done
+ 9. [ 6860ms] End at "done"
+```
+
+</details>
+
+## gantt-release
+
+`gantt` — [`fixtures/gantt-release.json`](../fixtures/gantt-release.json) · 7 steps · 4.9s · GIF 321 KB
+
+![gantt-release animation](./gantt-release.gif)
+
+<details><summary>Contact sheet (every step) and narration</summary>
+
+![gantt-release contact sheet](./gantt-release.sheet.png)
+
+```
+Release 1.2 — 7 steps, 4900ms, 41 nodes
+ 1. [    0ms] Release 1.2
+ 2. [  420ms] day 3: Build starts; Design finishes
+ 3. [ 1330ms] Day 6: build is halfway
+ 4. [ 2240ms] A dependency breaks: build slips a day, and everything after it
+ 5. [ 3150ms] QA starts a day late
+ 6. [ 3710ms] day 11: QA, Ship start; Build, QA finish
+ 7. [ 4620ms] end
 ```
 
 </details>
