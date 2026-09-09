@@ -1,0 +1,283 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "diagram",
+  "title": "PR #141: anim-ir v20: `sequence` kind and nested groups on `modules` / `diagram` (0.19.0)",
+  "layout": "grid",
+  "canvas": {
+    "width": 1283,
+    "height": 438
+  },
+  "nodes": [
+    {
+      "id": "fixtures/anim-scenario",
+      "label": "fixtures/anim-scenario",
+      "hidden": true
+    },
+    {
+      "id": "anim/src",
+      "label": "anim/src",
+      "hidden": true
+    },
+    {
+      "id": "anim/samples",
+      "label": "anim/samples",
+      "hidden": true
+    },
+    {
+      "id": "root",
+      "label": "root",
+      "hidden": true
+    },
+    {
+      "id": ".claude",
+      "label": ".claude",
+      "hidden": true
+    },
+    {
+      "id": "docs",
+      "label": "docs",
+      "hidden": true
+    },
+    {
+      "id": "anim/fixtures",
+      "label": "anim/fixtures",
+      "hidden": true
+    },
+    {
+      "id": ".apm/skills",
+      "label": ".apm/skills",
+      "hidden": true
+    },
+    {
+      "id": "examples/vlmkit-intro-page",
+      "label": "examples/vlmkit-intro-page",
+      "hidden": true
+    },
+    {
+      "id": "ai",
+      "label": "ai",
+      "hidden": true
+    },
+    {
+      "id": "anim",
+      "label": "anim",
+      "hidden": true
+    },
+    {
+      "id": "animation-eval",
+      "label": "animation-eval",
+      "hidden": true
+    },
+    {
+      "id": "capture",
+      "label": "capture",
+      "hidden": true
+    },
+    {
+      "id": "other (9 areas)",
+      "label": "other (9 areas)",
+      "hidden": true
+    }
+  ],
+  "edges": [],
+  "sequence": [
+    {
+      "show": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "caption": "1/5 vlmkit-anim: `sequence` kind and nested groups on `modules` / `diagram`…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 45
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1020 −36"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".apm/skills",
+        ".claude",
+        "root",
+        "docs",
+        "examples/vlmkit-intro-page",
+        "fixtures/anim-scenario",
+        "ai",
+        "anim/fixtures",
+        "anim",
+        "anim/samples",
+        "anim/src",
+        "animation-eval",
+        "capture",
+        "other (9 areas)"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "root"
+      ],
+      "caption": "2/5 changelog: the nesting canvas growth and the bar-through-a-word layout …"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 45
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1026 −37"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "root"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "fixtures/anim-scenario"
+      ],
+      "caption": "3/5 anim-scenario: v20 writer attempts na / nb / nc (in progress)"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 56
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+1503 −37"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "fixtures/anim-scenario"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        "fixtures/anim-scenario"
+      ],
+      "caption": "4/5 anim-scenario: writer nb green in one round on sequence-checkout-facts"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 59
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+3825 −37"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        "fixtures/anim-scenario"
+      ],
+      "ms": 0
+    },
+    {
+      "highlight": [
+        ".claude",
+        "root",
+        "docs",
+        "other (9 areas)",
+        "fixtures/anim-scenario",
+        "anim/src"
+      ],
+      "caption": "5/5 anim-ir v20: writer round (na, nb, nc all green on the first write), re…"
+    },
+    {
+      "value": {
+        "id": "files",
+        "label": "files changed",
+        "text": 61
+      },
+      "ms": 0
+    },
+    {
+      "value": {
+        "id": "lines",
+        "label": "lines",
+        "text": "+4104 −49"
+      },
+      "ms": 0
+    },
+    {
+      "unhighlight": [
+        ".claude",
+        "root",
+        "docs",
+        "other (9 areas)",
+        "fixtures/anim-scenario",
+        "anim/src"
+      ],
+      "ms": 0
+    },
+    {
+      "note": "5 commits · 61 files · +4104 −49 · 14 areas, 0 import edges between them"
+    }
+  ]
+}
