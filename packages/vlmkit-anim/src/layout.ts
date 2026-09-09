@@ -268,7 +268,10 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
       const inter = intersection(tb, fb);
       if (!inter) continue;
       const ratio = inter / (tb.w * tb.h);
-      if (ratio >= minOverlap) issues.push({ kind: "overlap", nodes: [tb.id, fb.id], texts: [tb.text ?? "", fb.text ?? ""], amount: Math.round(ratio * 100) / 100 });
+      // A narrow box through the middle of a text — an activation bar down a frame's tag (v20: `alt [c hed]`) —
+      // covers little of its area and all of its sense: it cuts the word in two, so it counts whatever the ratio.
+      const cuts = fb.x > tb.x + 2 && fb.x + fb.w < tb.x + tb.w - 2 && fb.y <= tb.y + 1 && fb.y + fb.h >= tb.y + tb.h - 1;
+      if (ratio >= minOverlap || cuts) issues.push({ kind: "overlap", nodes: [tb.id, fb.id], texts: [tb.text ?? "", fb.text ?? ""], amount: Math.round(ratio * 100) / 100 });
     }
   }
   // A line through a text: an edge across a container label, a dependency under a callout (v13). The text's

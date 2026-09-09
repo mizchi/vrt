@@ -22,6 +22,8 @@ export interface LayoutInput {
    * their own band across the layers, so a container drawn around its members never encloses a bystander.
    */
   groups?: { id: string; nodes: string[] }[];
+  /** node → the innermost group it belongs to, when groups nest: members of one child group stay contiguous within a band. */
+  cluster?: Map<string, string>;
   /**
    * `sources` (default): a node's layer is one past the deepest node with an edge into it — a walk from the
    * roots, as a graph traversal reads. `sinks`: one past the deepest node it points to — leaves at the end,
@@ -188,6 +190,19 @@ export function layoutNodes(input: LayoutInput, mode: LayoutMode): Map<string, [
         bandSize.set(band, Math.max(bandSize.get(band) ?? 0, arr.length));
       }
     });
+    // Nested groups: within a cell, the members of one inner group sit next to each other (stable), so the inner
+    // container is one box and not a comb across its siblings.
+    if (input.cluster?.size) {
+      const cl = input.cluster;
+      for (const [key, arr] of cell) {
+        const firstIndex = new Map<string, number>();
+        arr.forEach((id, i) => {
+          const c = cl.get(id) ?? "";
+          if (!firstIndex.has(c)) firstIndex.set(c, i);
+        });
+        cell.set(key, [...arr].sort((a, c) => (firstIndex.get(cl.get(a) ?? "")! - firstIndex.get(cl.get(c) ?? "")!) || arr.indexOf(a) - arr.indexOf(c)));
+      }
+    }
     const used = bands.filter((b) => bandSize.has(b));
     const total = Math.max(1, used.reduce((s, b) => s + bandSize.get(b)!, 0));
     let start = 0;

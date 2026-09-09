@@ -12,6 +12,7 @@
 
 import { moduleCycles } from "./compile/modules.ts";
 import { layoutReport, type LayoutFrame, type LayoutIssue } from "./layout.ts";
+import { flattenSequence, type SeqRow } from "./compile/sequence.ts";
 import type { Placement } from "./compile/annotate.ts";
 import { sampleFrame, timelineDuration, worldPos } from "./timeline.ts";
 import { compileScene } from "./compile/index.ts";
@@ -622,6 +623,34 @@ function checkGantt(scene: Extract<Scene, { kind: "gantt" }>, tl: Timeline): Dia
   return out;
 }
 
+function checkSequence(scene: Extract<Scene, { kind: "sequence" }>, tl: Timeline): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const parts = scene.participants.map((p) => (typeof p === "string" ? p : p.id));
+  const meta = (tl.meta ?? {}) as { messages?: string[]; unreturned?: string[] };
+  const all = flattenSequence(scene.messages);
+  const rows = all.filter((r): r is Extract<SeqRow, { type: "msg" }> => r.type === "msg");
+  // A return from a participant nothing activated: the reader sees an answer to no question. The branches of an
+  // `alt` each start from the activations as they were when it opened.
+  let active = new Set<string>();
+  const snaps = new Map<number, Set<string>>();
+  all.forEach((r) => {
+    if (r.type === "open" && r.kind === "alt") snaps.set(r.id, new Set(active));
+    else if (r.type === "else") active = new Set(snaps.get(r.id));
+    if (r.type !== "msg") return;
+    const kind = r.m.kind ?? "call";
+    if (kind === "call" && r.m.from !== r.m.to) active.add(r.m.to);
+    else if (kind === "return") {
+      if (!active.has(r.m.from)) out.push(warn(`messages(${r.m.from}->${r.m.to})`, `"${r.m.from}" returns to "${r.m.to}" but no call activated it`, `make it a "call" or "async", or add the call it answers`));
+      active.delete(r.m.from);
+    }
+  });
+  for (const id of meta.unreturned ?? []) out.push(warn(`participants(${id})`, `"${id}" is still activated at the end: no return closes its call`, `add a {"from": "${id}", "to": …, "kind": "return"}, or make the call "async"`));
+  const touched = new Set(rows.flatMap((r) => [r.m.from, r.m.to]));
+  for (const id of parts) if (!touched.has(id)) out.push(warn(`participants(${id})`, `participant "${id}" sends and receives nothing`, `drop it, or give it a message`));
+  if (!rows.length) out.push(warn("messages", "no messages: the diagram is participants and lifelines only", `add {"from", "to", "label"} items`));
+  return out;
+}
+
 export function checkAnimation(tl: Timeline, scene?: Scene): Diagnostic[] {
   let out = [...checkTimeline(tl), ...checkLayout(tl), ...checkPlacements(tl)];
   if (!scene) return out;
@@ -644,6 +673,7 @@ export function checkAnimation(tl: Timeline, scene?: Scene): Diagnostic[] {
     case "chart": out.push(...checkChart(scene, tl)); break;
     case "flowchart": out.push(...checkFlowchart(scene, tl)); break;
     case "gantt": out.push(...checkGantt(scene, tl)); break;
+    case "sequence": out.push(...checkSequence(scene, tl)); break;
     case "vector": break;
     case "compose": out.push(...checkCompose(scene)); break;
   }

@@ -1,0 +1,26 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": ["web", "admin", "api", "auth", "catalog", "orders", "shared-types", "logger", "db", "queue"],
+  "deps": [
+    "web->api",
+    "admin->api",
+    "api->auth",
+    "api->catalog",
+    "api->orders",
+    "auth->shared-types",
+    "catalog->shared-types",
+    "orders->shared-types",
+    "catalog->db",
+    "orders->db",
+    "orders->queue",
+    "api->logger",
+    "auth->logger"
+  ],
+  "groups": {
+    "apps": ["web", "admin"],
+    "platform": ["api"],
+    "services": ["auth", "catalog", "orders"],
+    "kernel": ["shared-types", "logger"],
+    "infra": ["db", "queue"]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "sequence",
+  "title": "Place order",
+  "participants": [
+    {
+      "id": "customer",
+      "label": "Customer",
+      "kind": "actor"
+    },
+    {
+      "id": "shop",
+      "label": "Shop"
+    },
+    {
+      "id": "stock",
+      "label": "Stock"
+    },
+    {
+      "id": "payment",
+      "label": "Payment"
+    },
+    {
+      "id": "mail",
+      "label": "Mail"
+    }
+  ],
+  "messages": [
+    {
+      "from": "customer",
+      "to": "shop",
+      "label": "place order"
+    },
+    {
+      "from": "shop",
+      "to": "stock",
+      "label": "reserve(items)"
+    },
+    {
+      "from": "stock",
+      "to": "shop",
+      "label": "reserved",
+      "kind": "return"
+    },
+    {
+      "loop": "until paid, max 2",
+      "items": [
+        {
+          "from": "shop",
+          "to": "payment",
+          "label": "charge(card)"
+        },
+        {
+          "alt": [
+            {
+              "when": "declined",
+              "items": [
+                {
+                  "from": "payment",
+                  "to": "shop",
+                  "label": "declined",
+                  "kind": "return"
+                }
+              ]
+            },
+            {
+              "when": "approved",
+              "items": [
+                {
+                  "from": "payment",
+                  "to": "shop",
+                  "label": "receipt",
+                  "kind": "return"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "from": "shop",
+      "to": "mail",
+      "label": "send confirmation",
+      "kind": "async"
+    },
+    {
+      "from": "shop",
+      "to": "customer",
+      "label": "order #4711",
+      "kind": "return"
+    }
+  ]
+}

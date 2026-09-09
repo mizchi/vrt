@@ -138,7 +138,7 @@ is how Playwright's own `mount` fixture works. Consequences:
 ## Explanatory animations (`vlmkit-anim`) and their evaluation loop
 
 ```bash
-vlmkit-anim schema --kind sort                      # the writing guide for one kind (docs/anim-ir.md has all eighteen)
+vlmkit-anim schema --kind sort                      # the writing guide for one kind (docs/anim-ir.md has all nineteen)
 vlmkit-anim schema --kind modules                   # the still-figure preset: a module map (modules / deps / groups), layered, cycle-checked
 vlmkit-anim schema --kind annotations               # the six ops every kind shares (value / callout / snapshot / group / text / relate) and each kind's anchors
 vlmkit-anim check scene.json                        # validate → compile → semantic checks → stats; exit 1 on ✗
@@ -206,7 +206,11 @@ four writers' sheets all matched, and every further round was a compiler defect 
 label, a 35px circle of four states, labels on states, a distance label under an edge), `docs/reports/2026-09-08-anim-ir-v19.md`
 (two kinds — `flowchart` with decision diamonds, labelled ways out, a walked path and loops round the outside, and `gantt`
 with bars on a unit axis, dependencies, a cursor, cascading slips — both flowchart writers green on the first write; the
-gantt writer's five rounds were one callout that a moving cursor label walked under, fixed in the compiler).
+gantt writer's five rounds were one callout that a moving cursor label walked under, fixed in the compiler), `docs/reports/2026-09-09-anim-ir-v20.md`
+(the last two shapes on the list — `sequence` with activation bars and `loop` / `alt` frames, and groups inside groups with `parent` —
+three writers green on the first write; the round's two compiler defects were found on the fixtures, a nested box running into its
+neighbour and an activation bar cutting a frame's tag in two, which `layout` had not counted because a 10px bar covers little area;
+it counts now).
 
 ## Measuring Gate / Rule Execution Cost
 
@@ -356,7 +360,7 @@ This repository is a pnpm workspace.
 | `packages/vlmkit-ai/` | VLM / LLM clients, reasoning pipeline, NLP helpers. |
 | `packages/vlmkit-markup/` | VLM-driven markup tooling: component extract / from-image, design tokens, theme parity, i18n stress, palette, dep-graph, selector-heal, smoke-runner. |
 | `packages/vlmkit-animation-eval/` | **Frame-sampled animation evaluator** (`runAnimationEval`): the measurement behind `vlmkit check animation` and `vlmkit-anim eval`. Depends on core + Playwright only; the first evaluation tool split out so the animation tool can share it without the rest of vlmkit. |
-| `packages/vlmkit-anim/` | **Explanatory animation IR** (`vlmkit-anim`): Scene IR (sort / array / stack / queue / list / state-machine / heap / tree / distributed / matrix / graph / chart / flowchart / gantt / diagram / modules / vector) → Timeline IR → `<vlm-anim>` runtime (SVG + Web Animations) and headless SVG frames. Writing guide `docs/anim-ir.md`; design `docs/design/anim-ir.md`. Every JSON block in the guide is compiled by `docs.test.ts` — edit the guide and the examples together. |
+| `packages/vlmkit-anim/` | **Explanatory animation IR** (`vlmkit-anim`): Scene IR (sort / array / stack / queue / list / state-machine / heap / tree / distributed / matrix / graph / chart / flowchart / gantt / sequence / diagram / modules / vector) → Timeline IR → `<vlm-anim>` runtime (SVG + Web Animations) and headless SVG frames. Writing guide `docs/anim-ir.md`; design `docs/design/anim-ir.md`. Every JSON block in the guide is compiled by `docs.test.ts` — edit the guide and the examples together. |
 | `src/cli/` | CLI entry + router + workflow command implementations (split per-command under `cli/workflow/`). |
 | `src/api/` | HTTP API server (deep-imports vlmkit-markup smoke-runner + experiments/css-challenge). |
 | `src/experiments/` | migration, css-challenge, detection, benchmark, flaker. |
@@ -384,7 +388,7 @@ The `vlmkit-markup` markup-core tests build MoonBit sources on demand and need t
 | `docs/knowledge.md` | Accumulated experiment findings (detection rates, VLM comparisons, fix patterns, etc.) |
 | `docs/api-design.md` | CLI / library API design |
 | `docs/reports/2026-08-06-gate-rule-cost-bench.md` | Measured gate/rule execution cost: where a ruleset's time goes, why per-rule cost is attributed rather than isolated, why suppression saves nothing |
-| `docs/anim-ir.md` | **Writing guide for `vlmkit-anim`**: the seventeen scene kinds (sixteen structures + `compose`), the annotation ops every kind shares, the timeline layer, embedding. The one page an agent reads before producing a scene |
+| `docs/anim-ir.md` | **Writing guide for `vlmkit-anim`**: the eighteen scene kinds (seventeen structures + `compose`), the annotation ops every kind shares, the timeline layer, embedding. The one page an agent reads before producing a scene |
 | `docs/design/anim-ir.md` | Why two layers, why SVG + WAAPI over Remotion, what the semantic checks read back from frames, the evaluation criteria (intent readable on re-edit; correct from little context) |
 | `docs/authoring-gates.md` | **User-facing how-to for adding a metric**: the contract field by field, choosing severities/categories, reading project config, browser measurement, testing, publishing. Runnable examples in `examples/gate-plugin/` |
 | `docs/design/gate-plugin-architecture.md` | Gate plugin contract, rule settings, the 27 gates + 127 rules, behavior changes, what is deliberately not a gate |

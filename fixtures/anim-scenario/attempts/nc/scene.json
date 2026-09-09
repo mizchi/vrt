@@ -1,0 +1,28 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "Monorepo architecture",
+  "modules": ["web", "admin", "api", "auth", "catalog", "orders", "shared-types", "logger", "db", "queue"],
+  "deps": [
+    ["web", "api"],
+    ["admin", "api"],
+    ["api", "auth"],
+    ["api", "catalog"],
+    ["api", "orders"],
+    ["auth", "shared-types"],
+    ["catalog", "shared-types"],
+    ["orders", "shared-types"],
+    ["catalog", "db"],
+    ["orders", "db"],
+    ["orders", "queue"],
+    ["api", "logger"],
+    ["auth", "logger"]
+  ],
+  "groups": [
+    { "id": "apps", "label": "apps", "modules": ["web", "admin"] },
+    { "id": "platform", "label": "platform", "modules": ["api"] },
+    { "id": "services", "label": "services", "modules": ["auth", "catalog", "orders"], "parent": "platform" },
+    { "id": "kernel", "label": "kernel", "modules": ["shared-types", "logger"], "parent": "platform" },
+    { "id": "infra", "label": "infra", "modules": ["db", "queue"] }
+  ]
+}

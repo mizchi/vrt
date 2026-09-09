@@ -1,0 +1,29 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "modules",
+  "title": "A shop, with the backend's own layers",
+  "modules": [
+    { "id": "web", "label": "web app" },
+    { "id": "mobile", "label": "mobile app" },
+    { "id": "gateway", "label": "API gateway" },
+    { "id": "orders", "label": "orders" },
+    { "id": "billing", "label": "billing" },
+    { "id": "domain", "label": "domain model" },
+    { "id": "postgres", "label": "Postgres" },
+    { "id": "events", "label": "event bus" }
+  ],
+  "deps": [
+    ["web", "gateway"], ["mobile", "gateway"],
+    ["gateway", "orders"], ["gateway", "billing"],
+    ["orders", "domain"], ["billing", "domain"],
+    ["orders", "postgres"], ["billing", "postgres"],
+    ["orders", "events"], ["billing", "events"]
+  ],
+  "groups": [
+    { "id": "clients", "label": "clients", "modules": ["web", "mobile"] },
+    { "id": "backend", "label": "backend", "modules": ["gateway"] },
+    { "id": "services", "label": "services", "modules": ["orders", "billing"], "parent": "backend" },
+    { "id": "core", "label": "core", "modules": ["domain"], "parent": "backend" },
+    { "id": "infra", "label": "infrastructure", "modules": ["postgres", "events"] }
+  ]
+}

@@ -171,10 +171,11 @@ export type SceneKind =
   | "chart"
   | "flowchart"
   | "gantt"
+  | "sequence"
   | "vector"
   | "compose";
 
-export const SCENE_KINDS: readonly SceneKind[] = ["diagram", "modules", "state-machine", "sort", "array", "stack", "queue", "list", "heap", "tree", "distributed", "matrix", "graph", "chart", "flowchart", "gantt", "vector", "compose"];
+export const SCENE_KINDS: readonly SceneKind[] = ["diagram", "modules", "state-machine", "sort", "array", "stack", "queue", "list", "heap", "tree", "distributed", "matrix", "graph", "chart", "flowchart", "gantt", "sequence", "vector", "compose"];
 
 interface SceneBase {
   format: typeof SCENE_FORMAT;
@@ -345,6 +346,8 @@ export interface DiagramGroup {
   id: string;
   label?: string;
   nodes: string[];
+  /** The group this one sits inside: containers nest, and the parent's box holds this one's (v20). */
+  parent?: string;
 }
 
 export interface DiagramScene extends SceneBase {
@@ -376,6 +379,8 @@ export interface ModuleGroup {
   id: string;
   label?: string;
   modules: string[];
+  /** The group this one sits inside: containers nest (`core` inside `backend`), and a module belongs to the innermost. */
+  parent?: string;
 }
 
 /**
@@ -802,6 +807,47 @@ export interface GanttScene extends SceneBase {
   ops?: GanttOp[];
 }
 
+// ---- sequence -------------------------------------------------------------
+
+export interface SeqParticipant {
+  id: string;
+  label?: string;
+  /** `actor` draws a stick-figure-less pill (a person); `system` (default) a box. */
+  kind?: "actor" | "system";
+}
+
+/** `call` (solid, filled head; activates the receiver), `return` (dashed, open head; deactivates the sender), `async` (solid, open head; activates nothing). */
+export type SeqKind = "call" | "return" | "async";
+export const SEQ_KINDS: readonly SeqKind[] = ["call", "return", "async"];
+
+export interface SeqMessage {
+  from: string;
+  to: string;
+  label?: string;
+  /** Default `call`. */
+  kind?: SeqKind;
+  caption?: string;
+  ms?: number;
+}
+
+/**
+ * One item of the sequence: a message, a captioned pause (optionally beside a participant), a `loop` frame
+ * around items, an `alt` frame with two or more `when` branches, or an annotation op.
+ */
+export type SeqItem =
+  | SeqMessage
+  | { note: string; at?: string; ms?: number }
+  | { loop: string; items: SeqItem[] }
+  | { alt: { when: string; items: SeqItem[] }[] }
+  | AnnotationOp;
+
+export interface SequenceScene extends SceneBase {
+  kind: "sequence";
+  participants: (string | SeqParticipant)[];
+  /** In order down the page; each message is a beat. */
+  messages: SeqItem[];
+}
+
 // ---- chart ----------------------------------------------------------------
 
 export interface ChartSeries {
@@ -895,6 +941,7 @@ export type Scene =
   | ChartScene
   | FlowchartScene
   | GanttScene
+  | SequenceScene
   | VectorScene
   | ComposeScene;
 

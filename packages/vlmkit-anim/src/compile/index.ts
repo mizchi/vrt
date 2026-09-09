@@ -15,6 +15,7 @@ import { compileDiagram } from "./diagram.ts";
 import { compileDistributed } from "./distributed.ts";
 import { compileFlowchart } from "./flowchart.ts";
 import { compileGantt } from "./gantt.ts";
+import { compileSequence } from "./sequence.ts";
 import { compileGraph } from "./graph.ts";
 import { compileHeap } from "./heap.ts";
 import { compileList } from "./list.ts";
@@ -65,6 +66,7 @@ function dispatch(scene: Scene): Timeline {
     case "chart": return compileChart(scene);
     case "flowchart": return compileFlowchart(scene);
     case "gantt": return compileGantt(scene);
+    case "sequence": return compileSequence(scene);
     case "vector": return compileVector(scene);
   }
 }
