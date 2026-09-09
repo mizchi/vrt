@@ -178,6 +178,7 @@ export const EXPECT_KINDS: Record<string, (keyof Expectation)[]> = {
   flowchart: ["nodes", "edges", "visited", "end"],
   "state-machine": ["states", "transitions", "initial", "final", "visited", "end"],
   distributed: ["nodes", "messages", "lost", "status"],
+  sequence: ["nodes", "messages"],
 };
 
 /**
@@ -209,6 +210,7 @@ export function checkExpectation(exp: Expectation, scene: Scene, tl: Timeline): 
   if (scene.kind === "modules" || scene.kind === "diagram") out.push(...checkModulesExpectation(exp, scene, tl));
   else if (scene.kind === "graph" || scene.kind === "flowchart") out.push(...checkGraphExpectation(exp, scene, tl));
   else if (scene.kind === "state-machine") out.push(...checkStateMachineExpectation(exp, scene, tl));
+  else if (scene.kind === "sequence") out.push(...checkSequenceExpectation(exp, scene, tl));
   else out.push(...checkDistributedExpectation(exp, scene as Extract<Scene, { kind: "distributed" }>, tl));
   return { diagnostics: out, compared };
 }
@@ -510,6 +512,31 @@ function checkDistributedExpectation(exp: Expectation, scene: Extract<Scene, { k
   return out;
 }
 
+// ---- sequence ------------------------------------------------------------------------------
+
+function checkSequenceExpectation(exp: Expectation, scene: Extract<Scene, { kind: "sequence" }>, tl: Timeline): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const parts = scene.participants.map((p) => (typeof p === "string" ? p : p.id));
+  const sent = ((tl.meta ?? {}) as { messages?: string[] }).messages ?? [];
+  const msgs = sent.map((s) => parseLink(s)!);
+  const text = (l: Link) => linkText(l);
+  if (exp.nodes) out.push(...exactIds("participants", "nodes", "participant", exp.nodes, parts, { missing: (id) => `add "${id}" to "participants" — the facts use these ids`, extra: () => `remove it, or rename it to the id the facts use (${exp.nodes!.map((m) => `"${m}"`).join(", ")})` }));
+  if (exp.messages) {
+    const want = exp.messages.map((s) => parseLink(s)!);
+    const matches = (w: Link, m: Link) => w.from === m.from && w.to === m.to && (w.tag === undefined || w.tag === m.tag);
+    const n = Math.min(want.length, msgs.length);
+    let told = false;
+    for (let i = 0; i < n; i++) {
+      if (matches(want[i], msgs[i])) continue;
+      out.push(err(`messages[${i}]`, `message ${i + 1} is ${text(msgs[i])}; the facts say ${text(want[i])}`, `the facts list the messages in the order they are written, frames flattened; reorder, relabel, or fix the sheet`));
+      told = true;
+      break;
+    }
+    if (!told && want.length !== msgs.length) out.push(err(`expect.messages`, `the scene sends ${msgs.length} message(s); the facts list ${want.length}`, want.length > msgs.length ? `missing: ${want.slice(msgs.length).map(text).join(", ")}` : `not in the facts: ${msgs.slice(want.length).map(text).join(", ")}`));
+  }
+  return out;
+}
+
 const WORDS: Record<string, [string, string]> = {
   modules: ["module", "modules"],
   deps: ["dependency", "dependencies"],
@@ -579,6 +606,9 @@ export const EXPECT_SHEET = `expect — the facts a scene must show, for \`check
   final        the states drawn as final (double ring), exactly these
   visited      the states the token walks, in order, starting at "initial"
   end          the state the token ends in, lit in the final frame
+
+  sequence
+  nodes        the participants, exactly these     messages   "a->b" or "a->b:label" in order, frames flattened
 
   distributed
   nodes        the lanes, exactly these

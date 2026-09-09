@@ -27,6 +27,7 @@ import {
   type Scene,
   type Timeline,
   FLOW_SHAPES,
+  SEQ_KINDS,
 } from "./types.ts";
 
 type Obj = Record<string, unknown>;
@@ -418,7 +419,7 @@ function validateModules(ctx: Ctx, doc: Obj): void {
     doc.groups.forEach((g, i) => {
       const path = `groups[${i}]`;
       if (!ctx.object(g, path)) return;
-      ctx.keys(g, path, ["id", "label", "modules"]);
+      ctx.keys(g, path, ["id", "label", "modules", "parent"]);
       if (!isStr(g.id)) ctx.error(`${path}.id`, `a group needs a string "id"`);
       else if (moduleIds.includes(g.id) || groupIds.includes(g.id)) ctx.error(`${path}.id`, `"${g.id}" is already a module or group id`);
       else groupIds.push(g.id);
@@ -426,11 +427,12 @@ function validateModules(ctx: Ctx, doc: Obj): void {
         g.modules.forEach((m, k) => {
           if (!ctx.ref(m, `${path}.modules[${k}]`, moduleIds, "module")) return;
           const prev = owner.get(m as string);
-          if (prev && prev !== g.id) ctx.error(`${path}.modules[${k}]`, `"${m as string}" is already in group "${prev}"`, "a module belongs to at most one group");
+          if (prev && prev !== g.id) ctx.error(`${path}.modules[${k}]`, `"${m as string}" is already in group "${prev}"`, "a module belongs to at most one group — the innermost, when groups nest");
           else owner.set(m as string, String(g.id));
         });
       }
     });
+    groupParents(ctx, doc.groups, "groups");
   }
   // The sequence follows the diagram's rules over the normalised shape; only when the shape itself is sound,
   // so a bad dep is reported once, as deps[i], not again as edges[i].
@@ -462,12 +464,13 @@ function validateDiagram(ctx: Ctx, doc: Obj): void {
     doc.groups.forEach((g, i) => {
       const path = `groups[${i}]`;
       if (!ctx.object(g, path)) return;
-      ctx.keys(g, path, ["id", "label", "nodes"]);
+      ctx.keys(g, path, ["id", "label", "nodes", "parent"]);
       if (!isStr(g.id)) ctx.error(`${path}.id`, `a group needs a string "id"`);
       else if (nodeIds.includes(g.id) || groupIds.includes(g.id)) ctx.error(`${path}.id`, `"${g.id}" is already a node or group id`);
       else groupIds.push(g.id);
       if (ctx.array(g.nodes, `${path}.nodes`, { minLength: 1 })) g.nodes.forEach((n, k) => ctx.ref(n, `${path}.nodes[${k}]`, nodeIds, "node"));
     });
+    groupParents(ctx, doc.groups, "groups");
   }
   // Steps may name a group where they name a node: show / hide / highlight its container.
   const targetIds = [...nodeIds, ...groupIds];
@@ -761,6 +764,93 @@ function validateGantt(ctx: Ctx, doc: Obj): void {
       } else ctx.error(path, `an op is {"advance": t}, {"slip": {"task", "start", "end"}}, {"status": {"task", "state"}}, {"note"} or an annotation op; found keys ${list(Object.keys(op))}`);
     });
   }
+}
+
+/** `parent` on a group names another group in the same list, not itself, and never round in a circle. */
+function groupParents(ctx: Ctx, groups: unknown[], field: string): void {
+  const ids: string[] = groups.map((g) => (isObj(g) && isStr(g.id) ? g.id : "")).filter(Boolean);
+  const parentOf = new Map<string, string>();
+  groups.forEach((g, i) => {
+    if (!isObj(g) || g.parent === undefined) return;
+    const path = `${field}[${i}].parent`;
+    if (!ctx.ref(g.parent, path, ids, "group")) return;
+    if (g.parent === g.id) {
+      ctx.error(path, `group "${String(g.id)}" cannot be its own parent`);
+      return;
+    }
+    if (isStr(g.id)) parentOf.set(g.id, g.parent as string);
+  });
+  for (const [id] of parentOf) {
+    const seen = new Set<string>([id]);
+    let cur = parentOf.get(id);
+    while (cur !== undefined) {
+      if (seen.has(cur)) {
+        ctx.error(`${field}(${id}).parent`, `groups ${[...seen, cur].map((x) => `"${x}"`).join(" → ")} nest in a circle`, "one of them has to be the outermost: drop its parent");
+        break;
+      }
+      seen.add(cur);
+      cur = parentOf.get(cur);
+    }
+  }
+}
+
+function validateSequence(ctx: Ctx, doc: Obj): void {
+  validateBase(ctx, doc, ["participants", "messages"]);
+  let ids_: string[] = [];
+  if (ctx.array(doc.participants, "participants", { minLength: 1 })) {
+    ids_ = ids(ctx, doc.participants, "participants");
+    doc.participants.forEach((p, i) => {
+      if (isObj(p)) {
+        ctx.keys(p, `participants[${i}]`, ["id", "label", "kind"]);
+        if (p.kind !== undefined) ctx.enumOf(p.kind, `participants[${i}].kind`, ["actor", "system"], "kind");
+      } else if (!isStr(p)) ctx.error(`participants[${i}]`, `a participant is a string id or {"id", "label", "kind"}`);
+    });
+  }
+  const items = (list: unknown, path: string, depth: number): void => {
+    if (!ctx.array(list, path)) return;
+    list.forEach((it, i) => {
+      const p = `${path}[${i}]`;
+      if (!ctx.object(it, p)) return;
+      if (annotationItem(ctx, it, p)) return;
+      if ("note" in it) {
+        ctx.keys(it, p, ["note", "at", "ms"]);
+        if (!isStr(it.note)) ctx.error(`${p}.note`, "note takes a string");
+        if (it.at !== undefined) ctx.ref(it.at, `${p}.at`, ids_, "participant");
+        return;
+      }
+      if ("loop" in it) {
+        ctx.keys(it, p, ["loop", "items"]);
+        ctx.string(it.loop, `${p}.loop`);
+        items(it.items, `${p}.items`, depth + 1);
+        return;
+      }
+      if ("alt" in it) {
+        ctx.keys(it, p, ["alt"]);
+        if (ctx.array(it.alt, `${p}.alt`, { minLength: 1 })) {
+          if (it.alt.length < 2) ctx.warn(`${p}.alt`, "an alt with one branch is a loop without a condition", `add a second {"when", "items"} branch, or drop the frame`);
+          it.alt.forEach((br, k) => {
+            const bp = `${p}.alt[${k}]`;
+            if (!ctx.object(br, bp)) return;
+            ctx.keys(br, bp, ["when", "items"]);
+            ctx.string(br.when, `${bp}.when`);
+            items(br.items, `${bp}.items`, depth + 1);
+          });
+        }
+        return;
+      }
+      if (!("from" in it) || !("to" in it)) {
+        ctx.error(p, `an item is a message {"from", "to", "label", "kind"}, {"note"}, {"loop", "items"}, {"alt": [...]} or an annotation op; found keys ${list.length ? Object.keys(it).join(", ") : "none"}`);
+        return;
+      }
+      ctx.keys(it, p, ["from", "to", "label", "kind", "caption", "ms"]);
+      ctx.ref(it.from, `${p}.from`, ids_, "participant");
+      ctx.ref(it.to, `${p}.to`, ids_, "participant");
+      if (it.label !== undefined) ctx.string(it.label, `${p}.label`);
+      if (it.kind !== undefined) ctx.enumOf(it.kind, `${p}.kind`, SEQ_KINDS, "kind");
+      if (it.ms !== undefined) ctx.number(it.ms, `${p}.ms`, { min: 0 });
+    });
+  };
+  items(doc.messages, "messages", 0);
 }
 
 function validateSort(ctx: Ctx, doc: Obj): void {
@@ -1661,6 +1751,7 @@ export function validateScene(doc: unknown): Diagnostic[] {
     case "chart": validateChart(ctx, doc); break;
     case "flowchart": validateFlowchart(ctx, doc); break;
     case "gantt": validateGantt(ctx, doc); break;
+    case "sequence": validateSequence(ctx, doc); break;
     case "vector": validateVector(ctx, doc); break;
   }
   return ctx.diags;

@@ -1,0 +1,14 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "nodes": ["customer", "shop", "stock", "payment", "mail"],
+  "messages": [
+    "customer->shop:place order",
+    "shop->stock:reserve(items)",
+    "stock->shop:reserved",
+    "shop->payment:charge(card)",
+    "payment->shop:declined",
+    "payment->shop:receipt",
+    "shop->mail:send confirmation",
+    "shop->customer:order #4711"
+  ]
+}

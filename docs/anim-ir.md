@@ -599,6 +599,45 @@ dependency `"pre->task"`, `"cursor"` — so `{"callout": {"at": "build", "text":
 "blocked on the API"}}` and `{"value": {"id": "eta", "text": "day 11", "at":
 "ship", "side": "right"}}` work as in every kind.
 
+## kind: sequence
+
+```json
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "sequence",
+  "title": "Login with a cache miss",
+  "participants": [{ "id": "user", "label": "User", "kind": "actor" }, { "id": "web", "label": "Web" }, { "id": "auth", "label": "Auth" }, { "id": "db", "label": "DB" }],
+  "messages": [
+    { "from": "user", "to": "web", "label": "POST /login" },
+    { "from": "web", "to": "auth", "label": "verify(token)" },
+    { "alt": [
+      { "when": "cached", "items": [{ "from": "auth", "to": "web", "label": "ok (cached)", "kind": "return" }] },
+      { "when": "miss", "items": [
+        { "from": "auth", "to": "db", "label": "SELECT user" },
+        { "from": "db", "to": "auth", "label": "row", "kind": "return" },
+        { "from": "auth", "to": "web", "label": "ok", "kind": "return" }
+      ] }
+    ] },
+    { "from": "web", "to": "user", "label": "200 + cookie", "kind": "return" },
+    { "from": "web", "to": "auth", "label": "audit(login)", "kind": "async" }
+  ]
+}
+```
+
+| field | |
+|---|---|
+| `participants` | required: `"id"` or `{"id", "label", "kind"}`; `kind` is `system` (a box, default) or `actor` (a pill — a person). Left to right in list order |
+| `messages` | required, in order down the page. A message `{"from", "to", "label", "kind", "caption", "ms"}`: `kind` is `call` (default — solid, filled head; **activates** the receiver, drawn as a bar on its lifeline, until that participant returns), `return` (dashed, open head) or `async` (solid, open head, activates nothing); `from` = `to` is a hook to oneself. `{"note": "…", "at": "participant"}` is a captioned pause. `{"loop": "while …", "items": […]}` and `{"alt": [{"when": "…", "items": […]}, …]}` draw a frame round their items (an `alt` needs two or more branches, separated by a dashed line; each branch starts from the activations as they were when the `alt` opened). Any annotation op |
+
+Nothing here is timed — order is the meaning — where `distributed` is about
+*when* messages land. Each message is one beat, captioned `web → auth:
+verify(token)` (a return reads `web ← auth: ok`). The arrow draws in; a frame
+appears with its first inner message. The check warns about a return from a
+participant no call activated, a participant still activated at the end, one
+that sends and receives nothing, and an `alt` with one branch. Anchors: a
+participant id, a message label used once, `"from->to"`, a frame's label,
+`"participants"`.
+
 ## kind: diagram
 
 ```json
@@ -667,7 +706,7 @@ a caption band. With a `sequence` it is walked in beats like a `diagram`.
 |---|---|
 | `modules` | required: ids, or `{"id", "label", "tone", "hidden"}`; `tone` is `accent` (the box is filled — the module the figure is about), `bad` or `muted` (outline and label; a test double, a deprecated module) |
 | `deps` | `["a", "b"]` reads **a depends on b**: the arrow runs a → b and a sits above b. Long form `{"from", "to", "label", "style", "tone", "hidden"}`; `style` is `arrow` (default), `line` (no head), `dashed` (an optional or weak dependency — still laid out), `implements` (dashed with a hollow head: the module realises an interface — still laid out) or **`forbidden`** (dashed, in the `bad` colour, labelled ✗ unless you label it: drawn, but ignored by the layout and the cycle check — the import that must not exist, shown next to the ones that do). `tone` colours one dependency `accent` \| `bad` \| `muted` in a still, with no sequence — on its own, `{"from", "to", "tone": "accent"}` is a plain arrow in the accent colour; `style` stays at its default |
-| `groups` | `{"id", "label", "modules": [ids]}` — a container around its modules; a module is in at most one. Group ids are anchors (`callout`, `group`, `relate`) and `highlight` targets (the outline lights up) |
+| `groups` | `{"id", "label", "modules": [ids], "parent"}` — a container around its modules; a module is in at most one (the innermost, when groups nest). `parent` nests one container inside another: `"parent": "backend"` on `services` and `core` draws them inside `backend`, whose box wraps theirs with room for their labels, and the layout keeps each inner group's modules together. Group ids are anchors (`callout`, `group`, `relate`) and `highlight` targets (the outline lights up) |
 | `layout` | `tb` (default, dependencies point down) or `lr` (they point right) |
 | `sequence` | optional: the `diagram` steps — `show`, `hide`, `highlight`, `unhighlight`, `flow "a->b"`, `note`, `relabel` — and every annotation op, **one action per step** plus `caption` / `ms` (a callout on the same beat as a highlight is the next step with `"ms": 0`). `show` / `hide` take module and group ids; `highlight` takes those **and an edge `"a->b"`** (the stroke and its label light up); `flow` takes an edge; the annotation ops take module ids, group ids and `"a->b"` |
 

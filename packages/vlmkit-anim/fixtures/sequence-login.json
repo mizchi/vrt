@@ -1,0 +1,30 @@
+{
+  "format": "vlmkit-anim/scene@1",
+  "kind": "sequence",
+  "title": "Login with a cache miss",
+  "participants": [
+    { "id": "user", "label": "User", "kind": "actor" },
+    { "id": "web", "label": "Web" },
+    { "id": "auth", "label": "Auth" },
+    { "id": "db", "label": "DB" }
+  ],
+  "messages": [
+    { "from": "user", "to": "web", "label": "POST /login" },
+    { "from": "web", "to": "auth", "label": "verify(token)" },
+    {
+      "alt": [
+        { "when": "cached", "items": [{ "from": "auth", "to": "web", "label": "ok (cached)", "kind": "return" }] },
+        {
+          "when": "miss",
+          "items": [
+            { "from": "auth", "to": "db", "label": "SELECT user" },
+            { "from": "db", "to": "auth", "label": "row", "kind": "return" },
+            { "from": "auth", "to": "web", "label": "ok", "kind": "return" }
+          ]
+        }
+      ]
+    },
+    { "from": "web", "to": "user", "label": "200 + cookie", "kind": "return" },
+    { "from": "web", "to": "auth", "label": "audit(login)", "kind": "async" }
+  ]
+}

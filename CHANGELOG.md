@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 Dates are YYYY-MM-DD.
 
+## 0.19.0 — 2026-09-09
+
+**`vlmkit-anim`: `sequence` diagrams, and containers inside containers.**
+
+- **`kind: sequence`**: participants across the top (`actor` pills, `system` boxes), messages in order
+  down the page — `call` (solid, filled head; activates the receiver until it returns), `return`
+  (dashed, open head), `async` (solid, open head), a hook to oneself — with activation bars, `loop`
+  and `alt` frames (each `alt` branch starts from the activations at the frame), and any annotation
+  op. Nothing is timed: order is the meaning; each message is one beat. The check warns about a
+  return nothing activated, a participant still activated at the end, one never messaged, an `alt`
+  with one branch. `check --expect` reads `nodes` and `messages` in order.
+- **Nested groups** on `modules` and `diagram`: `"parent"` on a group draws it inside another — the
+  outer box wraps the inner ones with room for their labels, the layout keeps an inner group's
+  members together, and a module belongs to the innermost. The validator names a missing parent,
+  a self-parent and a circle.
+- Report: `docs/reports/2026-09-09-anim-ir-v20.md`.
+
 ## 0.18.0 — 2026-09-08
 
 **`vlmkit-anim`: two kinds for the shapes people actually draw — `flowchart` and `gantt`.**

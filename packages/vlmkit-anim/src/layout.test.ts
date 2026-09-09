@@ -30,6 +30,21 @@ describe("layout: geometry", () => {
     assert.deepEqual(apart, []);
   });
 
+  it("a narrow bar down the middle of a text cuts the word: an overlap whatever its area (v20)", () => {
+    const cut = layoutFrame(
+      tl([
+        { id: "tag", shape: "text", pos: [60, 50], text: "alt [cached]", fontSize: 11, anchor: "start" },
+        { id: "bar", shape: "rect", pos: [90, 80], size: [10, 120], fill: "#fff", stroke: "#000" },
+      ]),
+      0,
+    );
+    assert.equal(cut.length, 1, JSON.stringify(cut));
+    assert.deepEqual(cut[0].nodes, ["tag", "bar"]);
+    assert.ok(cut[0].amount < 0.2, "the area says almost nothing");
+    const beside = layoutFrame(tl([{ id: "tag", shape: "text", pos: [60, 50], text: "alt [cached]", fontSize: 11, anchor: "start" }, { id: "bar", shape: "rect", pos: [180, 80], size: [10, 120], fill: "#fff" }]), 0);
+    assert.deepEqual(beside, []);
+  });
+
   it("a text under a filled box drawn after it is hidden; its own box or an ancestor is not", () => {
     const hidden = layoutFrame(
       tl([

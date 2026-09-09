@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit-core",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "VRT diff engine + shared types \u2014 pure image / DOM / a11y / visual comparison primitives.",
   "license": "MIT",
   "author": "mizchi",

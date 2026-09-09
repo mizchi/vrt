@@ -19,6 +19,7 @@ import {
   type ChartScene,
   type FlowchartScene,
   type GanttScene,
+  type SequenceScene,
   type ComposeScene,
   type DiagramScene,
   type DistributedScene,
@@ -64,6 +65,7 @@ export const scene = {
   chart: constructor<ChartScene>("chart"),
   flowchart: constructor<FlowchartScene>("flowchart"),
   gantt: constructor<GanttScene>("gantt"),
+  sequence: constructor<SequenceScene>("sequence"),
   vector: constructor<VectorScene>("vector"),
   compose: constructor<ComposeScene>("compose"),
 } as const;

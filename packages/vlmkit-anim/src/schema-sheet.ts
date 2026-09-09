@@ -28,6 +28,7 @@ import {
   type StateMachineScene,
   type FlowchartScene,
   type GanttScene,
+  type SequenceScene,
   type Timeline,
   type TreeScene,
   type VectorScene,
@@ -48,6 +49,7 @@ export interface Examples {
   chart: ChartScene;
   flowchart: FlowchartScene;
   gantt: GanttScene;
+  sequence: SequenceScene;
   diagram: DiagramScene;
   modules: ModulesScene;
   vector: VectorScene;
@@ -255,6 +257,31 @@ export const EXAMPLES: Examples = {
       { advance: 11 },
     ],
   },
+  sequence: {
+    format: SCENE_FORMAT,
+    kind: "sequence",
+    title: "Login with a cache miss",
+    participants: [{ id: "user", label: "User", kind: "actor" }, { id: "web", label: "Web" }, { id: "auth", label: "Auth" }, { id: "db", label: "DB" }],
+    messages: [
+      { from: "user", to: "web", label: "POST /login" },
+      { from: "web", to: "auth", label: "verify(token)" },
+      {
+        alt: [
+          { when: "cached", items: [{ from: "auth", to: "web", label: "ok (cached)", kind: "return" }] },
+          {
+            when: "miss",
+            items: [
+              { from: "auth", to: "db", label: "SELECT user" },
+              { from: "db", to: "auth", label: "row", kind: "return" },
+              { from: "auth", to: "web", label: "ok", kind: "return" },
+            ],
+          },
+        ],
+      },
+      { from: "web", to: "user", label: "200 + cookie", kind: "return" },
+      { from: "web", to: "auth", label: "audit(login)", kind: "async" },
+    ],
+  },
   diagram: {
     format: SCENE_FORMAT,
     kind: "diagram",
@@ -378,6 +405,7 @@ Anchors by kind (what "at" / "of" / "around" may name):
   chart          a series id, a category, "series/category"
   flowchart      a node id, an edge "a->b", an edge label (when only one edge carries it), "token"
   gantt          a task id, a lane name, a dependency "pre->task", "cursor"
+  sequence       a participant id, a message label (when only one message carries it), "from->to" (the first), a frame's label, "participants"
   diagram / modules  a node or module id, a group id, an edge "a->b" (the dependency ["a", "b"] is the edge "a->b")
   vector         a node id`;
 
@@ -519,6 +547,16 @@ out of a decision, a node the walk never reaches, and a walk that stops at a nod
                                    status colours a task by what happened
 The check warns when a task starts before something it depends on ends, when the cursor never reaches a task's end, and errors
 when the cursor goes backwards.`,
+  sequence: `kind: sequence — a sequence diagram: participants across the top, messages in order down the page
+  "participants": [ "id" | {"id", "label", "kind": "actor" | "system"} ]   required; actor = a pill, system = a box
+  "messages": [ {"from", "to", "label", "kind": "call" | "return" | "async", "caption", "ms"}
+              | {"note": "…", "at": "participant"} | {"loop": "while …", "items": [ … ]}
+              | {"alt": [ {"when": "cached", "items": [ … ]}, {"when": "miss", "items": [ … ]} ]} ]
+                                   required, in order; call = solid, filled head, activates the receiver until it returns;
+                                   return = dashed, open head; async = solid, open head; from == to is a hook to oneself;
+                                   loop / alt draw a frame round their items (alt needs two or more branches)
+Nothing is timed: order is the meaning, each message one beat captioned "a → b: label" (returns "b ← a: label").
+The check warns about a return from a participant no call activated, a participant never messaged, an alt with one branch.`,
   diagram: `kind: diagram — boxes and arrows, narrated in beats
   "nodes": [ {"id", "label", "shape": "rect" | "circle" | "ellipse", "pos": [x, y], "fill", "tone", "hidden": true} ]   required; "tone": "accent" fills the box, "bad" | "muted" colour outline and label
   "edges": [ {"from", "to", "label", "style": "arrow" | "line" | "dashed" | "implements" | "forbidden", "tone", "hidden": true} ]
@@ -592,6 +630,7 @@ export function schemaIndex(): string {
     chart          a bar or line chart revealed series by series
     flowchart      boxes and decision diamonds with labelled ways out, a token walking one path
     gantt          tasks as bars on a time axis with dependencies, a cursor moving through the plan
+    sequence       a sequence diagram: participants, ordered call / return / async messages, activations, loop / alt frames
     diagram        boxes and arrows walked through in narrated beats
     vector         generic shapes and a list of tweens
     compose        several scenes in panes, side by side or stacked, in sequence or in parallel

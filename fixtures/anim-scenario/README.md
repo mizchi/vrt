@@ -125,6 +125,14 @@ briefs: `flowchart-checkout-facts` (a checkout with three questions and two
 loops, its sheet fixing edges with their answers and the walk) and
 `gantt-sprint-plan` (a sprint that slips, played day by day). Writers `ma`–`mc`.
 
+v20 (2026-09-09) adds `sequence` (participants, ordered call / return / async
+messages, activation bars, `loop` / `alt` frames) and nested groups (`parent`
+on a `modules` / `diagram` group), with two briefs: `sequence-checkout-facts`
+(an order with a retried payment, the sheet fixing the messages in order,
+frames flattened) and `modules-nested-still` (a monorepo whose `platform`
+container holds two containers; the sheet fixes each container's own members).
+Writers `na`–`nc`.
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from
@@ -133,4 +141,4 @@ caption arithmetic) was updated — the checker cannot read arithmetic, so that
 is a hand count.
 Reports: `docs/reports/2026-09-04-anim-ir-v*.md`, `docs/reports/2026-09-05-anim-ir-v{9,10,11,12}.md`,
 `docs/reports/2026-09-06-anim-ir-v{13,14}.md`, `docs/reports/2026-09-07-anim-ir-v15.md`,
-`docs/reports/2026-09-08-anim-ir-v{16,17,18,19}.md`.
+`docs/reports/2026-09-08-anim-ir-v{16,17,18,19}.md`, `docs/reports/2026-09-09-anim-ir-v20.md`.

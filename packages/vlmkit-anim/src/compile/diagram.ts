@@ -33,8 +33,28 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
   // A forbidden edge is drawn but says nothing about where things go: the layout never sees it.
   const edges = (scene.edges ?? []).filter((e) => e.style !== "forbidden").map((e): [string, string] => [e.from, e.to]);
   const groups = scene.groups ?? [];
-  // Containers need room for their padding and label: the free area shrinks by a band per group.
-  const groupPad = groups.length ? 18 : 0;
+  // Nesting (v20): a group's members are its own nodes plus every descendant's; the layout bands by the
+  // outermost group and keeps each inner group's members together; a parent's box wraps its children's with
+  // room for their labels.
+  const byId = new Map(groups.map((g) => [g.id, g]));
+  const childrenOf = (id: string) => groups.filter((g) => g.parent === id);
+  const membersOf = (g: (typeof groups)[number]): string[] => {
+    const seen = new Set<string>();
+    const walk = (x: (typeof groups)[number]): void => {
+      x.nodes.forEach((n) => seen.add(n));
+      childrenOf(x.id).forEach(walk);
+    };
+    walk(g);
+    return [...seen];
+  };
+  const depthBelow = (g: (typeof groups)[number]): number => Math.max(0, ...childrenOf(g.id).map((c) => depthBelow(c) + 1));
+  const depthOf = (g: (typeof groups)[number]): number => (g.parent && byId.has(g.parent) ? depthOf(byId.get(g.parent)!) + 1 : 0);
+  const roots = groups.filter((g) => !g.parent || !byId.has(g.parent));
+  const cluster = new Map<string, string>();
+  for (const g of groups) for (const n of g.nodes) cluster.set(n, g.id);
+  const maxDepth = Math.max(0, ...groups.map(depthBelow));
+  // Containers need room for their padding and label: the free area shrinks by a band per group level.
+  const groupPad = groups.length ? 18 + maxDepth * 14 : 0;
   const pos = layoutNodes(
     {
       ids,
@@ -44,7 +64,8 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
       height: b.height - 90 - groupPad * 2,
       nodeW: maxW + groupPad,
       nodeH: maxH + groupPad,
-      groups,
+      groups: roots.map((g) => ({ id: g.id, nodes: membersOf(g) })),
+      cluster,
       // A module map layers from its leaves: what two modules depend on decides their layer, not what
       // depends on them (fa, v13: the same dependency set landed on different layers under the root walk).
       layering: kindName === "modules" ? "sinks" : "sources",
@@ -114,12 +135,15 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
   // Containers first, so they sit behind everything they hold: the members' bounding box with padding, the
   // label in the first corner that nothing occupies and no edge runs through — inside first, then just outside.
   const groupIds = new Set(groups.map((g) => g.id));
-  for (const g of groups) {
-    const members = g.nodes.filter((id) => pos.has(id));
+  // Outer containers first, so an inner one draws over its parent's outline and its label is placed after.
+  const drawOrder = [...groups].sort((a, c) => depthOf(a) - depthOf(c));
+  for (const g of drawOrder) {
+    const members = membersOf(g).filter((id) => pos.has(id));
     if (!members.length) continue;
     const xs = members.flatMap((id) => [pos.get(id)![0] - sizes.get(id)![0] / 2, pos.get(id)![0] + sizes.get(id)![0] / 2]);
     const ys = members.flatMap((id) => [pos.get(id)![1] - sizes.get(id)![1] / 2, pos.get(id)![1] + sizes.get(id)![1] / 2]);
-    const pad = 14;
+    // A parent's padding leaves room for each nested container and its label band.
+    const pad = 14 + depthBelow(g) * 24;
     const labelH = g.label ? 16 : 0;
     const x0 = Math.min(...xs) - pad;
     const y0 = Math.min(...ys) - pad - labelH;

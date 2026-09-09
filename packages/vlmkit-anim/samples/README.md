@@ -22,9 +22,11 @@ test — `samples.test.ts` only checks that every fixture is represented here.
 | [matrix-edit-distance](#matrix-edit-distance) | matrix | 12 | 6.6s |
 | [matrix-vector-clock](#matrix-vector-clock) | matrix | 11 | 6.0s |
 | [modules-checkout-ja](#modules-checkout-ja) | modules | 3 | 1.3s |
+| [modules-nested](#modules-nested) | modules | 2 | 0.6s |
 | [modules-ports-adapters](#modules-ports-adapters) | modules | 2 | 0.6s |
 | [modules-web-service](#modules-web-service) | modules | 6 | 3.4s |
 | [queue-print-jobs](#queue-print-jobs) | queue | 6 | 3.5s |
+| [sequence-login](#sequence-login) | sequence | 10 | 6.2s |
 | [sort-bubble](#sort-bubble) | sort | 31 | 12.3s |
 | [sort-insertion](#sort-insertion) | sort | 21 | 8.3s |
 | [stack-brackets](#stack-brackets) | stack | 7 | 4.1s |
@@ -362,6 +364,24 @@ Vector clocks — 11 steps, 6000ms, 38 nodes
 
 </details>
 
+## modules-nested
+
+`modules` — [`fixtures/modules-nested.json`](../fixtures/modules-nested.json) · 2 steps · 0.6s · GIF 56 KB
+
+![modules-nested animation](./modules-nested.gif)
+
+<details><summary>Contact sheet (every step) and narration</summary>
+
+![modules-nested contact sheet](./modules-nested.sheet.png)
+
+```
+A shop, with the backend's own layers — 2 steps, 560ms, 30 nodes
+ 1. [    0ms] A shop, with the backend's own layers
+ 2. [  350ms] (end)
+```
+
+</details>
+
 ## modules-ports-adapters
 
 `modules` — [`fixtures/modules-ports-adapters.json`](../fixtures/modules-ports-adapters.json) · 2 steps · 0.6s · GIF 64 KB
@@ -420,6 +440,32 @@ Print jobs — 6 steps, 3465ms, 11 nodes
  4. [ 1815ms] peek → photo.png: the front, left in place
  5. [ 2420ms] dequeue → photo.png: the first one in is the first one out
  6. [ 3190ms] Queue: memo.txt · removed report.pdf, photo.png
+```
+
+</details>
+
+## sequence-login
+
+`sequence` — [`fixtures/sequence-login.json`](../fixtures/sequence-login.json) · 10 steps · 6.2s · GIF 577 KB
+
+![sequence-login animation](./sequence-login.gif)
+
+<details><summary>Contact sheet (every step) and narration</summary>
+
+![sequence-login contact sheet](./sequence-login.sheet.png)
+
+```
+Login with a cache miss — 10 steps, 6230ms, 32 nodes
+ 1. [    0ms] Login with a cache miss
+ 2. [  350ms] user → web: POST /login
+ 3. [ 1050ms] web → auth: verify(token)
+ 4. [ 1750ms] web ← auth: ok (cached)
+ 5. [ 2450ms] auth → db: SELECT user
+ 6. [ 3150ms] auth ← db: row
+ 7. [ 3850ms] web ← auth: ok
+ 8. [ 4550ms] user ← web: 200 + cookie
+ 9. [ 5250ms] web → auth: audit(login) (async)
+10. [ 5950ms] end
 ```
 
 </details>
