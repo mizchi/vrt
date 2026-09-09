@@ -543,6 +543,14 @@ export function checkLayout(tl: Timeline): Diagnostic[] {
             ? "a transition runs through a state or a label that is not one of its ends — reorder `states` (ties in `lr` / `tb` follow the list) or try another `layout`"
             : "an edge runs through a box that is not one of its ends — reorder the modules in that layer, put the two in one group, or shorten the label so the layout has room";
       out.push(warn(`nodes(${issue.nodes[0]})`, `"${issue.texts[0]}" has a line through it (${issue.nodes[1]}, ${issue.amount}px) ${where}`, edgeHint));
+    } else if (issue.kind === "boxes") {
+      out.push(
+        warn(
+          `groups(${issue.nodes[0]})`,
+          `containers "${issue.texts[0]}" and "${issue.texts[1]}" cross — neither holds the other ${where}`,
+          "a reader puts what is in the crossing inside both: nest one in the other with `parent`, or make the layers agree — a dependency drawn as a plain `line` still places its module below the other (use `\"style\": \"forbidden\"` for one that must not exist)",
+        ),
+      );
     } else {
       const other = issue.texts[1] ? `"${issue.texts[1]}"` : issue.nodes[1];
       out.push(warn(`nodes(${issue.nodes[0]})`, `"${issue.texts[0]}" is covered by ${other} (${Math.round(issue.amount * 100)}% of the smaller) ${where}`, hint));

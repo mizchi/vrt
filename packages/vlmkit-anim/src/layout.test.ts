@@ -137,7 +137,7 @@ describe("review: brief, answers, score", () => {
   it("the score is frame-level agreement with recall and precision", () => {
     const flagged = report.frames.filter((f) => f.issues.length).map((f) => f.index);
     assert.ok(flagged.length >= 1, "the callout over the header gives the geometry something to flag");
-    const perfect = scoreReview(report, { frames: report.frames.map((f) => ({ frame: f.index, issues: f.issues.map((i) => ({ kind: i.kind, what: i.texts.join(" on ") })) })) });
+    const perfect = scoreReview(report, { frames: report.frames.map((f) => ({ frame: f.index, issues: f.issues.map((i) => ({ kind: i.kind === "boxes" ? ("other" as const) : i.kind, what: i.texts.join(" on ") })) })) });
     assert.equal(perfect.totals.recall, 1);
     assert.equal(perfect.totals.precision, 1);
     assert.equal(perfect.totals.geometryOnly, 0);

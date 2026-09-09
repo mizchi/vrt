@@ -360,6 +360,56 @@ function checkModulesExpectation(exp: Expectation, scene: Scene, tl: Timeline): 
   return out;
 }
 
+/**
+ * The facts a `modules` / `diagram` scene shows, read from the scene and its final frame the way
+ * `checkExpectation` reads them — so a sheet written by this passes the check, and a reader's account
+ * of the figure (v21: `review --still`) is scored against what the picture actually claims. Labels
+ * and parents are carried alongside because a reader sees labels, not ids, and sees one box inside
+ * another, not a `parent` field.
+ */
+export interface SceneFacts extends Expectation {
+  modules: string[];
+  deps: string[];
+  forbidden: string[];
+  highlighted: string[];
+  groups: Record<string, string[]>;
+  /** id → the text drawn in the box (the id when there is no label). Modules and groups. */
+  labels: Record<string, string>;
+  /** child group id → parent group id, for every nested group. */
+  parents: Record<string, string>;
+}
+
+export function sceneFacts(scene: Scene, tl: Timeline): SceneFacts | undefined {
+  if (scene.kind !== "modules" && scene.kind !== "diagram") return undefined;
+  const d: DiagramScene = scene.kind === "modules" ? normalizeModules(scene) : (scene as DiagramScene);
+  const T = themeOf(scene);
+  const frame = sampleFrame(tl, timelineDuration(tl));
+  const visible = (id: string): boolean => (frame.get(id)?.opacity ?? 0) > 0;
+  const lit = (id: string, prop: "fill" | "stroke"): boolean => visible(id) && frame.get(id)?.[prop] === T.accent;
+  const labels: Record<string, string> = {};
+  const modules = d.nodes.filter((n) => visible(n.id)).map((n) => n.id);
+  for (const n of d.nodes) labels[n.id] = n.label ?? n.id;
+  const deps: string[] = [];
+  const forbidden: string[] = [];
+  const highlighted: string[] = [];
+  (d.edges ?? []).forEach((e, i) => {
+    const key = edgeKey(e.from, e.to);
+    if (e.style === "forbidden") forbidden.push(key);
+    else if (visible(`edge-${i}`)) deps.push(key);
+    if (lit(`edge-${i}`, "stroke")) highlighted.push(key);
+  });
+  for (const id of modules) if (lit(id, "fill")) highlighted.push(id);
+  const groups: Record<string, string[]> = {};
+  const parents: Record<string, string> = {};
+  for (const g of d.groups ?? []) {
+    groups[g.id] = [...g.nodes];
+    labels[g.id] = g.label ?? g.id;
+    if (g.parent) parents[g.id] = g.parent;
+    if (lit(g.id, "stroke")) highlighted.push(g.id);
+  }
+  return { format: EXPECT_FORMAT, modules, deps, forbidden, highlighted, groups, labels, parents };
+}
+
 // ---- graph ---------------------------------------------------------------------------------
 
 function checkGraphExpectation(exp: Expectation, scene: Extract<Scene, { kind: "graph" | "flowchart" }>, tl: Timeline): Diagnostic[] {

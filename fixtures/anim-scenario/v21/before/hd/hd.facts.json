@@ -1,0 +1,91 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "core",
+    "ai",
+    "capture",
+    "animation-eval",
+    "generate",
+    "heal",
+    "markup",
+    "mcp",
+    "plan",
+    "anim",
+    "vlmkit"
+  ],
+  "deps": [
+    "ai->core",
+    "anim->ai",
+    "anim->animation-eval",
+    "animation-eval->core",
+    "capture->core",
+    "generate->ai",
+    "heal->ai",
+    "heal->capture",
+    "heal->core",
+    "markup->ai",
+    "markup->animation-eval",
+    "markup->capture",
+    "markup->core",
+    "mcp->core",
+    "mcp->markup",
+    "plan->ai",
+    "vlmkit->ai",
+    "vlmkit->anim",
+    "vlmkit->animation-eval",
+    "vlmkit->capture",
+    "vlmkit->core",
+    "vlmkit->generate",
+    "vlmkit->heal",
+    "vlmkit->markup",
+    "vlmkit->mcp",
+    "vlmkit->plan"
+  ],
+  "forbidden": [],
+  "highlighted": [],
+  "groups": {
+    "foundation": [
+      "core"
+    ],
+    "ai-services": [
+      "ai",
+      "plan",
+      "generate"
+    ],
+    "measurement": [
+      "capture",
+      "animation-eval"
+    ],
+    "synthesis": [
+      "heal",
+      "markup",
+      "anim"
+    ],
+    "integration": [
+      "mcp"
+    ],
+    "cli": [
+      "vlmkit"
+    ]
+  },
+  "labels": {
+    "core": "core",
+    "ai": "ai",
+    "capture": "capture",
+    "animation-eval": "animation-eval",
+    "generate": "generate",
+    "heal": "heal",
+    "markup": "markup",
+    "mcp": "mcp",
+    "plan": "plan",
+    "anim": "anim",
+    "vlmkit": "vlmkit",
+    "foundation": "Core",
+    "ai-services": "AI/LLM",
+    "measurement": "Measurement",
+    "synthesis": "Synthesis",
+    "integration": "MCP",
+    "cli": "CLI"
+  },
+  "parents": {}
+}

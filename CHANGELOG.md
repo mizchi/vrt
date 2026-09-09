@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 Dates are YYYY-MM-DD.
 
+## 0.20.0 — 2026-09-09
+
+**`vlmkit-anim`: a still figure read back by a vision reader, and what the readings changed.**
+
+- **`review --still`** (the default for a `modules` / `diagram` scene with no walk): writes the figure as
+  `<name>.still.png`, a brief that asks a reader to read it back — every box, every container and what is
+  directly inside it, which container is inside which, every arrow `tail->head`, the red dashed arrows as
+  `forbidden`, what is lit, and layout defects — and `<name>.facts.json`, what the scene draws
+  (`sceneFacts`, the sheet `check --expect` would pass). `--answers` (or `--model`) scores a reading
+  name by name into `<name>.still-score.md`: read / missed / invented per field, a dependency read the
+  other way round, a module put in the wrong container, a forbidden arrow read as plain, a name that is
+  nothing drawn, and one number — fidelity, read over facts plus invented.
+- **What nine figures and twelve readings found, fixed in the compilers:** two containers crossing (a group
+  drawn as a full-width row through a column another group spans — the band layout now bands both, and
+  `layout` reports `boxes`: two outlined containers that cross where neither holds the other); a
+  container label at a bottom corner read as a caption of the box above it (the container now grows
+  sideways, up to 48px, until a top corner is clear); a fan of arrows out of one corner of a box that
+  four of nine readers could not pair to their heads (several edges at one box now leave and land spread
+  along its side, ordered by where they go); a `relate` arc through a container label at its own end (the
+  annotator moves the label to another corner of its container).
+- Read again after the changes: the three figures at fidelity 1.0 stay there and every forbidden arrow is
+  now read as one; the 26-arrow maps move little (0.75 → 0.83, 0.64 → 0.68, 0.56 → 0.51) — at that density
+  the readers lose arrows in the bundle whatever the routing, which is the ceiling the report names.
+- Report: `docs/reports/2026-09-09-anim-ir-v21.md`.
+
 ## 0.19.0 — 2026-09-09
 
 **`vlmkit-anim`: `sequence` diagrams, and containers inside containers.**

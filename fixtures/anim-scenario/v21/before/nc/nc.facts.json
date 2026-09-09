@@ -1,0 +1,75 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "web",
+    "admin",
+    "api",
+    "auth",
+    "catalog",
+    "orders",
+    "shared-types",
+    "logger",
+    "db",
+    "queue"
+  ],
+  "deps": [
+    "web->api",
+    "admin->api",
+    "api->auth",
+    "api->catalog",
+    "api->orders",
+    "auth->shared-types",
+    "catalog->shared-types",
+    "orders->shared-types",
+    "catalog->db",
+    "orders->db",
+    "orders->queue",
+    "api->logger",
+    "auth->logger"
+  ],
+  "forbidden": [],
+  "highlighted": [],
+  "groups": {
+    "apps": [
+      "web",
+      "admin"
+    ],
+    "platform": [
+      "api"
+    ],
+    "services": [
+      "auth",
+      "catalog",
+      "orders"
+    ],
+    "kernel": [
+      "shared-types",
+      "logger"
+    ],
+    "infra": [
+      "db",
+      "queue"
+    ]
+  },
+  "labels": {
+    "web": "web",
+    "admin": "admin",
+    "api": "api",
+    "auth": "auth",
+    "catalog": "catalog",
+    "orders": "orders",
+    "shared-types": "shared-types",
+    "logger": "logger",
+    "db": "db",
+    "queue": "queue",
+    "apps": "apps",
+    "platform": "platform",
+    "services": "services",
+    "kernel": "kernel",
+    "infra": "infra"
+  },
+  "parents": {
+    "services": "platform",
+    "kernel": "platform"
+  }
+}

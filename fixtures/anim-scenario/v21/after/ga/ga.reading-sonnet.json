@@ -1,0 +1,34 @@
+{
+  "modules": [
+    "HTTP handler",
+    "CLI command",
+    "Application services",
+    "Domain model",
+    "Repository port",
+    "Postgres repository",
+    "In-memory repository (tests)"
+  ],
+  "deps": [
+    "HTTP handler->Application services",
+    "CLI command->Application services",
+    "Application services->Domain model",
+    "Application services->Repository port",
+    "Postgres repository->Repository port",
+    "In-memory repository (tests)->Repository port"
+  ],
+  "forbidden": [
+    "Domain model->Postgres repository"
+  ],
+  "groups": {
+    "Driving side (inbound)": ["HTTP handler", "CLI command"],
+    "Application & domain": ["Application services", "Domain model", "Repository port"],
+    "Driven side (adapters)": ["Postgres repository", "In-memory repository (tests)"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [
+    { "kind": "crossed", "what": "the CLI command->Application services arrow cuts across the top border of the 'Application & domain' container on its way in" },
+    { "kind": "crossed", "what": "the red dashed forbidden arrow (Domain model->Postgres repository) crosses the solid Application services->Repository port arrow right where its 'never: domain must not import the driver' label sits" }
+  ],
+  "notes": "All six plain dependency arrows render as solid black; no arrow was visibly grey/dashed apart from the one red-dashed forbidden arrow, so none is reported as a grey-dashed dependency. The forbidden arrow's tail sits right at the Domain model/Application services boundary; read as Domain model->Postgres repository based on the label text 'domain must not import the driver'."
+}

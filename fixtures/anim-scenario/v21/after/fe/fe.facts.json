@@ -1,0 +1,51 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "http",
+    "cli",
+    "app-svc",
+    "domain",
+    "repo-port",
+    "postgres",
+    "in-memory"
+  ],
+  "deps": [
+    "http->app-svc",
+    "cli->app-svc",
+    "app-svc->repo-port",
+    "app-svc->domain",
+    "postgres->repo-port",
+    "in-memory->repo-port",
+    "domain->postgres"
+  ],
+  "forbidden": [],
+  "highlighted": [],
+  "groups": {
+    "driving": [
+      "http",
+      "cli"
+    ],
+    "core": [
+      "domain",
+      "app-svc",
+      "repo-port"
+    ],
+    "adapters": [
+      "postgres",
+      "in-memory"
+    ]
+  },
+  "labels": {
+    "http": "HTTP handler",
+    "cli": "CLI command",
+    "app-svc": "Application\nservices",
+    "domain": "Domain model",
+    "repo-port": "Repository\nport (interface)",
+    "postgres": "Postgres\nadapter",
+    "in-memory": "In-memory\nadapter",
+    "driving": "Driving side (ports)",
+    "core": "Core domain",
+    "adapters": "Adapters (driven side)"
+  },
+  "parents": {}
+}

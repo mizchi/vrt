@@ -210,7 +210,11 @@ gantt writer's five rounds were one callout that a moving cursor label walked un
 (the last two shapes on the list — `sequence` with activation bars and `loop` / `alt` frames, and groups inside groups with `parent` —
 three writers green on the first write; the round's two compiler defects were found on the fixtures, a nested box running into its
 neighbour and an activation bar cutting a frame's tag in two, which `layout` had not counted because a 10px bar covers little area;
-it counts now).
+it counts now), `docs/reports/2026-09-09-anim-ir-v21.md` (a still figure read back: `review --still` hands a vision reader the figure
+and scores its reading against the facts the scene draws — read / missed / invented / reversed / misplaced, one fidelity number; nine
+figures read before and after, four findings the geometry could not see fixed in the compilers — containers crossing, a label at a
+bottom corner read as a caption, forbidden arrows filed as highlights, fans out of one corner — and one ceiling named: at 26 arrows
+on 11 boxes a map reads back at 0.5–0.8 whatever the routing).
 
 ## Measuring Gate / Rule Execution Cost
 

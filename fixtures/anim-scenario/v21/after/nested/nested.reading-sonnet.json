@@ -1,0 +1,35 @@
+{
+  "modules": ["web app", "mobile app", "API gateway", "orders", "billing", "domain model", "Postgres", "event bus"],
+  "deps": [
+    "web app->API gateway",
+    "mobile app->API gateway",
+    "API gateway->orders",
+    "API gateway->billing",
+    "orders->domain model",
+    "billing->domain model",
+    "orders->Postgres",
+    "orders->event bus",
+    "billing->Postgres",
+    "billing->event bus"
+  ],
+  "forbidden": [],
+  "groups": {
+    "clients": ["web app", "mobile app"],
+    "backend": ["API gateway"],
+    "services": ["orders", "billing"],
+    "core": ["domain model"],
+    "infrastructure": ["Postgres", "event bus"]
+  },
+  "nesting": {
+    "services": "backend",
+    "core": "backend"
+  },
+  "highlighted": [],
+  "issues": [
+    {
+      "kind": "other",
+      "what": "the four arrows from orders/billing to Postgres/event bus form a dense fan that crosses itself multiple times in the empty space below the services box, making it hard to tell at a glance which source goes to which target"
+    }
+  ],
+  "notes": "All arrows appear as plain solid black lines with plain arrowheads; no grey dashed or red dashed arrows were visible, so 'forbidden' is empty. No text overlap, clipping, or illegibility observed."
+}

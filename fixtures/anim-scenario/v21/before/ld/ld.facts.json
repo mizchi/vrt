@@ -1,0 +1,87 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "index",
+    "capturer",
+    "playwright-analyzer",
+    "playwright-launch-error",
+    "route-capture",
+    "viewport-discovery",
+    "cloudflare-quick-actions",
+    "capture-config",
+    "crater-client",
+    "crater-smoke",
+    "crater-wasm",
+    "batch-prescan",
+    "prescanner",
+    "gates",
+    "detection-types"
+  ],
+  "deps": [
+    "route-capture->capture-config",
+    "crater-smoke->crater-client",
+    "index->capture-config",
+    "index->viewport-discovery",
+    "index->playwright-launch-error",
+    "index->cloudflare-quick-actions",
+    "index->playwright-analyzer",
+    "index->prescanner",
+    "index->crater-client",
+    "index->crater-wasm",
+    "index->crater-smoke",
+    "index->detection-types",
+    "index->batch-prescan",
+    "gates->crater-smoke",
+    "prescanner->detection-types",
+    "batch-prescan->crater-client"
+  ],
+  "forbidden": [],
+  "highlighted": [],
+  "groups": {
+    "public": [
+      "index"
+    ],
+    "playwright": [
+      "capturer",
+      "playwright-analyzer",
+      "playwright-launch-error",
+      "route-capture",
+      "viewport-discovery",
+      "cloudflare-quick-actions",
+      "capture-config"
+    ],
+    "crater": [
+      "crater-client",
+      "crater-smoke",
+      "crater-wasm",
+      "batch-prescan",
+      "prescanner",
+      "gates"
+    ],
+    "shared": [
+      "detection-types"
+    ]
+  },
+  "labels": {
+    "index": "index",
+    "capturer": "capturer",
+    "playwright-analyzer": "pw-analyzer",
+    "playwright-launch-error": "pw-launch-err",
+    "route-capture": "route-cap",
+    "viewport-discovery": "viewport",
+    "cloudflare-quick-actions": "cf-actions",
+    "capture-config": "cap-config",
+    "crater-client": "cr-client",
+    "crater-smoke": "cr-smoke",
+    "crater-wasm": "cr-wasm",
+    "batch-prescan": "batch-pre",
+    "prescanner": "prescanner",
+    "gates": "gates",
+    "detection-types": "det-types",
+    "public": "public surface",
+    "playwright": "Playwright side",
+    "crater": "Crater side",
+    "shared": "shared types"
+  },
+  "parents": {}
+}

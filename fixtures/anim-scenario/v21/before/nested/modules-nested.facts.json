@@ -1,0 +1,66 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "web",
+    "mobile",
+    "gateway",
+    "orders",
+    "billing",
+    "domain",
+    "postgres",
+    "events"
+  ],
+  "deps": [
+    "web->gateway",
+    "mobile->gateway",
+    "gateway->orders",
+    "gateway->billing",
+    "orders->domain",
+    "billing->domain",
+    "orders->postgres",
+    "billing->postgres",
+    "orders->events",
+    "billing->events"
+  ],
+  "forbidden": [],
+  "highlighted": [],
+  "groups": {
+    "clients": [
+      "web",
+      "mobile"
+    ],
+    "backend": [
+      "gateway"
+    ],
+    "services": [
+      "orders",
+      "billing"
+    ],
+    "core": [
+      "domain"
+    ],
+    "infra": [
+      "postgres",
+      "events"
+    ]
+  },
+  "labels": {
+    "web": "web app",
+    "mobile": "mobile app",
+    "gateway": "API gateway",
+    "orders": "orders",
+    "billing": "billing",
+    "domain": "domain model",
+    "postgres": "Postgres",
+    "events": "event bus",
+    "clients": "clients",
+    "backend": "backend",
+    "services": "services",
+    "core": "core",
+    "infra": "infrastructure"
+  },
+  "parents": {
+    "services": "backend",
+    "core": "backend"
+  }
+}

@@ -89,7 +89,8 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
   // and the workspace map, v13: dependency arrows from two layers up vanished behind a module in between).
   const route = (e: { from: string; to: string }): [number, number][] =>
     routeAround(pos.get(e.from)!, pos.get(e.to)!, scene.nodes.map((n) => ({ id: n.id, box: boxOf(n.id) })), new Set([e.from, e.to]));
-  const edgeGeom = (scene.edges ?? []).map((e, i) => {
+  const isCircle = (id: string) => scene.nodes.find((n) => n.id === id)?.shape === "circle";
+  const rawGeom = (scene.edges ?? []).map((e, i) => {
     const centres = route(e);
     const first = centres[1];
     const last = centres[centres.length - 2];
@@ -101,12 +102,63 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
     const l1 = Math.hypot(d1[0], d1[1]) || 1;
     const sa = sizes.get(e.from)!;
     const sc = sizes.get(e.to)!;
-    const ra = scene.nodes.find((n) => n.id === e.from)?.shape === "circle" ? sa[0] / 2 : boxRadius(sa[0], sa[1], d0[0] / l0, d0[1] / l0);
-    const rc = scene.nodes.find((n) => n.id === e.to)?.shape === "circle" ? sc[0] / 2 : boxRadius(sc[0], sc[1], d1[0] / l1, d1[1] / l1);
+    const ra = isCircle(e.from) ? sa[0] / 2 : boxRadius(sa[0], sa[1], d0[0] / l0, d0[1] / l0);
+    const rc = isCircle(e.to) ? sc[0] / 2 : boxRadius(sc[0], sc[1], d1[0] / l1, d1[1] / l1);
     const headless = e.style === "line";
     const [p] = trimEdge(a, first, ra + 2, 0);
     const [, q] = trimEdge(last, c, 0, rc + (headless ? 2 : 6));
     const pts: [number, number][] = [p, ...centres.slice(1, -1), q];
+    return { e, i, id: `edge-${i}`, pts, headless };
+  });
+  // Several edges at one box leave (or land) spread along its side, in the order their far ends lie, instead
+  // of all from the point nearest the other box: a fan of six arrows out of one corner was the reason four of
+  // nine v21 readers could not say which tail went with which head ("pairing each line to its exact head is a
+  // best-effort read"). Circles keep their radial ends.
+  {
+    type End = { g: (typeof rawGeom)[number]; at: 0 | 1 };
+    const bySide = new Map<string, End[]>();
+    for (const g of rawGeom) {
+      for (const at of [0, 1] as const) {
+        const node = at === 0 ? g.e.from : g.e.to;
+        if (isCircle(node)) continue;
+        const c = pos.get(node)!;
+        const s = sizes.get(node)!;
+        const pt = at === 0 ? g.pts[0] : g.pts[g.pts.length - 1];
+        const dx = (pt[0] - c[0]) / (s[0] / 2);
+        const dy = (pt[1] - c[1]) / (s[1] / 2);
+        const side = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "bottom" : "top";
+        const key = `${node} ${side}`;
+        bySide.set(key, [...(bySide.get(key) ?? []), { g, at }]);
+      }
+    }
+    for (const [key, ends] of bySide) {
+      if (ends.length < 2) continue;
+      const node = key.slice(0, key.lastIndexOf(" "));
+      const side = key.slice(key.lastIndexOf(" ") + 1);
+      const c = pos.get(node)!;
+      const s = sizes.get(node)!;
+      const horizontal = side === "top" || side === "bottom";
+      const length = horizontal ? s[0] : s[1];
+      if (length < ends.length * 10) continue;
+      const far = (en: End): [number, number] => (en.at === 0 ? en.g.pts[1] : en.g.pts[en.g.pts.length - 2]);
+      const axis = horizontal ? 0 : 1;
+      // Left to right (top to bottom) by where the far end is; a tie by its angle, so the fan never crosses itself.
+      ends.sort((u, v) => far(u)[axis] - far(v)[axis] || Math.atan2(far(u)[1] - c[1], far(u)[0] - c[0]) - Math.atan2(far(v)[1] - c[1], far(v)[0] - c[0]));
+      const start = (horizontal ? c[0] - s[0] / 2 : c[1] - s[1] / 2) + length * 0.18;
+      const span = length * 0.64;
+      ends.forEach((en, k) => {
+        const along = start + (ends.length === 1 ? span / 2 : (span * k) / (ends.length - 1));
+        const margin = en.at === 0 ? 2 : en.g.headless ? 2 : 6;
+        const perp = side === "top" ? c[1] - s[1] / 2 - margin : side === "bottom" ? c[1] + s[1] / 2 + margin : side === "left" ? c[0] - s[0] / 2 - margin : c[0] + s[0] / 2 + margin;
+        const pt: [number, number] = horizontal ? [along, perp] : [perp, along];
+        en.g.pts[en.at === 0 ? 0 : en.g.pts.length - 1] = pt;
+      });
+    }
+  }
+  const edgeGeom = rawGeom.map((g) => {
+    const { e, i, id, pts } = g;
+    const p = pts[0];
+    const q = pts[pts.length - 1];
     const label = e.label ?? (e.style === "forbidden" ? "✗" : undefined);
     // The label sits off the middle of the longest segment, on its left-hand normal.
     let best = 0;
@@ -115,7 +167,7 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
     const sl = Math.hypot(sa1[0] - sa0[0], sa1[1] - sa0[1]) || 1;
     const mid = along(sa0, sa1, 0.5);
     const labelPos: [number, number] = [mid[0] + (-(sa1[1] - sa0[1]) / sl) * 11, mid[1] + ((sa1[0] - sa0[0]) / sl) * 11];
-    return { e, i, id: `edge-${i}`, p, q, pts, label, labelPos };
+    return { e, i, id, p, q, pts, label, labelPos };
   });
   const occupied: Box[] = [];
   for (const n of scene.nodes) {
@@ -137,18 +189,31 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
   const groupIds = new Set(groups.map((g) => g.id));
   // Outer containers first, so an inner one draws over its parent's outline and its label is placed after.
   const drawOrder = [...groups].sort((a, c) => depthOf(a) - depthOf(c));
-  for (const g of drawOrder) {
+  // Every container's box before any is drawn, so one that grows for its label knows what it must not touch.
+  const bounds = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
+  for (const g of groups) {
     const members = membersOf(g).filter((id) => pos.has(id));
     if (!members.length) continue;
     const xs = members.flatMap((id) => [pos.get(id)![0] - sizes.get(id)![0] / 2, pos.get(id)![0] + sizes.get(id)![0] / 2]);
     const ys = members.flatMap((id) => [pos.get(id)![1] - sizes.get(id)![1] / 2, pos.get(id)![1] + sizes.get(id)![1] / 2]);
-    // A parent's padding leaves room for each nested container and its label band.
     const pad = 14 + depthBelow(g) * 24;
+    bounds.set(g.id, { x0: Math.min(...xs) - pad, y0: Math.min(...ys) - pad - (g.label ? 16 : 0), x1: Math.max(...xs) + pad, y1: Math.max(...ys) + pad });
+  }
+  const isAncestorGroup = (a: string, d: string): boolean => {
+    let cur = byId.get(d)?.parent;
+    while (cur) {
+      if (cur === a) return true;
+      cur = byId.get(cur)?.parent;
+    }
+    return false;
+  };
+  for (const g of drawOrder) {
+    const bd = bounds.get(g.id);
+    if (!bd) continue;
     const labelH = g.label ? 16 : 0;
-    const x0 = Math.min(...xs) - pad;
-    const y0 = Math.min(...ys) - pad - labelH;
-    const x1 = Math.max(...xs) + pad;
-    let y1 = Math.max(...ys) + pad;
+    let { x0, x1 } = bd;
+    const y0 = bd.y0;
+    let y1 = bd.y1;
     let labelNode: Parameters<typeof b.node>[0] | undefined;
     if (g.label) {
       const fs = T.fontSize - 2;
@@ -181,8 +246,33 @@ export function compileDiagram(scene: DiagramScene, kindName: "diagram" | "modul
       const free = corners.filter((c) => onCanvas(boxAt(c)) && !hits(boxAt(c)));
       // A free corner no edge runs through; failing that the free corner with the least edge through it; failing
       // that the first corner.
-      const clear = free.find((c) => crossed(boxAt(c)) < 4);
-      const corner = clear ?? free.sort((c, d) => crossed(boxAt(c)) - crossed(boxAt(d)))[0] ?? corners[0];
+      let clear = free.find((c) => crossed(boxAt(c)) < 4);
+      let corner = clear ?? free.sort((c, d) => crossed(boxAt(c)) - crossed(boxAt(d)))[0] ?? corners[0];
+      // A label anywhere but a top corner reads as something else — "the container label 'core' sits at the
+      // bottom-left … reads like a caption for the box above it" (v21, two readers; a third read a container
+      // whose label was low as a module). When both top corners are taken, the container grows sideways, up to
+      // 48px, until a top corner is clear — inside its parent and off every other container.
+      if (!clear || (clear !== corners[0] && clear !== corners[1])) {
+        const others = groups.filter((h) => h.id !== g.id && bounds.has(h.id) && !isAncestorGroup(h.id, g.id) && !isAncestorGroup(g.id, h.id)).map((h) => bounds.get(h.id)!);
+        const parentB = g.parent ? bounds.get(g.parent) : undefined;
+        const touches = (nx0: number, nx1: number) => others.some((o) => nx0 < o.x1 && o.x0 < nx1 && y0 < o.y1 && o.y0 < y1);
+        grow: for (const dir of ["left", "right"] as const) {
+          for (let k = 1; k <= 4; k++) {
+            const nx0 = dir === "left" ? x0 - 12 * k : x0;
+            const nx1 = dir === "right" ? x1 + 12 * k : x1;
+            if (nx0 < 4 || nx1 > b.width - 4 || touches(nx0, nx1)) break;
+            if (parentB && (nx0 < parentB.x0 + 6 || nx1 > parentB.x1 - 6)) break;
+            const cand: Corner = dir === "left" ? { pos: [nx0 + 10, y0 + 12], anchor: "start" } : { pos: [nx1 - 10, y0 + 12], anchor: "end" };
+            if (onCanvas(boxAt(cand)) && !hits(boxAt(cand)) && crossed(boxAt(cand)) < 4) {
+              x0 = nx0;
+              x1 = nx1;
+              corner = cand;
+              clear = cand;
+              break grow;
+            }
+          }
+        }
+      }
       if (corner.bottom) y1 += labelH;
       // Hemmed in on every side (a one-module container straight under the root, hd, v14): the least-crossed
       // spot, with a halo so the edge breaks around the glyphs — the same treatment an edge label gets.

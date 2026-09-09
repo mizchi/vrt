@@ -1,0 +1,35 @@
+{
+  "modules": [
+    "HTTP handler",
+    "CLI command",
+    "Application services",
+    "Domain model",
+    "Postgres adapter",
+    "In-memory adapter",
+    "Repository port (interface)"
+  ],
+  "deps": [
+    "HTTP handler->Application services",
+    "CLI command->Application services",
+    "Application services->Domain model",
+    "Domain model->Repository port (interface)",
+    "Postgres adapter->Repository port (interface)",
+    "In-memory adapter->Repository port (interface)",
+    "Postgres adapter->Domain model"
+  ],
+  "groups": {
+    "Driving side (ports)": ["HTTP handler", "CLI command"],
+    "Adapters (driven side)": ["Postgres adapter", "In-memory adapter"],
+    "Core domain": ["Application services", "Domain model", "Repository port (interface)"]
+  },
+  "nesting": {},
+  "highlighted": [
+    "red X mark with the word \"FORBIDDEN\" beside it, sitting just left of/below the Domain model box"
+  ],
+  "issues": [
+    { "kind": "other", "what": "the 'Core domain' container and the 'Adapters (driven side)' container do not nest cleanly — their borders overlap, and 'Repository port (interface)' sits inside both borders at once" },
+    { "kind": "crossed", "what": "the red X / 'FORBIDDEN' callout sits right where a line from Postgres adapter running up toward Domain model would cross close to the Domain model box's lower-left corner, marking that path as disallowed" },
+    { "kind": "overlap", "what": "the 'Core domain' label is written below the Repository port (interface) box rather than inside a clearly separate labeled band, so it reads as floating text under that box" }
+  ],
+  "notes": "The line I read as 'Postgres adapter->Domain model' is my best-effort reading of a diagonal line passing through the red X/FORBIDDEN callout region; at this resolution I cannot fully confirm whether its tail is Postgres adapter and its head is Domain model versus Application services, or whether the callout marks a crossing of two other arrows rather than a distinct line of its own. All other arrows (converging into Application services, the vertical chain down to Repository port, and the two adapter arrows into Repository port) read as plain solid arrows, not dashed."
+}

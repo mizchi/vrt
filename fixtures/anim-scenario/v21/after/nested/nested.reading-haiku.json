@@ -1,0 +1,28 @@
+{
+  "modules": ["web app", "mobile app", "API gateway", "orders", "billing", "domain model", "Postgres", "event bus"],
+  "deps": ["web app->API gateway", "mobile app->API gateway", "API gateway->orders", "API gateway->billing", "orders->domain model", "billing->domain model", "orders->Postgres", "billing->Postgres", "billing->event bus", "domain model->Postgres", "domain model->event bus", "Postgres->event bus"],
+  "forbidden": [],
+  "groups": {
+    "clients": ["web app", "mobile app"],
+    "backend": ["API gateway"],
+    "services": ["orders", "billing"],
+    "core": ["domain model"],
+    "infrastructure": ["Postgres", "event bus"]
+  },
+  "nesting": {
+    "services": "backend",
+    "core": "backend"
+  },
+  "highlighted": [],
+  "issues": [
+    {
+      "kind": "crossed",
+      "what": "the long arrow from orders to Postgres crosses through the 'core' label"
+    },
+    {
+      "kind": "crossed",
+      "what": "the long arrow from domain model to event bus crosses through the 'core' label area"
+    }
+  ],
+  "notes": ""
+}
