@@ -206,7 +206,11 @@ four writers' sheets all matched, and every further round was a compiler defect 
 label, a 35px circle of four states, labels on states, a distance label under an edge), `docs/reports/2026-09-08-anim-ir-v19.md`
 (two kinds — `flowchart` with decision diamonds, labelled ways out, a walked path and loops round the outside, and `gantt`
 with bars on a unit axis, dependencies, a cursor, cascading slips — both flowchart writers green on the first write; the
-gantt writer's five rounds were one callout that a moving cursor label walked under, fixed in the compiler).
+gantt writer's five rounds were one callout that a moving cursor label walked under, fixed in the compiler), `docs/reports/2026-09-09-anim-ir-v20.md`
+(the last two shapes on the list — `sequence` with activation bars and `loop` / `alt` frames, and groups inside groups with `parent` —
+three writers green on the first write; the round's two compiler defects were found on the fixtures, a nested box running into its
+neighbour and an activation bar cutting a frame's tag in two, which `layout` had not counted because a 10px bar covers little area;
+it counts now).
 
 ## Measuring Gate / Rule Execution Cost
 

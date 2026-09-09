@@ -23,6 +23,10 @@ Dates are YYYY-MM-DD.
   bar over a frame's tag, which the first sequence sheet drew as `alt [c hed]` — covers little of its
   area and all of its sense; it is an overlap whatever the ratio. The sequence compiler pads a frame by
   its widest tag so its own labels sit left of the first lifeline.
+- From the writers (three, all green on the first write): the guide says where an activation bar starts,
+  that it stops growing at the return rather than vanishing, that frame labels are free text and that
+  `items` nest recursively; the fact-sheet table has `sequence` and `flowchart` rows; `schema --kind
+  modules` / `diagram` show `"parent"`; the sheet's `groups` row says the members are each container's own.
 - Report: `docs/reports/2026-09-09-anim-ir-v20.md`.
 
 ## 0.18.0 — 2026-09-08

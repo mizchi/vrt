@@ -561,7 +561,7 @@ The check warns about a return from a participant no call activated, a participa
   "nodes": [ {"id", "label", "shape": "rect" | "circle" | "ellipse", "pos": [x, y], "fill", "tone", "hidden": true} ]   required; "tone": "accent" fills the box, "bad" | "muted" colour outline and label
   "edges": [ {"from", "to", "label", "style": "arrow" | "line" | "dashed" | "implements" | "forbidden", "tone", "hidden": true} ]
              implements: dashed with a hollow head (realises an interface); forbidden: dashed red, ignored by the layout; "tone": "accent" | "bad" | "muted" colours one edge in a still
-  "groups": [ {"id", "label", "nodes": [ids]} ]   containers; ids are anchors and highlight targets
+  "groups": [ {"id", "label", "nodes": [ids], "parent": group id} ]   containers, nested with "parent"; ids are anchors and highlight targets
   "layout": "lr" | "tb" | "grid" | "circle"   default lr; nodes with "pos" are pinned
   "sequence": [ one action per step, plus optional "caption" and "ms" ]
       {"show": id | [ids]}  {"hide": …}  {"highlight": id | group id | "a->b"}  {"unhighlight": …}
@@ -575,7 +575,7 @@ Hidden nodes stay invisible until a "show" step. A "flow" needs an edge between 
              "style": "arrow" (default) | "line" (no head) | "dashed" (optional / weak, still laid out) | "implements" (dashed, hollow head: realises an interface, still laid out)
                       | "forbidden" (dashed red, drawn but ignored by the layout: the import that must not exist)
              "tone":  "accent" | "bad" | "muted" — colour one dependency in a still, no sequence needed
-  "groups":  [ {"id", "label", "modules": [ids]} ]                            containers; a module is in at most one; ids are anchors and highlight targets
+  "groups":  [ {"id", "label", "modules": [ids], "parent": group id} ]        containers; a module is in at most one (the innermost); "parent" nests a container inside another; ids are anchors and highlight targets
   "layout":  "tb" | "lr"                                                      default tb (dependencies point down)
   "sequence": [ the diagram steps: show / hide / highlight (a module, a group, or an edge "a->b") / unhighlight / flow "a->b" / note / relabel, and every annotation op ]   optional
 The layout is automatic: a module's layer is one below the deepest thing it depends on (two modules with the same dependencies share a layer, whatever depends on them);

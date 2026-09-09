@@ -632,11 +632,17 @@ dependency `"pre->task"`, `"cursor"` — so `{"callout": {"at": "build", "text":
 Nothing here is timed — order is the meaning — where `distributed` is about
 *when* messages land. Each message is one beat, captioned `web → auth:
 verify(token)` (a return reads `web ← auth: ok`). The arrow draws in; a frame
-appears with its first inner message. The check warns about a return from a
-participant no call activated, a participant still activated at the end, one
-that sends and receives nothing, and an `alt` with one branch. Anchors: a
-participant id, a message label used once, `"from->to"`, a frame's label,
-`"participants"`.
+appears with its first inner message. An activation bar starts where the call
+lands and grows one row per beat; at the participant's `return` it **stops
+growing** — it does not shrink or vanish, so in a frame near the end "closed at
+the last message" and "still open" look alike, and `check` (not the picture)
+says which participants are still activated. A frame's label (`"loop": "until
+paid, max 2"`, `"when": "declined"`) is free text. `items` take the same
+entries as `messages`, recursively: an `alt` inside a `loop` is a frame inside
+a frame. The check warns about a return from a participant no call activated,
+a participant still activated at the end, one that sends and receives nothing,
+and an `alt` with one branch. Anchors: a participant id, a message label used
+once, `"from->to"`, a frame's label, `"participants"`.
 
 ## kind: diagram
 
@@ -788,7 +794,7 @@ vlmkit-anim check scene.json --expect facts.json
 | `deps` | `"a->b"` (a depends on b): drawn, in that direction, as a real dependency. A real dependency drawn that is on neither `deps` nor `forbidden` is an error: nothing invented |
 | `forbidden` | `"a->b"`: drawn with `"style": "forbidden"`. Drawn as a real arrow it is an error — that arrow bends the layers around a lie |
 | `highlighted` | module and group ids and edges `"a->b"` that are lit in the **final frame**, and nothing else; read from the frame, so a `flow` (which lights nothing at the end) or a later `unhighlight` counts as dark, and a module or dependency with `"tone": "accent"` counts as lit |
-| `groups` | `{"id": ["member", …]}`: each container holds exactly these members; a drawn group the list does not have is an error |
+| `groups` | `{"id": ["member", …]}`: each container holds exactly these **own** members — a nested group's members are its own, not its parent's, so `"platform": ["api"]` when `services` and `kernel` sit inside `platform`; a drawn group the list does not have is an error. Nesting itself is not a fact the sheet checks: confirm it in the figure (`vlmkit-anim still`), where the inner box lies inside the outer |
 
 Every field is optional and an absent field is not checked; a present one is
 checked exactly, both ways. Fact sheets for the still-figure briefs are in
@@ -810,10 +816,12 @@ for what the reader sees.
 | `graph` | `nodes`, `edges`, `visited`, `path`, `labels`, `highlighted` | `edges` are `"a->b"` — in that direction when `directed`, either way otherwise (`"a<->b"` says so). `visited` is the order of visits (the `visit` ops, or the algorithm's from `start`); `path` the nodes lit at the end, in order; `labels` `{"node": "text"}` what stands beside a node at the end; `highlighted` the nodes lit by `highlight` (a visited node is green, not lit) |
 | `state-machine` | `states`, `transitions`, `initial`, `final`, `visited`, `end` | `transitions` are `"a->b"` or `"a->b:event"` — with the event it must match. `final` are the states drawn with the double ring; `visited` the states the token walks, from `initial`; `end` where it stops, lit in the final frame |
 | `distributed` | `nodes`, `messages`, `lost`, `status` | `messages` are `"a->b"` or `"a->b:label"` in the order written (notes and annotations skipped); `lost` the ones that never land, and no other; `status` `{"node": "down"}` read from the final frame |
+| `sequence` | `nodes`, `messages` | `nodes` are the participants; `messages` `"a->b"` or `"a->b:label"` in the order written, frames flattened (a `loop`'s items once, every `alt` branch in turn), notes and annotations skipped |
+| `flowchart` | `nodes`, `edges`, `visited`, `end` | `edges` are `"a->b"` or `"a->b:yes"` — with the answer it must match; `visited` the walk from `start` (which it includes); `end` where it stops |
 
 A sheet field the kind does not have is one error saying so; the rest is
-compared. Other kinds (sort, matrix, chart, …) have their own semantic checks
-and no sheet yet.
+compared. Other kinds (sort, matrix, chart, gantt, …) have their own semantic
+checks and no sheet yet.
 
 ## kind: vector
 
