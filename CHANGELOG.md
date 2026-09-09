@@ -17,7 +17,12 @@ Dates are YYYY-MM-DD.
 - **Nested groups** on `modules` and `diagram`: `"parent"` on a group draws it inside another — the
   outer box wraps the inner ones with room for their labels, the layout keeps an inner group's
   members together, and a module belongs to the innermost. The validator names a missing parent,
-  a self-parent and a circle.
+  a self-parent and a circle. A `modules` canvas grows per nesting level, so a parent's outline
+  clears the neighbouring container (the first shop fixture's `backend` top ran through `clients`).
+- **`layout` sees a bar through a word.** A narrow filled box down the middle of a text — an activation
+  bar over a frame's tag, which the first sequence sheet drew as `alt [c hed]` — covers little of its
+  area and all of its sense; it is an overlap whatever the ratio. The sequence compiler pads a frame by
+  its widest tag so its own labels sit left of the first lifeline.
 - Report: `docs/reports/2026-09-09-anim-ir-v20.md`.
 
 ## 0.18.0 — 2026-09-08
