@@ -1,0 +1,60 @@
+{
+  "modules": [
+    "vlmkit (root CLI)",
+    "mcp",
+    "generate",
+    "plan",
+    "ai",
+    "anim",
+    "heal",
+    "markup",
+    "capture",
+    "animation-eval",
+    "core"
+  ],
+  "deps": [
+    "vlmkit (root CLI)->mcp",
+    "vlmkit (root CLI)->heal",
+    "vlmkit (root CLI)->markup",
+    "vlmkit (root CLI)->generate",
+    "vlmkit (root CLI)->plan",
+    "vlmkit (root CLI)->anim",
+    "mcp->generate",
+    "mcp->ai",
+    "generate->ai",
+    "plan->ai",
+    "heal->capture",
+    "heal->core",
+    "heal->ai",
+    "markup->capture",
+    "markup->animation-eval",
+    "markup->core",
+    "markup->ai",
+    "capture->core",
+    "animation-eval->core",
+    "generate->core",
+    "plan->core"
+  ],
+  "groups": {
+    "pure (no Playwright)": ["mcp", "generate", "plan", "ai"],
+    "browser only for .png / eval": ["anim"],
+    "needs a browser (required Playwright peer)": ["heal", "markup", "capture", "animation-eval", "core"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [
+    {
+      "kind": "crossed",
+      "what": "the arrows converging on 'core' and 'ai' overlap heavily in the middle of the figure; several of the lines running from 'markup'/'heal' toward 'core' pass directly over or beside the 'capture' and 'animation-eval' boxes rather than approaching only their own endpoints"
+    },
+    {
+      "kind": "other",
+      "what": "six-plus lines fan out of 'vlmkit (root CLI)' and bunch tightly together as they cross the middle of the image, so pairing each line to its exact head (mcp vs. generate vs. plan vs. ai) is a best-effort read rather than a certain one"
+    },
+    {
+      "kind": "illegible",
+      "what": "the two small gray 'peer' labels near the 'ai' box (between generate/ai and plan/ai) are faint and low-contrast against the light background, though still legible on close inspection"
+    }
+  ],
+  "notes": "Two arrows are labeled 'peer' near the 'ai' box, read here as generate->ai and plan->ai; all arrows appear to be solid (no dashed lines observed). Given the density of crossing lines in the central/lower region, some tail attributions for arrows terminating at 'core' and 'ai' (e.g. generate->core, plan->core, mcp->ai) are lower-confidence reads."
+}

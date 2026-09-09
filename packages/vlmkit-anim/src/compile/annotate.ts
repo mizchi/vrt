@@ -326,6 +326,10 @@ export class Annotations {
     const ids = new Set<string>();
     for (const list of this.anchors.values()) for (const id of list) ids.add(id);
     for (const n of this.b.nodes) if (/^(callout|value|text|snapshot)-/.test(n.id) && (n.shape === "text" || n.shape === "rect")) ids.add(n.id);
+    // A container's label is a text of its own beside the anchored box: an arc that may cross the container
+    // holding its end (the box is skipped for that) must still miss the label (v21: "never directly" through
+    // "infrastructure" once the label moved to the container's top-left corner).
+    for (const id of [...ids]) if (this.b.nodes.some((n) => n.id === `${id}-label` && n.shape === "text")) ids.add(`${id}-label`);
     return [...ids];
   }
 
@@ -437,6 +441,54 @@ export class Annotations {
   /** Pixels of stroke that run through a box — an edge under a callout is as unreadable as a text under it. */
   private crossedBy(box: Box, strokes: Seg[]): number {
     return strokes.reduce((s, seg) => s + segmentInside(seg, box), 0);
+  }
+
+  /**
+   * A container's label that a relation's stroke runs through moves to another corner of its container: the
+   * compiler placed the label before the relation existed, and an arc cannot bulge away from a text at its own
+   * end (v21: the arc from `web` down into `db` through "infrastructure", once that label had grown to the
+   * container's top-left corner). Inside top corners first, then just above, then the inside bottom corners.
+   */
+  private moveContainerLabels(strokeIds: string[], t: number): void {
+    const mine: Seg[] = [];
+    for (const id of strokeIds) {
+      const n = this.b.nodes.find((x) => x.id === id);
+      if (!n || (n.shape !== "line" && n.shape !== "arrow" && n.shape !== "path")) continue;
+      const [x, y] = (this.b.valueAt(id, "pos", t) as Vec2 | undefined) ?? [0, 0];
+      mine.push(...strokeSegments(n, [x, y]));
+    }
+    if (!mine.length) return;
+    const all = this.strokesAt(t);
+    for (const label of this.b.nodes) {
+      if (label.shape !== "text" || !label.id.endsWith("-label")) continue;
+      const gid = label.id.slice(0, -"-label".length);
+      const rect = this.b.nodes.find((x) => x.id === gid && x.shape === "rect" && (x.fill === undefined || x.fill === "none"));
+      if (!rect || !this.anchors.has(gid) || ((this.b.valueAt(label.id, "opacity", t) as number | undefined) ?? 1) === 0) continue;
+      const lb = this.nodeBox(label.id, t);
+      if (this.crossedBy(lb, mine) < 8) continue;
+      const rb = this.nodeBox(gid, t);
+      const cands: { pos: Vec2; anchor: "start" | "end" }[] = [
+        { pos: [rb.x + 10, rb.y + 12], anchor: "start" },
+        { pos: [rb.x + rb.w - 10, rb.y + 12], anchor: "end" },
+        { pos: [rb.x + 4, rb.y - 10], anchor: "start" },
+        { pos: [rb.x + rb.w - 4, rb.y - 10], anchor: "end" },
+        { pos: [rb.x + 10, rb.y + rb.h - 8], anchor: "start" },
+        { pos: [rb.x + rb.w - 10, rb.y + rb.h - 8], anchor: "end" },
+      ];
+      const at = (c: { pos: Vec2; anchor: "start" | "end" }): Box => ({ x: c.anchor === "start" ? c.pos[0] : c.pos[0] - lb.w, y: c.pos[1] - lb.h / 2, w: lb.w, h: lb.h });
+      const clear = (bx: Box): boolean =>
+        bx.y >= this.y0() &&
+        bx.x >= this.x0() &&
+        bx.x + bx.w <= this.x1() &&
+        bx.y + bx.h <= this.y1() &&
+        this.crossedBy(bx, all) < 8 &&
+        !this.b.nodes.some((n) => n.id !== label.id && (n.shape === "text" || n.text !== undefined) && ((this.b.valueAt(n.id, "opacity", t) as number | undefined) ?? 1) !== 0 && intersects(this.nodeBox(n.id, t), bx));
+      const pick = cands.find((c) => clear(at(c)));
+      if (pick) {
+        label.pos = pick.pos;
+        label.anchor = pick.anchor;
+      }
+    }
   }
 
   /** The side `placeBeside` last chose, for a pointer that has to leave the box on that side. */
@@ -1035,6 +1087,7 @@ export class Annotations {
       this.b.node({ id: labelId, shape: "text", pos: chosen.pt, text: spec.label, fontSize: fs, color, anchor: chosen.anchor, halo: true, opacity: 0 });
     }
     for (const nodeId of ids) this.b.set(nodeId, "opacity", 1, t);
+    this.moveContainerLabels(ids, t);
     this.relations.set(id, ids);
   }
 }

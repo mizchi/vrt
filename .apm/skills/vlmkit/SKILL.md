@@ -37,7 +37,7 @@ running a loop to detect and repair regressions.
 
 ## Automatic tool bootstrap
 
-### The version these workflows are written against: 0.19.0
+### The version these workflows are written against: 0.20.0
 
 Recorded here, once. The workflows do not repeat it, and
 `tests/skill-package.test.mjs` pins this line to the package's own version so the
@@ -47,10 +47,10 @@ place an agent has already read before it runs a gate.
 Read what is installed before the first gate of a task:
 
 ```sh
-npx vlmkit --version     # vlmkit/0.19.0 darwin-arm64 node-v24.14.1
+npx vlmkit --version     # vlmkit/0.20.0 darwin-arm64 node-v24.14.1
 ```
 
-- **Older, or not installed** → install `@mizchi/vlmkit@0.19.0` and use that.
+- **Older, or not installed** → install `@mizchi/vlmkit@0.20.0` and use that.
   A workflow that names a verb or a flag the installed CLI does not have fails
   with "unknown option", which reads as the user's mistake rather than as a
   version skew. Recent releases add gates and probe families that older CLIs

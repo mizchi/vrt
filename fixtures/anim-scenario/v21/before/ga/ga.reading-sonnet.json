@@ -1,0 +1,34 @@
+{
+  "modules": [
+    "HTTP handler",
+    "CLI command",
+    "Application services",
+    "Domain model",
+    "Repository port",
+    "Postgres repository",
+    "In-memory repository (tests)"
+  ],
+  "deps": [
+    "HTTP handler->Application services",
+    "CLI command->Application services",
+    "Application services->Domain model",
+    "Application services->Repository port",
+    "Postgres repository->Repository port",
+    "In-memory repository (tests)->Repository port",
+    "Domain model->Postgres repository"
+  ],
+  "groups": {
+    "Driving side (inbound)": ["HTTP handler", "CLI command"],
+    "Application & domain": ["Application services", "Domain model", "Repository port"],
+    "Driven side (adapters)": ["Postgres repository", "In-memory repository (tests)"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [
+    {
+      "kind": "crossed",
+      "what": "the solid arrow from 'Application services' to 'Repository port' runs through the red label text 'never: domain must not import the driver'"
+    }
+  ],
+  "notes": "The 'Domain model->Postgres repository' edge is drawn dashed and in red (all other arrows are solid black); its label 'never: domain must not import the driver' sits directly on its own path, which reads as intentional annotation of that edge, not a defect. The label text is small and only legible because it's isolated in the empty band between the two box rows; it is the hardest part of the image to read at a glance since a second line (the Application services->Repository port arrow) passes directly through it, momentarily reading as one broken line."
+}

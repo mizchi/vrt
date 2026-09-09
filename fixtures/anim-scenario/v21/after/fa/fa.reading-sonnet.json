@@ -1,0 +1,58 @@
+{
+  "modules": [
+    "vlmkit (root CLI)",
+    "mcp",
+    "heal",
+    "markup",
+    "generate",
+    "plan",
+    "anim",
+    "capture",
+    "animation-eval",
+    "ai",
+    "core"
+  ],
+  "deps": [
+    "vlmkit (root CLI)->mcp",
+    "vlmkit (root CLI)->generate",
+    "vlmkit (root CLI)->plan",
+    "vlmkit (root CLI)->anim",
+    "vlmkit (root CLI)->heal",
+    "vlmkit (root CLI)->markup",
+    "vlmkit (root CLI)->capture",
+    "vlmkit (root CLI)->animation-eval",
+    "vlmkit (root CLI)->ai",
+    "vlmkit (root CLI)->core",
+    "mcp->generate",
+    "mcp->ai",
+    "generate->ai",
+    "generate->core",
+    "plan->ai",
+    "plan->core",
+    "markup->heal",
+    "markup->capture",
+    "markup->animation-eval",
+    "markup->core",
+    "markup->ai",
+    "heal->capture",
+    "heal->core",
+    "heal->ai",
+    "capture->core",
+    "animation-eval->core",
+    "ai->core"
+  ],
+  "forbidden": [],
+  "groups": {
+    "pure (no Playwright)": ["mcp", "generate", "plan", "ai"],
+    "needs a browser (required Playwright peer)": ["heal", "markup", "capture", "animation-eval", "core"],
+    "browser only for .png / eval": ["anim"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [
+    { "kind": "crossed", "what": "many arrows from markup/heal (left group) to ai and from generate/plan/mcp (middle group) to core/capture cross diagonally through the 'pure (no Playwright)' container's left border and through the animation-eval and ai boxes; the crossing region between x~350-650 has 8-10 overlapping lines, making individual tails hard to attribute" },
+    { "kind": "overlap", "what": "two small grey 'peer' text labels (near generate/ai and near plan/ai) sit directly on top of crossing arrow lines rather than beside a single clear edge, so it is unclear which exact arrow each 'peer' label annotates" },
+    { "kind": "crossed", "what": "the long fan of arrows from 'vlmkit (root CLI)' at top right to the left-hand boxes (heal, markup, capture, core) passes directly through the 'pure (no Playwright)' container box, crossing several of that container's internal arrows" }
+  ],
+  "notes": "All arrows and container borders appear plain black/dark-grey with solid strokes; no red or dashed lines were visible, so 'forbidden' is empty and any grey-dashed dependency the brief describes is not present in this image. No box or border used a strong accent fill/colour, so 'highlighted' is empty. Because 'core' and 'ai' each have 5-7 arrowheads converging on them from tightly-crossing lines, a few of the listed edges (especially heal->ai, markup->ai, and which of generate/plan carries the 'peer' label) are my best reading rather than certain; tails were inferred by nearest matching line angle into each convergence point."
+}

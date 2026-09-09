@@ -1,0 +1,44 @@
+{
+  "modules": ["vlmkit", "mcp", "generate", "plan", "ai", "heal", "markup", "anim", "capture", "animation-eval", "core"],
+  "deps": [
+    "vlmkit->generate",
+    "vlmkit->plan",
+    "vlmkit->mcp",
+    "vlmkit->heal",
+    "vlmkit->markup",
+    "vlmkit->anim",
+    "vlmkit->capture",
+    "vlmkit->animation-eval",
+    "vlmkit->core",
+    "generate->ai",
+    "plan->ai",
+    "mcp->markup",
+    "mcp->ai",
+    "mcp->core",
+    "heal->ai",
+    "heal->core",
+    "markup->ai",
+    "markup->core",
+    "markup->capture",
+    "capture->core",
+    "animation-eval->core",
+    "anim->animation-eval"
+  ],
+  "forbidden": [],
+  "groups": {
+    "CLI": ["vlmkit"],
+    "MCP": ["mcp"],
+    "AI/LLM": ["generate", "plan", "ai"],
+    "Measurement": ["capture", "animation-eval"],
+    "Core": ["core"],
+    "Synthesis": ["heal", "markup", "anim"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [
+    { "kind": "crossed", "what": "vlmkit's long arrow down to 'core' runs past/through the 'capture' and 'animation-eval' boxes on its way, making it hard to tell if it terminates at core or is actually two separate shorter arrows" },
+    { "kind": "crossed", "what": "several arrows converging on the 'ai' box (from mcp, heal, markup) cross close to the 'plan' and 'capture' boxes, so the exact tail of each line into 'ai' is ambiguous" },
+    { "kind": "other", "what": "the anim->animation-eval arrow is grey and dashed, visually distinct from the solid black arrows elsewhere, per the brief's note that a grey dashed arrow still counts as a dependency" }
+  ],
+  "notes": "This figure has a large hub of lines radiating from 'vlmkit' and converging on 'ai' and 'core', with many near-parallel crossings in the middle of the image. The edges listed above are my best reading of tail/head from arrowhead position, but individual line identity is genuinely hard to verify where 6+ lines overlap near the 'ai' and 'core' boxes. The 'Synthesis' container's exact membership (heal, markup, anim vs. anim alone) is inferred from the label sitting at the container's top-right corner, matching the corner-label convention used by CLI/MCP/AI-LLM; no red or strong-accent-colored elements were visible anywhere in the image."
+}

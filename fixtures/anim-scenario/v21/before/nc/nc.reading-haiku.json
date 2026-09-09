@@ -1,0 +1,20 @@
+{
+  "modules": ["web", "admin", "api", "auth", "catalog", "orders", "logger", "shared-types", "kernel", "db", "queue"],
+  "deps": ["web->api", "admin->api", "api->auth", "api->catalog", "api->orders", "auth->logger", "auth->shared-types", "catalog->shared-types", "catalog->kernel", "catalog->db", "orders->kernel", "orders->db", "orders->queue", "shared-types->db"],
+  "groups": {
+    "apps": ["web", "admin"],
+    "services": ["auth", "catalog", "orders", "logger", "shared-types"],
+    "infra": ["db", "queue"]
+  },
+  "nesting": {
+    "services": "platform"
+  },
+  "highlighted": [],
+  "issues": [
+    {
+      "kind": "illegible",
+      "what": "kernel label is rendered in very light gray, making it difficult to distinguish from the background"
+    }
+  ],
+  "notes": "kernel appears as a module destination for arrows from catalog, orders, and shared-types; the platform container boundaries are implicit based on layout; platform label is present but container is not explicitly drawn with a visible rectangle outline"
+}

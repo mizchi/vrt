@@ -1,0 +1,19 @@
+{
+  "modules": ["vlmkit", "mcp", "generate", "plan", "heal", "markup", "anim", "animation-eval", "capture", "ai", "core"],
+  "deps": ["vlmkit->plan", "vlmkit->heal", "vlmkit->markup", "vlmkit->anim", "vlmkit->capture", "vlmkit->animation-eval", "vlmkit->core", "vlmkit->ai", "generate->plan", "generate->ai", "plan->ai", "mcp->heal", "mcp->markup", "heal->markup", "heal->animation-eval", "heal->core", "markup->anim", "markup->core", "animation-eval->core", "capture->ai", "capture->core", "anim->core"],
+  "groups": {
+    "CLI": ["vlmkit"],
+    "ICP": ["mcp"],
+    "AI/LLM": ["generate", "plan"],
+    "Synthesis": ["anim"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [
+    {
+      "kind": "crossed",
+      "what": "numerous arrows cross each other in the central region, making individual dependency paths difficult to trace visually"
+    }
+  ],
+  "notes": "The 'Measurement' label appears as text annotation near the bottom center but is not a container. ICP appears as a separate small container near CLI; unclear if it is nested inside CLI or positioned independently. The high density of interconnections in the middle creates significant visual complexity."
+}

@@ -1,0 +1,21 @@
+{
+  "modules": ["HTTP handler", "CLI command", "Application services", "Domain model", "Postgres adapter", "In-memory adapter", "Repository port (interface)"],
+  "deps": [
+    "CLI command->Application services",
+    "HTTP handler->Repository port (interface)",
+    "Application services->Domain model",
+    "Domain model->Repository port (interface)",
+    "Postgres adapter->Repository port (interface)",
+    "In-memory adapter->Repository port (interface)"
+  ],
+  "forbidden": ["Domain model->Postgres adapter"],
+  "groups": {
+    "Driving side (ports)": ["HTTP handler", "CLI command"],
+    "Core domain": ["Application services", "Domain model", "Repository port (interface)"],
+    "Adapters (driven side)": ["Postgres adapter", "In-memory adapter"]
+  },
+  "nesting": {},
+  "highlighted": [],
+  "issues": [],
+  "notes": "All plain arrows are solid black (no grey dashed arrow present). The HTTP handler->Repository port (interface) arrow runs a long path down the left side, close alongside the Domain model box, which made its endpoint slightly easy to confuse with Domain model at a glance, though it does not appear to cross the box itself."
+}

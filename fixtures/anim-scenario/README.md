@@ -133,6 +133,16 @@ frames flattened) and `modules-nested-still` (a monorepo whose `platform`
 container holds two containers; the sheet fixes each container's own members).
 Writers `na`–`nc`.
 
+v21 (2026-09-09) turns the readers on the still figures: `vlmkit-anim review
+--still` hands a reader one figure and a brief that asks for the figure read
+back — modules, containers and their own members, nesting, arrows tail→head,
+forbidden arrows, what is lit — and scores the reading against the facts the
+scene draws (`<name>.facts.json`) as read / missed / invented / reversed /
+misplaced and one fidelity number. Nine figures (`fa`, `fe`, `ga`, `hb`,
+`hd`, `ld`, `nc`, the nested fixture, the workspace map), twelve readings
+before the round's compiler changes and nine after; the readings and scores
+are in `v21/`.
+
 Metrics per run: first-attempt error count, rounds to green, scene bytes,
 semantic verdict, and the agent's own words on what helped / what was missing;
 from v9 also the coordinate-fallback count, the expressiveness metric; from

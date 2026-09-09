@@ -1,0 +1,9 @@
+after fa/sonnet :: 47 facts · read 43 · missed 4 · invented 5 · fidelity 0.83
+after fe/sonnet :: 21 facts · read 18 · missed 3 · invented 3 · fidelity 0.75
+after ga/sonnet :: 21 facts · read 21 · missed 0 · invented 0 · fidelity 1
+after hb/sonnet :: 22 facts · read 22 · missed 0 · invented 0 · fidelity 1
+after hd/sonnet :: 48 facts · read 31 · missed 17 · invented 13 · fidelity 0.51
+after ld/sonnet :: 46 facts · read 39 · missed 7 · invented 5 · fidelity 0.76
+after nested/haiku :: 28 facts · read 27 · missed 1 · invented 3 · fidelity 0.87
+after nested/sonnet :: 28 facts · read 28 · missed 0 · invented 0 · fidelity 1
+after arch/sonnet :: 37 facts · read 28 · missed 9 · invented 4 · fidelity 0.68

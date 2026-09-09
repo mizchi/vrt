@@ -1,6 +1,6 @@
 {
   "name": "@mizchi/vlmkit",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "VLM-driven frontend toolkit: visual regression (snapshot / diff / regression-watch), markup synthesis from screenshots, design-token / theme / a11y / i18n audits, and a 2-stage VLM+LLM CSS auto-repair loop.",
   "license": "MIT",
   "author": "mizchi",

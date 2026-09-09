@@ -169,7 +169,12 @@ export function layoutNodes(input: LayoutInput, mode: LayoutMode): Map<string, [
     }
     const exclusive = new Set<string>();
     for (const [g, [lo, hi]] of span) {
-      if (free.every((id) => bandOf.get(id) === g || (layerOf.get(id) ?? 0) < lo || (layerOf.get(id) ?? 0) > hi)) exclusive.add(g);
+      if (!free.every((id) => bandOf.get(id) === g || (layerOf.get(id) ?? 0) < lo || (layerOf.get(id) ?? 0) > hi)) continue;
+      // …and no other group reaches across its layers: a full-width row through a column another group spans
+      // is two containers crossing (fe, v21: "Adapters" drawn as a row through the "Core domain" column, and
+      // the reader put the port inside both).
+      const crossed = [...span].some(([h, [lo2, hi2]]) => h !== g && lo2 < lo && hi2 > hi);
+      if (!crossed) exclusive.add(g);
     }
     // Bands for the rest, in declaration order, plus one for the ungrouped: each as wide as its fullest layer.
     const bandName = (id: string): string => {

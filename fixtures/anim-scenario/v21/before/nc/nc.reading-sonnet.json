@@ -1,0 +1,30 @@
+{
+  "modules": ["web", "admin", "api", "auth", "catalog", "orders", "logger", "shared-types", "db", "queue"],
+  "deps": [
+    "web->api",
+    "admin->api",
+    "api->auth",
+    "api->catalog",
+    "api->orders",
+    "auth->logger",
+    "auth->shared-types",
+    "catalog->logger",
+    "catalog->db",
+    "orders->db",
+    "orders->queue"
+  ],
+  "groups": {
+    "apps": ["web", "admin"],
+    "platform": ["api"],
+    "services": ["auth", "catalog", "orders"],
+    "kernel": ["logger", "shared-types"],
+    "infra": ["db", "queue"]
+  },
+  "nesting": {
+    "services": "platform",
+    "kernel": "platform"
+  },
+  "highlighted": [],
+  "issues": [],
+  "notes": "All arrows are solid (no dashed edges seen). Two regions have arrows crossing each other in open space (auth->shared-types crosses catalog->logger below the services row; catalog->db and orders->db converge/cross on their way into db) but none of these lines pass through a box or a text label, so they are not listed as 'crossed' issues per the brief's definition -- just noted as visually dense. The admin->api arrow is a long diagonal that dips across the top border of the 'platform' container on its way to api; this is a container-boundary crossing, not a label/box crossing, so also not flagged."
+}

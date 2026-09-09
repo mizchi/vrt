@@ -30,12 +30,12 @@ export interface LayoutBox {
 }
 
 export interface LayoutIssue {
-  kind: "overlap" | "clipped" | "crossed";
-  /** The nodes involved: two for an overlap (text first) or a crossing (text first, stroke second), one for a clipped text. */
+  kind: "overlap" | "clipped" | "crossed" | "boxes";
+  /** The nodes involved: two for an overlap (text first) or a crossing (text first, stroke second), one for a clipped text, two containers for `boxes`. */
   nodes: string[];
   /** Their texts, for a human or a scorer. */
   texts: string[];
-  /** overlap: intersection area over the smaller box's area (0..1). clipped: pixels past the edge. crossed: pixels of stroke inside the text box. */
+  /** overlap: intersection area over the smaller box's area (0..1). clipped: pixels past the edge. crossed: pixels of stroke inside the text box. boxes: intersection over the smaller container (0..1). */
   amount: number;
 }
 
@@ -48,7 +48,7 @@ export interface LayoutFrame {
 
 export interface LayoutReport {
   frames: LayoutFrame[];
-  totals: { frames: number; framesWithIssues: number; overlaps: number; clipped: number; crossed: number };
+  totals: { frames: number; framesWithIssues: number; overlaps: number; clipped: number; crossed: number; boxes: number };
 }
 
 export interface LayoutOptions {
@@ -222,6 +222,7 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
   const fills: LayoutBox[] = [];
   /** Every filled box, the moving ones included: what hides a stroke at this instant, whatever it is doing. */
   const allFills: LayoutBox[] = [];
+  const outlines: LayoutBox[] = [];
   const strokes: { node: TimelineNode; segs: Segment[] }[] = [];
   const byId = new Map(tl.nodes.map((n) => [n.id, n]));
   for (const n of tl.nodes) {
@@ -230,6 +231,11 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
     const pos = worldPos(tl, frame, n.id);
     const tb = textBox(n, st, pos);
     if (tb) texts.push(tb);
+    // An outlined box with nothing written in it — a container, a frame — for the crossing check below.
+    if (n.shape === "rect" && !n.text && st.opacity >= 0.5 && (!(st.fill ?? n.fill) || (st.fill ?? n.fill) === "none" || (st.fill ?? n.fill) === "transparent")) {
+      const [w, h] = st.size ?? n.size ?? [0, 0];
+      if (w >= 40 && h >= 24) outlines.push({ id: n.id, x: pos[0] - w / 2, y: pos[1] - h / 2, w, h });
+    }
     // A filled box that is on its way somewhere (a matrix token leaving its source cell at the start of a
     // beat) is where the animation wants it for an instant, not a layout defect.
     const anyFill = filledBox(n, st, pos);
@@ -305,6 +311,22 @@ export function layoutFrame(tl: Timeline, t: number, opts: LayoutOptions = {}): 
       if (inside >= minCross) issues.push({ kind: "crossed", nodes: [tb.id, s.node.id], texts: [tb.text ?? "", ""], amount: Math.round(inside) });
     }
   }
+  // Two containers that cross: each has part of the other inside it and neither holds the other (fe, v21: a
+  // full-width "Adapters" row through the "Core domain" column, read as "the port sits inside both"). One
+  // inside the other is nesting, and is fine.
+  const contains = (a: LayoutBox, b: LayoutBox) => b.x >= a.x - 1 && b.y >= a.y - 1 && b.x + b.w <= a.x + a.w + 1 && b.y + b.h <= a.y + a.h + 1;
+  const labelOf = (id: string) => tl.nodes.find((n) => n.id === `${id}-label`)?.text ?? id;
+  for (let i = 0; i < outlines.length; i++) {
+    for (let j = i + 1; j < outlines.length; j++) {
+      const a = outlines[i];
+      const b = outlines[j];
+      if (isAncestor(tl, a.id, b.id) || isAncestor(tl, b.id, a.id) || contains(a, b) || contains(b, a)) continue;
+      const inter = intersection(a, b);
+      if (!inter) continue;
+      const ratio = inter / Math.min(a.w * a.h, b.w * b.h);
+      if (ratio >= 0.02) issues.push({ kind: "boxes", nodes: [a.id, b.id], texts: [labelOf(a.id), labelOf(b.id)], amount: Math.round(ratio * 100) / 100 });
+    }
+  }
   return issues;
 }
 
@@ -361,6 +383,7 @@ export function layoutReport(tl: Timeline, opts: LayoutOptions = {}): LayoutRepo
       overlaps: all.filter((i) => i.kind === "overlap").length,
       clipped: all.filter((i) => i.kind === "clipped").length,
       crossed: all.filter((i) => i.kind === "crossed").length,
+      boxes: all.filter((i) => i.kind === "boxes").length,
     },
   };
 }
@@ -375,10 +398,11 @@ export function formatLayout(report: LayoutReport): string {
     for (const i of f.issues) {
       if (i.kind === "clipped") lines.push(`  clipped  "${i.texts[0]}" runs ${i.amount}px past the canvas edge (${i.nodes[0]})`);
       else if (i.kind === "crossed") lines.push(`  crossed  "${i.texts[0]}" has a line through it — ${i.amount}px inside the text (${i.nodes.join(" × ")})`);
+      else if (i.kind === "boxes") lines.push(`  boxes    containers "${i.texts[0]}" and "${i.texts[1]}" cross — neither holds the other, ${Math.round(i.amount * 100)}% of the smaller is inside (${i.nodes.join(" × ")})`);
       else lines.push(`  overlap  "${i.texts[0]}" on ${i.texts[1] ? `"${i.texts[1]}"` : i.nodes[1]} — ${Math.round(i.amount * 100)}% of the smaller box (${i.nodes.join(" × ")})`);
     }
   }
   const t = report.totals;
-  lines.push(`${t.framesWithIssues} of ${t.frames} frames with layout issues · ${t.overlaps} overlap(s) · ${t.clipped} clipped · ${t.crossed} crossed`);
+  lines.push(`${t.framesWithIssues} of ${t.frames} frames with layout issues · ${t.overlaps} overlap(s) · ${t.clipped} clipped · ${t.crossed} crossed${t.boxes ? ` · ${t.boxes} container(s) crossing` : ""}`);
   return lines.join("\n");
 }

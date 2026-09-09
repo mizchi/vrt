@@ -1,0 +1,27 @@
+{
+  "modules": ["web app", "mobile app", "API gateway", "orders", "billing", "domain model", "Postgres", "event bus"],
+  "deps": [
+    "web app->API gateway",
+    "mobile app->API gateway",
+    "API gateway->orders",
+    "API gateway->billing",
+    "orders->domain model",
+    "orders->Postgres",
+    "billing->Postgres",
+    "Postgres->event bus",
+    "billing->event bus"
+  ],
+  "groups": {
+    "clients": ["web app", "mobile app"],
+    "backend": ["API gateway"],
+    "services": ["orders", "billing"],
+    "core": ["domain model"],
+    "infrastructure": ["Postgres", "event bus"]
+  },
+  "nesting": {
+    "services": "backend",
+    "core": "services"
+  },
+  "highlighted": [],
+  "issues": []
+}

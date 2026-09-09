@@ -31,7 +31,7 @@ import { sceneFromModule } from "./author.ts";
 import { handleCliError, hasFlag, readFlag, readInt, readPositionals, UsageError } from "./cli-args.ts";
 import { animStats, checkAnimation, explain } from "./check.ts";
 import { compileScene, SceneValidationError } from "./compile/index.ts";
-import { checkExpectation, EXPECT_SHEET, formatCompared, validateExpectation, type Expectation } from "./expect.ts";
+import { checkExpectation, EXPECT_SHEET, formatCompared, sceneFacts, validateExpectation, type Expectation } from "./expect.ts";
 import { changeMapScene, workspaceExpectation, workspaceScene } from "./generators/git.ts";
 import { importFacts } from "./generators/imports.ts";
 import { renderFrameSvg, sampleTimes } from "./render-svg.ts";
@@ -40,8 +40,8 @@ import { currentStep, timelineDuration } from "./timeline.ts";
 import { SCENE_FORMAT, SCENE_KINDS, TIMELINE_FORMAT, type Diagnostic, type Scene, type Timeline } from "./types.ts";
 import { formatDiagnostics, hasErrors, validateDocument, validateTimeline } from "./validate.ts";
 import { schemaIndex, schemaSheet } from "./schema-sheet.ts";
-import { contentBox, formatLayout, layoutReport } from "./layout.ts";
-import { formatScore, parseAnswers, reviewBrief, reviewTiles, scoreReview, type ReviewAnswers, type ReviewScore } from "./review.ts";
+import { contentBox, formatLayout, layoutFrame, layoutReport } from "./layout.ts";
+import { formatReading, formatScore, parseAnswers, parseReading, reviewBrief, reviewTiles, scoreReading, scoreReview, stillBrief, type Reading, type ReadingScore, type ReviewAnswers, type ReviewScore } from "./review.ts";
 import { renderSheetHtml } from "./sheet.ts";
 import { writeVideo, type VideoResult } from "./video.ts";
 
@@ -85,14 +85,20 @@ Commands
                                   One frame as a figure without the caption band, cropped to what is drawn
                                   (--full keeps the canvas) — the end by default: a \`modules\` map, a filled
                                   matrix, a walked graph. PNG needs playwright.
-  layout <scene.json> [--json]     Where texts sit on texts, under filled boxes, or past the canvas edge, at every
-                                  step — read from the compiled timeline, no browser. Exit 1 when any is found.
-  review <scene.json> --out <dir> [--model M] [--answers a.json] [--cols N] [--tile W]
+  layout <scene.json> [--json]     Where texts sit on texts, under filled boxes, or past the canvas edge, where a
+                                  line runs through a text, and where two containers cross, at every step —
+                                  read from the compiled timeline, no browser. Exit 1 when any is found.
+  review <scene.json> --out <dir> [--model M] [--answers a.json] [--cols N] [--tile W] [--still | --sheet]
                                   Writes <name>.sheet.png (or .html without playwright), <name>.review-brief.md
                                   (the prompt for a vision model or an agent: tiles + the JSON to return) and
                                   <name>.layout.json. --model M asks that VLM (@mizchi/vlmkit-ai, needs its key)
                                   and --answers a.json takes a reader's JSON; either is scored frame by frame
                                   against the geometry into <name>.review-score.md.
+                                  A still figure (a modules / diagram scene with no walk, or --still) is read
+                                  back instead: <name>.still.png, <name>.still-brief.md (modules, containers and
+                                  what is directly inside them, nesting, arrows tail->head, what is lit, defects),
+                                  <name>.facts.json (what the scene draws); a reading is scored name by name into
+                                  <name>.still-score.md — read / missed / invented / reversed / misplaced.
   repo [--root .] [--out dir] [--title T] [--no-images]
                                   The workspace's architecture as an animation: packages appear layer by layer
                                   with the dependencies that place them there. Writes <out>/repo.scene.json,
@@ -439,6 +445,74 @@ export async function runAnimCli(argv: string[]): Promise<number> {
       await mkdir(out, { recursive: true });
       // `--name` for files that share a basename (every attempt is a `scene.json`).
       const name = readFlag(rest, "--name") ?? basename(file).replace(/\.(scene\.|timeline\.)?(json|m?ts|m?js)$/, "");
+      // A still figure (v21): a module map or a diagram that is not walked — one image, and the question is not
+      // "what is broken" but "what does it say": the reader reads the figure back and the reading is scored
+      // against the facts the scene draws. `--still` forces it; `--sheet` forces the contact sheet.
+      const facts = scene ? sceneFacts(scene, tl) : undefined;
+      const isStill = hasFlag(rest, "--still") || (!hasFlag(rest, "--sheet") && !!facts && (tl.steps ?? []).length <= 2);
+      if (isStill) {
+        if (!facts) throw new UsageError("review --still reads a modules / diagram scene back against its facts; this scene has none (use --sheet for the contact sheet)");
+        const title = scene?.title ?? String(tl.meta?.title ?? name);
+        const t = timelineDuration(tl);
+        const crop = contentBox(tl, t);
+        const svg = renderFrameSvg(tl, t, { caption: false, crop });
+        const files: string[] = [];
+        let fig = join(out, `${name}.still.png`);
+        try {
+          await screenshotHtml(`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff">${svg}</body></html>`, fig, { width: crop.w, height: crop.h });
+        } catch (e) {
+          fig = join(out, `${name}.still.svg`);
+          await writeFile(fig, svg);
+          console.error(`figure as SVG (${(e as Error).message})`);
+        }
+        files.push(fig);
+        const words = scene?.kind === "modules" ? {} : { nodeWord: "node", groupWord: "group", depWord: "edge" };
+        const brief = stillBrief(title, words);
+        const briefPath = join(out, `${name}.still-brief.md`);
+        await writeFile(briefPath, brief);
+        files.push(briefPath);
+        const factsPath = join(out, `${name}.facts.json`);
+        await writeFile(factsPath, JSON.stringify(facts, null, 2));
+        files.push(factsPath);
+        const issues = layoutFrame(tl, t);
+        const layoutPath = join(out, `${name}.layout.json`);
+        await writeFile(layoutPath, JSON.stringify({ t, issues }, null, 2));
+        files.push(layoutPath);
+        let reading: Reading | undefined;
+        let readerLabel = "";
+        const answersPath = readFlag(rest, "--answers");
+        const model = readFlag(rest, "--model");
+        if (answersPath) {
+          reading = parseReading(await readFile(answersPath, "utf-8"));
+          readerLabel = basename(answersPath);
+        } else if (model) {
+          if (!fig.endsWith(".png")) throw new UsageError("--model needs the figure as PNG: install playwright");
+          const ai = await loadVlm();
+          const client = await ai.createVlmClient(await ai.resolveModel(model));
+          if (!client) throw new UsageError(`no API key for ${model}`);
+          const res = await client.analyzeImageFile(fig, brief, { maxTokens: 4000 });
+          const rawPath = join(out, `${name}.reading-${model.replace(/[^a-zA-Z0-9.-]/g, "_")}.json`);
+          await writeFile(rawPath, res.content);
+          files.push(rawPath);
+          reading = parseReading(res.content);
+          readerLabel = `${model} (${res.latencyMs}ms, $${res.costUsd.toFixed(5)})`;
+        }
+        let score: ReadingScore | undefined;
+        if (reading) {
+          score = scoreReading(facts, reading);
+          const scorePath = join(out, `${name}.still-score.md`);
+          await writeFile(scorePath, `# ${title} — the figure read back vs its facts\n\nreader: ${readerLabel}\n\n${formatReading(score, facts, reading, issues)}\n`);
+          files.push(scorePath);
+        }
+        if (json) console.log(JSON.stringify({ files, still: true, facts: { modules: facts.modules.length, deps: facts.deps.length, groups: Object.keys(facts.groups).length, nesting: Object.keys(facts.parents).length }, layout: issues.length, score: score?.totals }, null, 2));
+        else {
+          for (const f of files) console.log(`wrote ${f}`);
+          console.log(`facts: ${facts.modules.length} modules · ${facts.deps.length} deps · ${Object.keys(facts.groups).length} groups · ${Object.keys(facts.parents).length} nested · layout: ${issues.length ? `${issues.length} issue(s)` : "clean"}`);
+          if (score && reading) console.log(formatReading(score, facts, reading, issues));
+          else console.log(`next: hand ${basename(fig)} and ${basename(briefPath)} to a reader, then --answers <its.json>; or --model <vlm> with its API key`);
+        }
+        return 0;
+      }
       const times = sampleTimes(tl, 0);
       const cols = readInt(rest, "--cols", { min: 1 }) ?? 3;
       const tileWidth = readInt(rest, "--tile", { min: 120 }) ?? 400;

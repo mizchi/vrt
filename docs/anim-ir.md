@@ -21,8 +21,9 @@ This page is the complete writing guide. Every JSON block on it passes
    vlmkit-anim check scene.json --expect facts.json  …and the figure against its facts: modules, dependencies "a->b", forbidden ones, what is lit, group members;
                                                      a graph's visits and path, a state machine's transitions and end state, a distributed scene's messages and lost ones
    vlmkit-anim facts src --depth 1 --out f.json      a fact sheet from a directory's import graph, for a map drawn by hand from the code
-   vlmkit-anim layout scene.json                     texts on texts, under boxes, past the edge, lines through texts — per step (check warns about these too)
+   vlmkit-anim layout scene.json                     texts on texts, under boxes, past the edge, lines through texts, containers crossing — per step (check warns about these too)
    vlmkit-anim review scene.json --out dir           the sheet + a review brief for a vision model or an agent; --answers its JSON scores it
+                                                     (a still figure is read back instead: modules, containers, nesting, arrows — scored against the facts it draws)
 5. vlmkit-anim html scene.json --out page.html       the playable page
    vlmkit-anim video scene.json --out demo.gif       a file for a README / slide (or .mp4 / .webm through ffmpeg)
 6. vlmkit-anim eval page.html                        measure the emitted page frame by frame (needs @mizchi/vlmkit-animation-eval + playwright)

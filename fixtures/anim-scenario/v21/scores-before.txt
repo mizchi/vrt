@@ -1,0 +1,22 @@
+before fa/sonnet :: 47 facts · read 38 · missed 9 · invented 4 · fidelity 0.75
+before fe/sonnet :: 21 facts · read 19 · missed 2 · invented 2 · fidelity 0.83 · names that resolve to nothing drawn: "red X mark with the word "FORBIDDEN" beside it, sitting just left of/below the Domain model box"
+    | deps | 5 | app-svc->repo-port, domain->postgres | domain->repo-port | reversed: domain->postgres |
+    21 facts · read 19 · missed 2 · invented 2 · fidelity 0.83 · names that resolve to nothing drawn: "red X mark with the word "FORBIDDEN" beside it, sitting just left of/below the Domain model box"
+    notes: The line I read as 'Postgres adapter->Domain model' is my best-effort reading of a diagonal line passing through the red X/FORBIDDEN callout region; at this resolution I cannot fully confirm whether its tail is Postgres adapter and its head is Domain model versus Application services, or whether the callout marks a crossing of two other arrows rather than a distinct line of its own. All other arrows (converging into Application services, the vertical chain down to Repository port, and the two adapter arrows into Repository port) read as plain solid arrows, not dashed.
+before ga/sonnet :: 21 facts · read 21 · missed 0 · invented 0 · fidelity 1
+    | forbidden | 1 | — | — | read as plain: domain->postgres |
+before hb/sonnet :: 22 facts · read 22 · missed 0 · invented 0 · fidelity 1 · names that resolve to nothing drawn: "postgres arrow (dashed, red, labeled 'never')"
+    | forbidden | 1 | — | — | read as plain: domain->postgres |
+    22 facts · read 22 · missed 0 · invented 0 · fidelity 1 · names that resolve to nothing drawn: "postgres arrow (dashed, red, labeled 'never')"
+before hd/haiku :: 48 facts · read 22 · missed 26 · invented 15 · fidelity 0.35 · names that resolve to nothing drawn: "ICP"
+    | group members | 4 | foundation: core, ai-services: ai, measurement: capture, measurement: animation-eval, synthesis: heal, synthesis: markup, integration: mcp | — | groups not read: foundation, measurement, integration; groups not drawn: ICP |
+    48 facts · read 22 · missed 26 · invented 15 · fidelity 0.35 · names that resolve to nothing drawn: "ICP"
+before hd/sonnet :: 48 facts · read 34 · missed 14 · invented 13 · fidelity 0.56
+before ld/sonnet :: 46 facts · read 41 · missed 5 · invented 7 · fidelity 0.77
+before nc/haiku :: 35 facts · read 29 · missed 6 · invented 6 · fidelity 0.71
+    | group members | 7 | platform: api, kernel: shared-types, kernel: logger | services: logger, services: shared-types | misplaced: logger read in services, drawn in kernel; shared-types read in services, drawn in kernel; groups not read: platform, kernel |
+before nc/sonnet :: 35 facts · read 32 · missed 3 · invented 1 · fidelity 0.89
+before nested/haiku :: 28 facts · read 25 · missed 3 · invented 2 · fidelity 0.83
+before nested/sonnet :: 28 facts · read 28 · missed 0 · invented 0 · fidelity 1
+before arch/sonnet :: 37 facts · read 27 · missed 10 · invented 5 · fidelity 0.64 · names that resolve to nothing drawn: "the number "11" in "packages so far: 11" (orange/amber text, top right — no boxes are filled or outlined in an accent colour)"
+    37 facts · read 27 · missed 10 · invented 5 · fidelity 0.64 · names that resolve to nothing drawn: "the number "11" in "packages so far: 11" (orange/amber text, top right — no boxes are filled or outlined in an accent colour)"

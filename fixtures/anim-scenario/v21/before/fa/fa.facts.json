@@ -1,0 +1,81 @@
+{
+  "format": "vlmkit-anim/expect@1",
+  "modules": [
+    "core",
+    "ai",
+    "capture",
+    "animation-eval",
+    "generate",
+    "heal",
+    "markup",
+    "mcp",
+    "plan",
+    "anim",
+    "cli"
+  ],
+  "deps": [
+    "ai->core",
+    "capture->core",
+    "animation-eval->core",
+    "generate->ai",
+    "plan->ai",
+    "anim->ai",
+    "anim->animation-eval",
+    "heal->ai",
+    "heal->capture",
+    "heal->core",
+    "markup->ai",
+    "markup->animation-eval",
+    "markup->capture",
+    "markup->core",
+    "mcp->core",
+    "mcp->markup",
+    "cli->ai",
+    "cli->anim",
+    "cli->animation-eval",
+    "cli->capture",
+    "cli->core",
+    "cli->generate",
+    "cli->heal",
+    "cli->markup",
+    "cli->mcp",
+    "cli->plan"
+  ],
+  "forbidden": [],
+  "highlighted": [],
+  "groups": {
+    "browser": [
+      "core",
+      "capture",
+      "animation-eval",
+      "heal",
+      "markup"
+    ],
+    "pure": [
+      "ai",
+      "generate",
+      "mcp",
+      "plan"
+    ],
+    "optional-browser": [
+      "anim"
+    ]
+  },
+  "labels": {
+    "core": "core",
+    "ai": "ai",
+    "capture": "capture",
+    "animation-eval": "animation-eval",
+    "generate": "generate",
+    "heal": "heal",
+    "markup": "markup",
+    "mcp": "mcp",
+    "plan": "plan",
+    "anim": "anim",
+    "cli": "vlmkit (root CLI)",
+    "browser": "needs a browser (required Playwright peer)",
+    "pure": "pure (no Playwright)",
+    "optional-browser": "browser only for .png / eval"
+  },
+  "parents": {}
+}
